@@ -1,0 +1,35 @@
+[workspace]
+default-members = ["hypertext", "hypertext-macros"]
+members = ["hypertext", "hypertext-macros"]
+resolver = "2"
+
+    [workspace.package]
+    authors = ["Vidhan Bhatt <me@vidhan.io>"]
+    categories = ["template-engine"]
+    description = "A type-checked html macro."
+    edition = "2021"
+    homepage = "https://github.com/vidhanio/hypertext"
+    keywords = ["html", "macro", "rstml"]
+    license-file = "LICENSE.txt"
+    readme = "README.md"
+    repository = "https://github.com/vidhanio/hypertext"
+    version = "0.1.0"
+
+    [workspace.metadata.docs.rs]
+    all-features = true
+    rustdoc-args = ["--cfg", "docsrs"]
+
+[workspace.dependencies]
+hypertext-macros = { version = "0.1.0", path = "./hypertext-macros" }
+
+[workspace.lints]
+    [workspace.lints.rust]
+    missing_copy_implementations = "warn"
+    missing_debug_implementations = "warn"
+    # missing_docs = "warn"
+    unsafe_code = "forbid"
+
+    [workspace.lints.clippy]
+    # cargo = "warn"
+    nursery = "warn"
+    pedantic = "warn"

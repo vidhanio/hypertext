@@ -1,0 +1,28 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+  push:
+    paths:
+      - "**/Cargo.toml"
+      - "**/Cargo.lock"
+      - "**/deny.toml"
+
+  pull_request:
+
+jobs:
+  cargo-deny:
+    name: Security Audit
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Run `cargo-deny`
+        uses: EmbarkStudios/cargo-deny-action@v1
