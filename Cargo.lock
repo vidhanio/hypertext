@@ -114,7 +114,7 @@ dependencies = [
 
 [[package]]
 name = "hypertext"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "axum-core",
  "html-escape",
@@ -126,7 +126,7 @@ dependencies = [
 
 [[package]]
 name = "hypertext-macros"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "html-escape",
  "proc-macro2",
