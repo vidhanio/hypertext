@@ -169,7 +169,7 @@ where
     ///     r#"<ul id="shopping-list"><li>milks</li><li>eggs</li><li>bread</li></ul>"#
     /// );
     #[inline]
-    fn render_all(self) -> impl Render {
+    fn render_all(self) -> Renderable<impl FnOnce(&mut String)> {
         Renderable(|output| {
             self.into_iter().for_each(|item| {
                 item.render_to(output);
