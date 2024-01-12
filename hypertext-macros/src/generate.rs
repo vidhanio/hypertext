@@ -15,27 +15,8 @@ pub fn normal(len_estimate: usize, output_ident: Ident, value: impl Generate) ->
 
     let block = gen.finish();
 
-    quote! {{
-        extern crate alloc;
-        let mut #output_ident = alloc::string::String::with_capacity(#len_estimate);
-        {
-            let #output_ident = &mut #output_ident;
-            #block
-        }
-        ::hypertext::Rendered(#output_ident)
-    }}
-}
-
-#[allow(clippy::needless_pass_by_value)]
-pub fn lazy(len_estimate: usize, output_ident: Ident, value: impl Generate) -> TokenStream {
-    let mut gen = Generator::new(output_ident.clone());
-
-    gen.push(value);
-
-    let block = gen.finish();
-
     quote! {
-        ::hypertext::Lazy(move |#output_ident| {
+        ::hypertext::Renderable(move |#output_ident| {
             #output_ident.reserve(#len_estimate);
             #block
         })

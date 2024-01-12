@@ -1,25 +1,24 @@
-//! A blazing fast library for writing type-checked HTML in Rust.
+//! A blazing fast type-checked HTML macro crate.
 //!
 //! # Features
 //!
-//! ## Fast
+//! ## Speed
 //!
 //! The macros generate code that is as fast as writing HTML to a string by
 //! hand. The macro automatically combines what would be multiple `push_str`
 //! calls into one if there is no dynamic content between them.
 //!
-//! The entire library is `#![no_std]` compatible, and allocation is completely
+//! The entire crate is `#![no_std]` compatible, and allocation is completely
 //! optional if you don't use any dynamic content. Disabling the `alloc` feature
-//! and using [`maud_static!`]/[`html_static!`] will result in an `&'static str`
-//! which can even be used in `const` contexts!
+//! and using [`maud_static!`]/[`html_static!`] will result in an
+//! [`Rendered<&str>`], which can even be used in `const` contexts!
 //!
-//! The library also natively provides support for lazy rendering, which is
-//! useful for composing multiple nested components together. This results in
-//! only one final allocation, rather than allocating multiple times unnessarily
-//! then concatenating them together. See [`Lazy`], [`maud_lazy!`], or
-//! [`html_lazy!`] information.
+//! The crate gives extreme importance to lazy rendering and minimizing
+//! allocation, so it will only render the HTML to a string when you finally
+//! call [`Renderable::render`] at the end. This makes composing nested HTML
+//! elements extremely cheap.
 //!
-//! ## Type-Checked
+//! ## Type-Checking
 //!
 //! All macros are validated at compile time, so you can't ever misspell an
 //! element/attribute or use invalid attributes.
@@ -29,11 +28,13 @@
 //! already in [`html_elements`], but it doesn't hard-code this module so you
 //! can define your own elements).
 //!
-//! It then imports each element you use in your [`maud!`] as a struct, and then
-//! proceeds to attempt to access the corresponding associated type for each
-//! attribute you use.
+//! It then imports each element you use in your macro invocation as a
+//! struct, and then proceeds to attempt to access the corresponding associated
+//! type for each attribute you use.
 //!
-//! For example, if you use [`maud!`] like this:
+//! # Examples
+//!
+//! This code:
 //!
 //! ```
 //! use hypertext::{html_elements, maud, GlobalAttributes};
@@ -47,11 +48,11 @@
 //! };
 //! ```
 //!
-//! It will generate code like this:
+//! Will expand to (roughly):
 //!
 //! ```rust
 //! # use hypertext::{html_elements, maud, GlobalAttributes};
-//! # assert_eq!(maud! { div #main title="Main Div" { h1.important { "Hello, world!" } } },
+//! # assert_eq!(maud! { div #main title="Main Div" { h1.important { "Hello, world!" } } }.render(),
 //! {
 //!     const _: () = {
 //!         html_elements::div;
@@ -61,13 +62,13 @@
 //!         let _: hypertext::Attribute = html_elements::h1::class;
 //!     };
 //!
-//!     let mut hypertext_output = String::new();
-//!     hypertext_output.push_str(
-//!         r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1></div>"#,
-//!     );
-//!     hypertext::Rendered(hypertext_output)
+//!     hypertext::Renderable(|hypertext_output| {
+//!         hypertext_output.push_str(
+//!             r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1></div>"#,
+//!         );
+//!     })
 //! }
-//! # );
+//! # .render());
 //! ```
 //!
 //! This approach is also extremely extensible, as you can define your own
@@ -93,7 +94,7 @@
 //!
 //! assert_eq!(
 //!     //          vvvvvv note that it converts `-` to `_` for you during checking!
-//!     maud! { div hx-get="/api/endpoint" { "Hello, world!" } }.as_str(),
+//!     maud! { div hx-get="/api/endpoint" { "Hello, world!" } }.render(),
 //!     r#"<div hx-get="/api/endpoint">Hello, world!</div>"#,
 //! );
 //! ```
@@ -104,6 +105,7 @@
 mod alloc;
 mod attributes;
 pub mod html_elements;
+mod web;
 
 pub use attributes::{Attribute, GlobalAttributes};
 /// Render static HTML using rsx syntax.
@@ -124,8 +126,7 @@ pub use attributes::{Attribute, GlobalAttributes};
 ///         <div id="profile" title="Profile">
 ///             <h1>Alice</h1>
 ///         </div>
-///     }
-///     .as_str(),
+///     },
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
@@ -150,8 +151,7 @@ pub use hypertext_macros::html_static;
 ///         div #profile title="Profile" {
 ///             h1 { "Alice" }
 ///        }
-///     }
-///     .as_str(),
+///     },
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
@@ -165,38 +165,34 @@ pub use self::alloc::*;
 /// Elements that can be self-closing.
 pub trait VoidElement {}
 
-macro_rules! void {
-    ($($el:ident)*) => {
-        $(impl VoidElement for html_elements::$el {})*
-    };
-}
-
-void! {
-    area base br col embed hr img input link meta source track wbr
-}
-
 /// A rendered HTML string.
 ///
-/// The type returned by [`maud!`] and [`html!`] ([`Rendered<String>`]), as well
-/// as [`maud_static!`] and [`html_static!`] ([`Rendered<&str>`]).
+/// This type is returned by [`Renderable::render`] ([`Rendered<String>`]), as
+/// well as [`maud_static!`] and [`html_static!`] ([`Rendered<&str>`]).
 ///
 /// This type intentionally does **not** implement [`Render`] to prevent
-/// anti-patterns such as allocating an entire page to a string then embedding
-/// that string in another page. To compose multiple nested components together,
-/// consider using [`Lazy`] (most likely through [`maud_lazy!`] or
-/// [`html_lazy!`]) instead.
+/// anti-patterns such as rendering to a string then embedding that HTML string
+/// into another page.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Rendered<T>(pub T);
 
 impl<T: AsRef<str>> Rendered<T> {
     /// Returns the rendered HTML as an `&str`.
+    #[inline]
     pub fn as_str(&self) -> &str {
         self.as_ref()
     }
 }
 
 impl<T: AsRef<str>> AsRef<str> for Rendered<T> {
+    #[inline]
     fn as_ref(&self) -> &str {
         self.0.as_ref()
+    }
+}
+
+impl<T: AsRef<str>> PartialEq<&str> for Rendered<T> {
+    fn eq(&self, &other: &&str) -> bool {
+        self.0.as_ref() == other
     }
 }

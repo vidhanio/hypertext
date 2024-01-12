@@ -25,7 +25,7 @@ pub struct Attribute;
 /// }
 ///
 /// assert_eq!(
-///     maud! { custom-element title="abc" { "Hello, world!" } }.as_str(),
+///     maud! { custom-element title="abc" { "Hello, world!" } }.render(),
 ///     r#"<custom-element title="abc">Hello, world!</custom-element>"#,
 /// );
 /// ```

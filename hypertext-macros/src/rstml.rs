@@ -200,6 +200,8 @@ impl Generate for NodeElement {
             gen.push_str("</");
             gen.push_escaped_lit(node_name_lit(&tag.name));
             gen.push_str(">");
+        } else {
+            gen.record_void_element(&node_name_ident(&self.open_tag.name));
         }
     }
 }

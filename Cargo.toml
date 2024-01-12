@@ -6,7 +6,7 @@ resolver = "2"
     [workspace.package]
     authors = ["Vidhan Bhatt <me@vidhan.io>"]
     categories = ["template-engine"]
-    description = "A type-checked html macro."
+    description = "A blazing fast type-checked HTML macro crate."
     edition = "2021"
     homepage = "https://github.com/vidhanio/hypertext"
     keywords = ["html", "macro", "rstml"]

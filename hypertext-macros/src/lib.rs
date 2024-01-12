@@ -23,19 +23,6 @@ pub fn maud(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[proc_macro]
-pub fn maud_lazy(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let len_estimate = tokens.to_string().len();
-    let output_ident = Ident::new("hypertext_output", Span::mixed_site());
-
-    maud::parse(tokens.into())
-        .map_or_else(
-            |err| err.to_compile_error(),
-            |markup| generate::lazy(len_estimate, output_ident, markup),
-        )
-        .into()
-}
-
-#[proc_macro]
 pub fn maud_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output_ident = Ident::new("hypertext_output", Span::mixed_site());
 
@@ -54,24 +41,6 @@ pub fn html(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
     let (nodes, diagnostics) = rstml::parse(tokens.into());
     let output = generate::normal(len_estimate, output_ident, nodes);
-    let diagnostics = diagnostics.into_iter().map(Diagnostic::emit_as_expr_tokens);
-
-    quote! {
-        {
-            #(#diagnostics;)*
-            #output
-        }
-    }
-    .into()
-}
-
-#[proc_macro]
-pub fn html_lazy(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let len_estimate = tokens.to_string().len();
-    let output_ident = Ident::new("hypertext_output", Span::mixed_site());
-
-    let (nodes, diagnostics) = rstml::parse(tokens.into());
-    let output = generate::lazy(len_estimate, output_ident, nodes);
     let diagnostics = diagnostics.into_iter().map(Diagnostic::emit_as_expr_tokens);
 
     quote! {

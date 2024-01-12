@@ -1207,3 +1207,13 @@ elements! {
         height
     }
 }
+
+macro_rules! void {
+    ($($el:ident)*) => {
+        $(impl crate::VoidElement for $el {})*
+    };
+}
+
+void! {
+    area base br col embed hr img input link meta source track wbr
+}

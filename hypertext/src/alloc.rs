@@ -3,7 +3,7 @@ extern crate alloc;
 use alloc::string::String;
 use core::fmt::{self, Display, Write};
 
-/// Render HTML using rsx syntax.
+/// Generate HTML using rsx syntax.
 ///
 /// # Example
 ///
@@ -16,39 +16,12 @@ use core::fmt::{self, Display, Write};
 ///             <h1>Alice</h1>
 ///         </div>
 ///     }
-///     .as_str(),
+///     .render(),
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
 pub use hypertext_macros::html;
-/// Render HTML lazily using rsx syntax.
-///
-/// This is the recommended way to compose multiple nested elements
-/// together.
-///
-/// ```
-/// use hypertext::{html, html_elements, html_lazy, GlobalAttributes, Render};
-///
-/// // must include lifetime of `name` in return type, as it is borrowed
-/// // in the lazy closure.
-/// fn user_name(name: &str) -> impl Render + '_ {
-///     // does not allocate here at all
-///     html_lazy! { <h1>{ (name) }</h1> }
-/// }
-///
-/// assert_eq!(
-///     // only allocates once here
-///     html! {
-///         <div id="profile" title="Profile">
-///             { (user_name("Alice")) }
-///         </div>
-///     }
-///     .as_str(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
-/// );
-/// ```
-pub use hypertext_macros::html_lazy;
-/// Render HTML using [`maud`] syntax.
+/// Generate HTML using [`maud`] syntax.
 ///
 /// Note that this is not a complete 1:1 port of [`maud`]'s syntax as it is
 /// stricter in some places to prevent anti-patterns.
@@ -60,6 +33,9 @@ pub use hypertext_macros::html_lazy;
 ///   attributes.
 /// - Optional [`class`]es (`.some-class[condition]`) must come after all
 ///   required [`class`]es.
+///
+/// Additionally, adding `!DOCTYPE` at the beginning of the invocation will
+/// render "<!DOCTYPE html>".
 ///
 /// For more details, see the [maud book](https://maud.lambda.xyz).
 ///
@@ -74,7 +50,7 @@ pub use hypertext_macros::html_lazy;
 ///             h1 { "Alice" }
 ///        }
 ///     }
-///     .as_str(),
+///     .render(),
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
@@ -83,41 +59,18 @@ pub use hypertext_macros::html_lazy;
 /// [`id`]: crate::GlobalAttributes::id
 /// [`class`]: crate::GlobalAttributes::class
 pub use hypertext_macros::maud;
-/// Render HTML lazily using [`maud`] syntax.
-///
-/// This is the recommended way to compose multiple nested elements
-/// together.
-///
-/// For details about the syntax, see [`maud!`].
-///
-/// ```
-/// use hypertext::{html_elements, maud, maud_lazy, GlobalAttributes, Render};
-///
-/// // must include lifetime of `name` in return type, as it is borrowed
-/// // in the lazy closure.
-/// fn user_name(name: &str) -> impl Render + '_ {
-///     // does not allocate here at all
-///     maud_lazy! { h1 { (name) } }
-/// }
-///
-/// assert_eq!(
-///     // only allocates once here
-///     maud! {
-///         div #profile title="Profile" {
-///             (user_name("Alice"))
-///         }
-///     }
-///     .as_str(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
-/// );
-/// ```
-///
-/// [`maud`]: https://docs.rs/maud
-pub use hypertext_macros::maud_lazy;
 
 use crate::Rendered;
 
-impl<T: Into<Self>> From<Rendered<T>> for alloc::string::String {
+impl<T: Into<String>> Rendered<T> {
+    /// Converts this value into a [`String`].
+    #[inline]
+    pub fn into_string(self) -> String {
+        self.into()
+    }
+}
+
+impl<T: Into<Self>> From<Rendered<T>> for String {
     #[inline]
     fn from(Rendered(value): Rendered<T>) -> Self {
         value.into()
@@ -148,19 +101,25 @@ impl<T: Display> Render for Displayed<T> {
     }
 }
 
-/// A lazily rendered value.
+/// A renderable value which has not yet been rendered.
 ///
-/// This is used internally by [`maud_lazy!`](super::maud_lazy) and
-/// [`html_lazy!`].
+/// This is the type returned by [`maud!`] and [`html!`].
 ///
-/// This is the recommended way to compose multiple nested elements
-/// together.
-///
-/// The renderer must handle escaping any special characters.
+/// The renderer function must handle escaping any special characters.
 #[derive(Debug, Clone, Copy)]
-pub struct Lazy<F: FnOnce(&mut String)>(pub F);
+pub struct Renderable<F: FnOnce(&mut String)>(pub F);
 
-impl<F: FnOnce(&mut String)> Render for Lazy<F> {
+impl<F: FnOnce(&mut String)> Renderable<F> {
+    /// Renders this value to a string.
+    #[inline]
+    pub fn render(self) -> Rendered<String> {
+        let mut output = String::new();
+        self.render_to(&mut output);
+        Rendered(output)
+    }
+}
+
+impl<F: FnOnce(&mut String)> Render for Renderable<F> {
     #[inline]
     fn render_to(self, output: &mut String) {
         self.0(output);
@@ -171,8 +130,8 @@ impl<F: FnOnce(&mut String)> Render for Lazy<F> {
 ///
 /// This is useful for rendering raw HTML, but should be used with caution
 /// as it can lead to XSS vulnerabilities if used incorrectly. If you are
-/// unsure, render the `&str` itself instead, which will escape any special
-/// characters.
+/// unsure, render the actual string instead, as its implementation will
+/// escape any special characters.
 #[derive(Debug, Clone, Copy)]
 pub struct PreEscaped<T: AsRef<str>>(pub T);
 
@@ -183,9 +142,10 @@ impl<T: AsRef<str>> Render for PreEscaped<T> {
     }
 }
 
-/// An extension trait for [`Iterator`]s that can be rendered.
+/// An extension trait for [`IntoIterator`]s that can be rendered.
 pub trait RenderIterator: IntoIterator
 where
+    Self: Sized,
     Self::Item: Render,
 {
     /// Renders each item in this iterator.
@@ -193,7 +153,7 @@ where
     /// # Example
     ///
     /// ```
-    /// use hypertext::{html_elements, maud, maud_lazy, GlobalAttributes, Render, RenderIterator};
+    /// use hypertext::{html_elements, maud, GlobalAttributes, Render, RenderIterator};
     ///
     /// let items = ["milks", "eggs", "bread"];
     ///
@@ -202,22 +162,15 @@ where
     ///         ul #shopping-list {
     ///             (items
     ///                 .iter()
-    ///                 .map(|&item| maud_lazy! { li { (item) } })
+    ///                 .map(|&item| maud! { li { (item) } })
     ///                 .render_all())
     ///         }
-    ///     }.as_str(),
+    ///     }.render(),
     ///     r#"<ul id="shopping-list"><li>milks</li><li>eggs</li><li>bread</li></ul>"#
     /// );
-    fn render_all(self) -> impl Render;
-}
-
-impl<I: IntoIterator> RenderIterator for I
-where
-    Self::Item: Render,
-{
     #[inline]
     fn render_all(self) -> impl Render {
-        Lazy(|output| {
+        Renderable(|output| {
             self.into_iter().for_each(|item| {
                 item.render_to(output);
             });
@@ -225,12 +178,14 @@ where
     }
 }
 
+impl<I: IntoIterator> RenderIterator for I where Self::Item: Render {}
+
 /// A type that can be rendered to a string.
 ///
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, maud, maud_lazy, Render};
+/// use hypertext::{html_elements, maud, Render};
 ///
 /// pub struct Person {
 ///     name: String,
@@ -239,7 +194,7 @@ where
 ///
 /// impl Render for Person {
 ///     fn render_to(self, output: &mut String) {
-///         maud_lazy! {
+///         maud! {
 ///             div {
 ///                 h1 { (self.name) }
 ///                 p { "Age: " (self.age) }
@@ -255,7 +210,7 @@ where
 /// };
 ///
 /// assert_eq!(
-///     maud! { main { (person) } }.as_str(),
+///     maud! { main { (person) } }.render(),
 ///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
 /// );
 /// ```
@@ -319,6 +274,11 @@ macro_rules! render_via_itoa {
     };
 }
 
+render_via_itoa! {
+    i8 i16 i32 i64 i128 isize
+    u8 u16 u32 u64 u128 usize
+}
+
 macro_rules! render_via_ryu {
     ($($Ty:ty)*) => {
         $(
@@ -334,9 +294,4 @@ macro_rules! render_via_ryu {
 
 render_via_ryu! {
     f32 f64
-}
-
-render_via_itoa! {
-    i8 i16 i32 i64 i128 isize
-    u8 u16 u32 u64 u128 usize
 }
