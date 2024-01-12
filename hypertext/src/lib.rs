@@ -5,8 +5,8 @@
 //! ## Speed
 //!
 //! The macros generate code that is as fast as writing HTML to a string by
-//! hand. The macro automatically combines what would be multiple `push_str`
-//! calls into one if there is no dynamic content between them.
+//! hand, and intelligently combines what would be multiple `push_str` calls
+//! into one if there is no dynamic content between them.
 //!
 //! The entire crate is `#![no_std]` compatible, and allocation is completely
 //! optional if you don't use any dynamic content. Disabling the `alloc` feature

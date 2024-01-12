@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use proc_macro2::TokenStream;
 use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
+use quote::ToTokens;
 use rstml::{
     node::{
         AttributeValueExpr, KeyedAttribute, KeyedAttributeValue, Node, NodeAttribute, NodeBlock,
@@ -11,7 +12,8 @@ use rstml::{
     Parser, ParserConfig,
 };
 use syn::{
-    punctuated::Pair, spanned::Spanned, Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit, LitStr,
+    parse_quote, punctuated::Pair, spanned::Spanned, Expr, ExprBlock, ExprLit, ExprPath, Ident,
+    Lit, LitStr,
 };
 
 use crate::generate::{Generate, Generator};
@@ -245,7 +247,15 @@ fn node_name_ident(node_name: &NodeName) -> Ident {
     match node_name {
         NodeName::Path(ExprPath { path, .. }) => path.segments.last().map_or_else(
             || Ident::new("_", path.span()),
-            |segment| Ident::new(&segment.ident.to_string(), segment.ident.span()),
+            |segment| {
+                syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
+                    |_| Ident::new_raw(&segment.ident.to_string(), segment.ident.span()),
+                    |mut ident| {
+                        ident.set_span(segment.ident.span());
+                        ident
+                    },
+                )
+            },
         ),
         NodeName::Punctuated(punctuated) => {
             let string = punctuated.pairs().map(Pair::into_tuple).fold(
@@ -259,7 +269,13 @@ fn node_name_ident(node_name: &NodeName) -> Ident {
                 },
             );
 
-            Ident::new(&string, punctuated.span())
+            syn::parse_str::<Ident>(&string).map_or_else(
+                |_| Ident::new_raw(&string, punctuated.span()),
+                |mut ident| {
+                    ident.set_span(punctuated.span());
+                    ident
+                },
+            )
         }
         NodeName::Block(_) => Ident::new("_", node_name.span()),
     }
@@ -293,7 +309,7 @@ impl Generate for NodeBlock {
     fn generate(&self, gen: &mut Generator) {
         if let Self::ValidBlock(block) = self {
             gen.push_rendered_expr(&Expr::Block(ExprBlock {
-                attrs: Vec::new(),
+                attrs: vec![parse_quote!(#[allow(unused_braces)])],
                 label: None,
                 block: block.clone(),
             }));
