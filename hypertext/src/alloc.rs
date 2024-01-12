@@ -41,6 +41,12 @@ use core::fmt::{self, Display, Write};
 /// [`id`]: crate::GlobalAttributes::id
 /// [`class`]: crate::GlobalAttributes::class
 pub use hypertext_macros::maud;
+/// Generate HTML using [`maud`] syntax.
+///
+/// This macro is identical to [`maud!`], except that it adds `move` to the
+/// generated closure, allowing it to take ownership of its environment. You
+/// will most likely need this when using [`maud!`] inside an iterator method.
+pub use hypertext_macros::maud_move;
 /// Generate HTML using rsx syntax.
 ///
 /// # Example
@@ -59,6 +65,12 @@ pub use hypertext_macros::maud;
 /// );
 /// ```
 pub use hypertext_macros::rsx;
+/// Generate HTML using [`rsx!`] syntax.
+///
+/// This macro is identical to [`rsx!`], except that it adds `move` to the
+/// generated closure, allowing it to take ownership of its environment. You
+/// will most likely need this when using [`rsx!`] inside an iterator method.
+pub use hypertext_macros::rsx_move;
 
 use crate::Rendered;
 
@@ -83,7 +95,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 #[derive(Debug, Clone, Copy)]
 pub struct Displayed<T: Display>(pub T);
 
-impl<T: Display> Render for Displayed<T> {
+impl<T: Display> Renderable for Displayed<T> {
     #[inline]
     fn render_to(self, output: &mut String) {
         struct Escaper<'a>(&'a mut String);
@@ -101,41 +113,77 @@ impl<T: Display> Render for Displayed<T> {
     }
 }
 
-/// A renderable value which has not yet been rendered.
+/// A value which has not yet been rendered.
 ///
 /// This is the type returned by [`maud!`] and [`rsx!`].
 ///
 /// The renderer function must handle escaping any special characters.
 #[derive(Debug, Clone, Copy)]
-pub struct Renderable<F: FnOnce(&mut String)>(pub F);
+pub struct Render<F: FnOnce(&mut String)>(pub F);
 
-impl<F: FnOnce(&mut String)> Renderable<F> {
-    /// Renders this value to a string.
+impl<F: FnOnce(&mut String)> Render<F> {
+    /// Render the value to a string, allowing the closure to take ownership of
+    /// its environment.
     #[inline]
-    pub fn render(self) -> Rendered<String> {
+    pub fn render_once(self) -> Rendered<String> {
         let mut output = String::new();
         self.render_to(&mut output);
         Rendered(output)
     }
 }
 
-impl<F: FnOnce(&mut String)> Render for Renderable<F> {
+impl<F: FnMut(&mut String)> Render<F> {
+    /// Render the value to a string, allowing the closure to mutate its
+    /// environment.
+    #[inline]
+    pub fn render_mut(&mut self) -> Rendered<String> {
+        let mut output = String::new();
+        self.render_to(&mut output);
+        Rendered(output)
+    }
+}
+
+impl<F: Fn(&mut String)> Render<F> {
+    /// Render the value to a string.
+    #[inline]
+    pub fn render(&self) -> Rendered<String> {
+        let mut output = String::new();
+        self.render_to(&mut output);
+        Rendered(output)
+    }
+}
+
+impl<F: FnOnce(&mut String)> Renderable for Render<F> {
     #[inline]
     fn render_to(self, output: &mut String) {
         self.0(output);
     }
 }
 
-/// A value that is rendered without escaping.
+impl<F: FnMut(&mut String)> Renderable for &mut Render<F> {
+    #[inline]
+    fn render_to(self, output: &mut String) {
+        self.0(output);
+    }
+}
+
+impl<F: Fn(&mut String)> Renderable for &Render<F> {
+    #[inline]
+    fn render_to(self, output: &mut String) {
+        self.0(output);
+    }
+}
+
+/// A raw value that is rendered without escaping.
 ///
 /// This is useful for rendering raw HTML, but should be used with caution
 /// as it can lead to XSS vulnerabilities if used incorrectly. If you are
 /// unsure, render the actual string instead, as its implementation will
 /// escape any special characters.
 #[derive(Debug, Clone, Copy)]
-pub struct PreEscaped<T: AsRef<str>>(pub T);
+pub struct Raw<T: AsRef<str>>(pub T);
 
-impl<T: AsRef<str>> Render for PreEscaped<T> {
+impl<T: AsRef<str>> Renderable for Raw<T> {
     #[inline]
     fn render_to(self, output: &mut String) {
         output.push_str(self.0.as_ref());
@@ -146,14 +194,14 @@ impl<T: AsRef<str>> Render for PreEscaped<T> {
 pub trait RenderIterator: IntoIterator
 where
     Self: Sized,
-    Self::Item: Render,
+    Self::Item: Renderable,
 {
     /// Renders each item in this iterator.
     ///
     /// # Example
     ///
     /// ```
-    /// use hypertext::{html_elements, maud, GlobalAttributes, Render, RenderIterator};
+    /// use hypertext::{html_elements, maud, maud_move, GlobalAttributes, Renderable, RenderIterator};
     ///
     /// let items = ["milks", "eggs", "bread"];
     ///
@@ -162,15 +210,15 @@ where
     ///         ul #shopping-list {
     ///             (items
     ///                 .iter()
-    ///                 .map(|&item| maud! { li { (item) } })
+    ///                 .map(|&item| maud_move! { li { (item) } })
     ///                 .render_all())
     ///         }
     ///     }.render(),
     ///     r#"<ul id="shopping-list"><li>milks</li><li>eggs</li><li>bread</li></ul>"#
     /// );
     #[inline]
-    fn render_all(self) -> Renderable<impl FnOnce(&mut String)> {
-        Renderable(|output| {
+    fn render_all(self) -> Render<impl FnOnce(&mut String)> {
+        Render(|output| {
             self.into_iter().for_each(|item| {
                 item.render_to(output);
             });
@@ -178,21 +226,21 @@ where
     }
 }
 
-impl<I: IntoIterator> RenderIterator for I where Self::Item: Render {}
+impl<I: IntoIterator> RenderIterator for I where Self::Item: Renderable {}
 
 /// A type that can be rendered to a string.
 ///
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, maud, Render};
+/// use hypertext::{html_elements, maud, Renderable};
 ///
 /// pub struct Person {
 ///     name: String,
 ///     age: u8,
 /// }
 ///
-/// impl Render for Person {
+/// impl Renderable for Person {
 ///     fn render_to(self, output: &mut String) {
 ///         maud! {
 ///             div {
@@ -210,18 +258,18 @@ impl<I: IntoIterator> RenderIterator for I where Self::Item: Render {}
 /// };
 ///
 /// assert_eq!(
-///     maud! { main { (person) } }.render(),
+///     maud! { main { (person) } }.render_once(),
 ///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
 /// );
 /// ```
-pub trait Render {
+pub trait Renderable {
     /// Renders this type to the given string.
     ///
     /// The implementation must handle escaping any special characters.
     fn render_to(self, output: &mut String);
 }
 
-impl Render for char {
+impl Renderable for char {
     #[inline]
     fn render_to(self, output: &mut String) {
         match self {
@@ -236,21 +284,21 @@ impl Render for char {
     }
 }
 
-impl Render for &str {
+impl Renderable for &str {
     #[inline]
     fn render_to(self, output: &mut String) {
         html_escape::encode_single_quoted_attribute_to_string(self, output);
     }
 }
 
-impl Render for String {
+impl Renderable for String {
     #[inline]
     fn render_to(self, output: &mut String) {
         html_escape::encode_single_quoted_attribute_to_string(self, output);
     }
 }
 
-impl Render for bool {
+impl Renderable for bool {
     #[inline]
     fn render_to(self, output: &mut String) {
         if self {
@@ -264,7 +312,7 @@ impl Render for bool {
 macro_rules! render_via_itoa {
     ($($Ty:ty)*) => {
         $(
-            impl Render for $Ty {
+            impl Renderable for $Ty {
                 #[inline]
                 fn render_to(self, output: &mut String) {
                     output.push_str(itoa::Buffer::new().format(self));
@@ -282,7 +330,7 @@ render_via_itoa! {
 macro_rules! render_via_ryu {
     ($($Ty:ty)*) => {
         $(
-            impl Render for $Ty {
+            impl Renderable for $Ty {
                 #[inline]
                 fn render_to(self, output: &mut String) {
                     output.push_str(ryu::Buffer::new().format(self));

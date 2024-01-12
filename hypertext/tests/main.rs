@@ -2,7 +2,7 @@
 fn readme() {
     use hypertext::{html_elements, GlobalAttributes, RenderIterator};
 
-    let shopping_list = &vec!["milk", "eggs", "bread"];
+    let shopping_list = ["milk", "eggs", "bread"];
 
     let shopping_list_maud = hypertext::maud! {
         div {
@@ -16,7 +16,8 @@ fn readme() {
                 }
             }
         }
-    };
+    }
+    .render();
 
     // or, alternatively:
 
@@ -24,7 +25,7 @@ fn readme() {
         <div>
             <h1>Shopping List</h1>
             <ul>
-                { shopping_list.iter().zip(1..).map(|(&item, i)| hypertext::rsx! {
+                { shopping_list.iter().zip(1..).map(|(&item, i)| hypertext::rsx_move! {
                     <li class="item">
                         <input id=format!("item-{i}") type="checkbox">
                         <label for=format!("item-{i}")>{ item }</label>
@@ -32,7 +33,8 @@ fn readme() {
                 }).render_all() }
             </ul>
         </div>
-    };
+    }
+    .render();
 
-    assert_eq!(shopping_list_maud.render(), shopping_list_rsx.render());
+    assert_eq!(shopping_list_maud, shopping_list_rsx);
 }

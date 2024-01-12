@@ -7,19 +7,33 @@ use syn::{
     Token,
 };
 
-#[allow(clippy::needless_pass_by_value)]
-pub fn normal(len_estimate: usize, output_ident: Ident, value: impl Generate) -> TokenStream {
+pub fn normal(value: impl Generate, len_estimate: usize, r#move: bool) -> TokenStream {
+    let output_ident = Ident::new("hypertext_output", Span::mixed_site());
+
     let mut gen = Generator::new(output_ident.clone());
 
     gen.push(value);
 
     let block = gen.finish();
 
+    let move_kw = if r#move {
+        Some(<Token![move]>::default())
+    } else {
+        None
+    };
+
+    let closure_ident = Ident::new("hypertext_closure", Span::mixed_site());
+
     quote! {
-        ::hypertext::Renderable(move |#output_ident| {
-            #output_ident.reserve(#len_estimate);
-            #block
-        })
+        {
+            extern crate alloc;
+            // need intermediary variable to fix type inference
+            let #closure_ident = #move_kw |#output_ident: &mut alloc::string::String| {
+                #output_ident.reserve(#len_estimate);
+                #block
+            };
+            ::hypertext::Render(#closure_ident)
+        }
     }
 }
 
@@ -208,7 +222,7 @@ impl Generator {
     pub fn push_rendered_expr(&mut self, expr: &Expr) {
         let output_ident = &self.output_ident;
         self.push_dynamic(
-            parse_quote!(::hypertext::Render::render_to(#expr, #output_ident);),
+            parse_quote!(::hypertext::Renderable::render_to(#expr, #output_ident);),
             Some(expr.span()),
         );
     }
