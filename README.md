@@ -1,4 +1,4 @@
-# hypertext
+# `hypertext`
 
 ```rs
 hypertext::maud! {
@@ -17,3 +17,7 @@ The crate gives extreme importance to lazy rendering and minimizing allocation, 
 ### Type-Checking
 
 All macros are validated at compile time, so you can't ever misspell an element/attribute or use invalid attributes. All of this validation has absolutely no runtime cost however, and it is just used for developer experience.
+
+## Multiple Syntaxes
+
+The crate provides a macro for writing rsx-style code, and another macro for writing [maud](https://maud.lambda.xyz)-style code, and lets you decide whichever one you like more.

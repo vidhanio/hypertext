@@ -3,24 +3,6 @@ extern crate alloc;
 use alloc::string::String;
 use core::fmt::{self, Display, Write};
 
-/// Generate HTML using rsx syntax.
-///
-/// # Example
-///
-/// ```
-/// use hypertext::{html, html_elements, GlobalAttributes};
-///
-/// assert_eq!(
-///     html! {
-///         <div id="profile" title="Profile">
-///             <h1>Alice</h1>
-///         </div>
-///     }
-///     .render(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
-/// );
-/// ```
-pub use hypertext_macros::html;
 /// Generate HTML using [`maud`] syntax.
 ///
 /// Note that this is not a complete 1:1 port of [`maud`]'s syntax as it is
@@ -59,6 +41,24 @@ pub use hypertext_macros::html;
 /// [`id`]: crate::GlobalAttributes::id
 /// [`class`]: crate::GlobalAttributes::class
 pub use hypertext_macros::maud;
+/// Generate HTML using rsx syntax.
+///
+/// # Example
+///
+/// ```
+/// use hypertext::{html_elements, rsx, GlobalAttributes};
+///
+/// assert_eq!(
+///     rsx! {
+///         <div id="profile" title="Profile">
+///             <h1>Alice</h1>
+///         </div>
+///     }
+///     .render(),
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
+/// );
+/// ```
+pub use hypertext_macros::rsx;
 
 use crate::Rendered;
 
@@ -103,7 +103,7 @@ impl<T: Display> Render for Displayed<T> {
 
 /// A renderable value which has not yet been rendered.
 ///
-/// This is the type returned by [`maud!`] and [`html!`].
+/// This is the type returned by [`maud!`] and [`rsx!`].
 ///
 /// The renderer function must handle escaping any special characters.
 #[derive(Debug, Clone, Copy)]

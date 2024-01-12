@@ -35,7 +35,7 @@ pub fn maud_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[proc_macro]
-pub fn html(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn rsx(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let len_estimate = tokens.to_string().len();
     let output_ident = Ident::new("hypertext_output", Span::mixed_site());
 
