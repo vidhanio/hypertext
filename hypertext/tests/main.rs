@@ -1,3 +1,5 @@
+#![allow(clippy::useless_vec)]
+
 #[test]
 fn readme() {
     use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
