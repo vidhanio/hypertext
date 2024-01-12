@@ -1,8 +1,8 @@
 #[test]
 fn readme() {
-    use hypertext::{html_elements, GlobalAttributes, RenderIterator};
+    use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
 
-    let shopping_list = ["milk", "eggs", "bread"];
+    let shopping_list = vec!["milk", "eggs", "bread"];
 
     let shopping_list_maud = hypertext::maud! {
         div {

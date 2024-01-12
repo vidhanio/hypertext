@@ -24,7 +24,7 @@ use core::fmt::{self, Display, Write};
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, maud, GlobalAttributes};
+/// use hypertext::{html_elements, maud, GlobalAttributes, Renderable};
 ///
 /// assert_eq!(
 ///     maud! {
@@ -52,7 +52,7 @@ pub use hypertext_macros::maud_move;
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, rsx, GlobalAttributes};
+/// use hypertext::{html_elements, rsx, GlobalAttributes, Renderable};
 ///
 /// assert_eq!(
 ///     rsx! {
@@ -113,65 +113,10 @@ impl<T: Display> Renderable for Displayed<T> {
     }
 }
 
-/// A value which has not yet been rendered.
-///
-/// This is the type returned by [`maud!`] and [`rsx!`].
-///
-/// The renderer function must handle escaping any special characters.
-#[derive(Debug, Clone, Copy)]
-#[must_use = "this `Render` must be rendered to a string"]
-pub struct Render<F: FnOnce(&mut String)>(pub F);
-
-impl<F: FnOnce(&mut String)> Render<F> {
-    /// Render the value to a string, allowing the closure to take ownership of
-    /// its environment.
-    #[inline]
-    pub fn render_once(self) -> Rendered<String> {
-        let mut output = String::new();
-        self.render_to(&mut output);
-        Rendered(output)
-    }
-}
-
-impl<F: FnMut(&mut String)> Render<F> {
-    /// Render the value to a string, allowing the closure to mutate its
-    /// environment.
-    #[inline]
-    pub fn render_mut(&mut self) -> Rendered<String> {
-        let mut output = String::new();
-        self.render_to(&mut output);
-        Rendered(output)
-    }
-}
-
-impl<F: Fn(&mut String)> Render<F> {
-    /// Render the value to a string.
-    #[inline]
-    pub fn render(&self) -> Rendered<String> {
-        let mut output = String::new();
-        self.render_to(&mut output);
-        Rendered(output)
-    }
-}
-
-impl<F: FnOnce(&mut String)> Renderable for Render<F> {
+impl<F: FnOnce(&mut String)> Renderable for F {
     #[inline]
     fn render_to(self, output: &mut String) {
-        self.0(output);
-    }
-}
-
-impl<F: FnMut(&mut String)> Renderable for &mut Render<F> {
-    #[inline]
-    fn render_to(self, output: &mut String) {
-        self.0(output);
-    }
-}
-
-impl<F: Fn(&mut String)> Renderable for &Render<F> {
-    #[inline]
-    fn render_to(self, output: &mut String) {
-        self.0(output);
+        self(output);
     }
 }
 
@@ -218,12 +163,12 @@ where
     ///     r#"<ul id="shopping-list"><li>milks</li><li>eggs</li><li>bread</li></ul>"#
     /// );
     #[inline]
-    fn render_all(self) -> Render<impl FnOnce(&mut String)> {
-        Render(|output| {
+    fn render_all(self) -> impl FnOnce(&mut String) {
+        |output| {
             self.into_iter().for_each(|item| {
                 item.render_to(output);
             });
-        })
+        }
     }
 }
 
@@ -259,7 +204,7 @@ impl<I: IntoIterator> RenderIterator for I where Self::Item: Renderable {}
 /// };
 ///
 /// assert_eq!(
-///     maud! { main { (person) } }.render_once(),
+///     maud! { main { (person) } }.render(),
 ///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
 /// );
 /// ```
@@ -272,12 +217,12 @@ where
     /// The implementation must handle escaping any special characters.
     fn render_to(self, output: &mut String);
 
-    /// Converts this value into a [`Render`].
+    /// Renders this value to a string.
     #[inline]
-    fn into_render(self) -> Render<impl FnOnce(&mut String)> {
-        Render(|output| {
-            self.render_to(output);
-        })
+    fn render(self) -> Rendered<String> {
+        let mut output = String::new();
+        self.render_to(&mut output);
+        Rendered(output)
     }
 }
 
@@ -303,17 +248,24 @@ impl Renderable for &str {
     }
 }
 
+impl Renderable for &String {
+    #[inline]
+    fn render_to(self, output: &mut String) {
+        self.as_str().render_to(output);
+    }
+}
+
 impl Renderable for String {
     #[inline]
     fn render_to(self, output: &mut String) {
-        html_escape::encode_single_quoted_attribute_to_string(self, output);
+        self.as_str().render_to(output);
     }
 }
 
 impl Renderable for Cow<'_, str> {
     #[inline]
     fn render_to(self, output: &mut String) {
-        html_escape::encode_single_quoted_attribute_to_string(self, output);
+        self.as_ref().render_to(output);
     }
 }
 

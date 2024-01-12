@@ -22,17 +22,14 @@ pub fn normal(value: impl Generate, len_estimate: usize, r#move: bool) -> TokenS
         None
     };
 
-    let closure_ident = Ident::new("hypertext_closure", Span::mixed_site());
-
     quote! {
         {
             extern crate alloc;
-            // need intermediary variable to fix type inference
-            let #closure_ident = #move_kw |#output_ident: &mut alloc::string::String| {
+
+            #move_kw |#output_ident: &mut alloc::string::String| {
                 #output_ident.reserve(#len_estimate);
                 #block
-            };
-            ::hypertext::Render(#closure_ident)
+            }
         }
     }
 }

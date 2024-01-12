@@ -14,7 +14,7 @@ A blazing fast type-checked HTML macro crate.
 ## Example
 
 ```rust
-use hypertext::{html_elements, GlobalAttributes, RenderIterator};
+use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
 
 let shopping_list = ["milk", "eggs", "bread"];
 

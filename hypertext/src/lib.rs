@@ -15,7 +15,7 @@
 //!
 //! The crate gives extreme importance to lazy rendering and minimizing
 //! allocation, so it will only render the HTML to a string when you finally
-//! call [`Render::render`] at the end. This makes composing nested HTML
+//! call [`Renderable::render`] at the end. This makes composing nested HTML
 //! elements extremely cheap.
 //!
 //! ## Type-Checking
@@ -36,23 +36,22 @@
 //!
 //! This code:
 //!
-//! ```
-//! use hypertext::{html_elements, maud, GlobalAttributes};
+//! ```rust
+//! use hypertext::{html_elements, maud, GlobalAttributes, Renderable};
 //!
-//! let result = maud! {
+//! # assert_eq!(
+//! maud! {
 //!     div #main title="Main Div" {
 //!         h1.important {
 //!             "Hello, world!"
 //!         }
 //!     }
-//! };
-//! ```
+//! }
+//! .render()
+//! # ,
 //!
-//! Will expand to (roughly):
+//! // expands to (roughly):
 //!
-//! ```rust
-//! # use hypertext::{html_elements, maud, GlobalAttributes};
-//! # assert_eq!(maud! { div #main title="Main Div" { h1.important { "Hello, world!" } } }.render(),
 //! {
 //!     const _: () = {
 //!         html_elements::div;
@@ -62,14 +61,14 @@
 //!         let _: hypertext::Attribute = html_elements::h1::class;
 //!     };
 //!
-//!     let hypertext_closure = |hypertext_output: &mut String| {
+//!     |hypertext_output: &mut String| {
 //!         hypertext_output.push_str(
-//!             r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1></div>"#,
+//!             r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1></div>"#
 //!         );
-//!     };
-//!     hypertext::Render(hypertext_closure)
+//!     }
 //! }
-//! # .render());
+//! .render()
+//! # );
 //! ```
 //!
 //! This approach is also extremely extensible, as you can define your own
@@ -81,9 +80,8 @@
 //!
 //! Here's an example of how you could define your own attributes for use with
 //! the wonderful frontend library [htmx](https://htmx.org):
-//!
 //! ```rust
-//! use hypertext::{html_elements, maud, Attribute, GlobalAttributes};
+//! use hypertext::{html_elements, maud, Attribute, GlobalAttributes, Renderable};
 //!
 //! trait HtmxAttributes: GlobalAttributes {
 //!     const hx_get: Attribute = Attribute;
@@ -168,7 +166,7 @@ pub trait VoidElement {}
 
 /// A rendered HTML string.
 ///
-/// This type is returned by [`Render::render`] ([`Rendered<String>`]), as
+/// This type is returned by [`Renderable::render`] ([`Rendered<String>`]), as
 /// well as [`maud_static!`] and [`rsx_static!`] ([`Rendered<&str>`]).
 ///
 /// This type intentionally does **not** implement [`Renderable`] to prevent
