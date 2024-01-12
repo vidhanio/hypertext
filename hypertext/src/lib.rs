@@ -10,7 +10,7 @@
 //!
 //! The entire crate is `#![no_std]` compatible, and allocation is completely
 //! optional if you don't use any dynamic content. Disabling the `alloc` feature
-//! and using [`maud_static!`]/[`html_static!`] will result in an
+//! and using [`maud_static!`]/[`rsx_static!`] will result in an
 //! [`Rendered<&str>`], which can even be used in `const` contexts!
 //!
 //! The crate gives extreme importance to lazy rendering and minimizing
@@ -108,29 +108,6 @@ pub mod html_elements;
 mod web;
 
 pub use attributes::{Attribute, GlobalAttributes};
-/// Render static HTML using rsx syntax.
-///
-/// This will return a [`Rendered<&str>`], which can be used in `const`
-/// contexts.
-///
-/// Note that the macro cannot process any dynamic content, so you cannot use
-/// any expressions inside the macro.
-///
-/// # Example
-///
-/// ```
-/// use hypertext::{html_elements, html_static, GlobalAttributes};
-///
-/// assert_eq!(
-///     html_static! {
-///         <div id="profile" title="Profile">
-///             <h1>Alice</h1>
-///         </div>
-///     },
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
-/// );
-/// ```
-pub use hypertext_macros::html_static;
 /// Render static HTML using [`maud`] syntax.
 ///
 /// For details about the syntax, see [`maud!`].
@@ -158,6 +135,29 @@ pub use hypertext_macros::html_static;
 ///
 /// [`maud`]: https://docs.rs/maud
 pub use hypertext_macros::maud_static;
+/// Render static HTML using rsx syntax.
+///
+/// This will return a [`Rendered<&str>`], which can be used in `const`
+/// contexts.
+///
+/// Note that the macro cannot process any dynamic content, so you cannot use
+/// any expressions inside the macro.
+///
+/// # Example
+///
+/// ```
+/// use hypertext::{html_elements, rsx_static, GlobalAttributes};
+///
+/// assert_eq!(
+///     rsx_static! {
+///         <div id="profile" title="Profile">
+///             <h1>Alice</h1>
+///         </div>
+///     },
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
+/// );
+/// ```
+pub use hypertext_macros::rsx_static;
 
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;
@@ -168,7 +168,7 @@ pub trait VoidElement {}
 /// A rendered HTML string.
 ///
 /// This type is returned by [`Renderable::render`] ([`Rendered<String>`]), as
-/// well as [`maud_static!`] and [`html_static!`] ([`Rendered<&str>`]).
+/// well as [`maud_static!`] and [`rsx_static!`] ([`Rendered<&str>`]).
 ///
 /// This type intentionally does **not** implement [`Render`] to prevent
 /// anti-patterns such as rendering to a string then embedding that HTML string

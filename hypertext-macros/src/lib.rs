@@ -53,7 +53,7 @@ pub fn rsx(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[proc_macro]
-pub fn html_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn rsx_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output_ident = Ident::new("hypertext_output", Span::mixed_site());
 
     let (nodes, diagnostics) = rstml::parse(tokens.into());
