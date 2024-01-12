@@ -15,21 +15,20 @@ resolver = "2"
     repository = "https://github.com/vidhanio/hypertext"
     version = "0.1.0"
 
-    [workspace.metadata.docs.rs]
-    all-features = true
-    rustdoc-args = ["--cfg", "docsrs"]
 
-[workspace.dependencies]
-hypertext-macros = { version = "0.1.0", path = "./hypertext-macros" }
+    [workspace.dependencies]
+    hypertext-macros = { version = "0.1.0", path = "./hypertext-macros" }
 
-[workspace.lints]
-    [workspace.lints.rust]
-    missing_copy_implementations = "warn"
-    missing_debug_implementations = "warn"
-    # missing_docs = "warn"
-    unsafe_code = "forbid"
+    html-escape = { version = "0.2", default-features = false }
 
-    [workspace.lints.clippy]
-    # cargo = "warn"
-    nursery = "warn"
-    pedantic = "warn"
+    [workspace.lints]
+        [workspace.lints.rust]
+        missing_copy_implementations = "warn"
+        missing_debug_implementations = "warn"
+        missing_docs = "warn"
+        unsafe_code = "forbid"
+
+        [workspace.lints.clippy]
+        # cargo = "warn"
+        nursery = "warn"
+        pedantic = "warn"

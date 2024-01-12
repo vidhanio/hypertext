@@ -13,12 +13,13 @@ repository.workspace = true
 version.workspace = true
 
 [lib]
-crate-type = ["proc-macro"]
+proc-macro = true
 
 [lints]
 workspace = true
 
 [dependencies]
+html-escape.workspace = true
 proc-macro2 = "1"
 proc-macro2-diagnostics = { version = "0.10", default-features = false }
 quote = "1"

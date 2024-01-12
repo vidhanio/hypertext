@@ -12,5 +12,21 @@ readme.workspace = true
 repository.workspace = true
 version.workspace = true
 
+
+    [package.metadata.docs.rs]
+    all-features = true
+    rustdoc-args = ["--cfg", "docsrs"]
+
 [lints]
 workspace = true
+
+[dependencies]
+hypertext-macros.workspace = true
+
+html-escape = { workspace = true, optional = true }
+itoa = { version = "1", optional = true }
+ryu = { version = "1", optional = true }
+
+[features]
+alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
+default = ["alloc"]
