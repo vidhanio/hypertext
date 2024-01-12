@@ -17,7 +17,7 @@ use core::fmt::{self, Display, Write};
 ///   required [`class`]es.
 ///
 /// Additionally, adding `!DOCTYPE` at the beginning of the invocation will
-/// render "<!DOCTYPE html>".
+/// render `"<!DOCTYPE html>"`.
 ///
 /// For more details, see the [maud book](https://maud.lambda.xyz).
 ///
