@@ -11,6 +11,12 @@ A blazing fast type-checked HTML macro crate.
 - Lazy rendering by default to avoid multiple allocations
   - Results in outstanding performance in cases of nested documents, which other libraries may falter in
 
+## Projects Using `hypertext`
+
+- [vidhan.io](https://github.com/vidhanio), my website
+
+Make a pull request to list your project here!
+
 ## Example
 
 ```rust
