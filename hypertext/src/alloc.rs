@@ -119,6 +119,7 @@ impl<T: Display> Renderable for Displayed<T> {
 ///
 /// The renderer function must handle escaping any special characters.
 #[derive(Debug, Clone, Copy)]
+#[must_use = "this `Render` must be rendered to a string"]
 pub struct Render<F: FnOnce(&mut String)>(pub F);
 
 impl<F: FnOnce(&mut String)> Render<F> {
@@ -262,11 +263,22 @@ impl<I: IntoIterator> RenderIterator for I where Self::Item: Renderable {}
 ///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
 /// );
 /// ```
-pub trait Renderable {
+pub trait Renderable
+where
+    Self: Sized,
+{
     /// Renders this type to the given string.
     ///
     /// The implementation must handle escaping any special characters.
     fn render_to(self, output: &mut String);
+
+    /// Converts this value into a [`Render`].
+    #[inline]
+    fn into_render(self) -> Render<impl FnOnce(&mut String)> {
+        Render(move |output| {
+            self.render_to(output);
+        })
+    }
 }
 
 impl Renderable for char {
