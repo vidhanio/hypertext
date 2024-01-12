@@ -175,6 +175,20 @@ pub trait VoidElement {}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Rendered<T>(pub T);
 
+impl<T> Rendered<T> {
+    /// Extracts the inner value.
+    #[inline]
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+
+    /// Gets a reference to the inner value.
+    #[inline]
+    pub const fn as_inner(&self) -> &T {
+        &self.0
+    }
+}
+
 impl<T: AsRef<str>> Rendered<T> {
     /// Returns the rendered HTML as an `&str`.
     #[inline]

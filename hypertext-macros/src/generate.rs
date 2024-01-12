@@ -3,8 +3,8 @@ use std::iter;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
-    parse_quote, spanned::Spanned, token::Brace, Block, Expr, ExprBlock, ExprIf, LitStr, Stmt,
-    Token,
+    parse_quote, parse_quote_spanned, spanned::Spanned, token::Brace, Block, Expr, ExprBlock,
+    ExprIf, LitStr, Stmt, Token,
 };
 
 pub fn normal(value: impl Generate, len_estimate: usize, r#move: bool) -> TokenStream {
@@ -219,7 +219,7 @@ impl Generator {
     pub fn push_rendered_expr(&mut self, expr: &Expr) {
         let output_ident = &self.output_ident;
         self.push_dynamic(
-            parse_quote!(::hypertext::Renderable::render_to(#expr, #output_ident);),
+            parse_quote_spanned!(expr.span()=> ::hypertext::Renderable::render_to(#expr, #output_ident);),
             Some(expr.span()),
         );
     }

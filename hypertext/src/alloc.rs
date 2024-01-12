@@ -74,18 +74,62 @@ pub use hypertext_macros::rsx_move;
 
 use crate::Rendered;
 
-impl<T: Into<String>> Rendered<T> {
-    /// Converts this value into a [`String`].
-    #[inline]
-    pub fn into_string(self) -> String {
-        self.into()
-    }
-}
-
 impl<T: Into<Self>> From<Rendered<T>> for String {
     #[inline]
     fn from(Rendered(value): Rendered<T>) -> Self {
         value.into()
+    }
+}
+
+/// A type that can be rendered to a string.
+///
+/// # Example
+///
+/// ```
+/// use hypertext::{html_elements, maud, Renderable};
+///
+/// pub struct Person {
+///     name: String,
+///     age: u8,
+/// }
+///
+/// impl Renderable for Person {
+///     fn render_to(self, output: &mut String) {
+///         maud! {
+///             div {
+///                 h1 { (self.name) }
+///                 p { "Age: " (self.age) }
+///             }
+///         }
+///         .render_to(output);
+///     }
+/// }
+///
+/// let person = Person {
+///     name: "Alice".into(),
+///     age: 20,
+/// };
+///
+/// assert_eq!(
+///     maud! { main { (person) } }.render(),
+///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
+/// );
+/// ```
+pub trait Renderable
+where
+    Self: Sized,
+{
+    /// Renders this type to the given string.
+    ///
+    /// The implementation must handle escaping any special characters.
+    fn render_to(self, output: &mut String);
+
+    /// Renders this value to a string.
+    #[inline]
+    fn render(self) -> Rendered<String> {
+        let mut output = String::new();
+        self.render_to(&mut output);
+        Rendered(output)
     }
 }
 
@@ -173,58 +217,6 @@ where
 }
 
 impl<I: IntoIterator> RenderIterator for I where Self::Item: Renderable {}
-
-/// A type that can be rendered to a string.
-///
-/// # Example
-///
-/// ```
-/// use hypertext::{html_elements, maud, Renderable};
-///
-/// pub struct Person {
-///     name: String,
-///     age: u8,
-/// }
-///
-/// impl Renderable for Person {
-///     fn render_to(self, output: &mut String) {
-///         maud! {
-///             div {
-///                 h1 { (self.name) }
-///                 p { "Age: " (self.age) }
-///             }
-///         }
-///         .render_to(output);
-///     }
-/// }
-///
-/// let person = Person {
-///     name: "Alice".into(),
-///     age: 20,
-/// };
-///
-/// assert_eq!(
-///     maud! { main { (person) } }.render(),
-///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
-/// );
-/// ```
-pub trait Renderable
-where
-    Self: Sized,
-{
-    /// Renders this type to the given string.
-    ///
-    /// The implementation must handle escaping any special characters.
-    fn render_to(self, output: &mut String);
-
-    /// Renders this value to a string.
-    #[inline]
-    fn render(self) -> Rendered<String> {
-        let mut output = String::new();
-        self.render_to(&mut output);
-        Rendered(output)
-    }
-}
 
 impl Renderable for char {
     #[inline]
