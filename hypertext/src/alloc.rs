@@ -275,7 +275,7 @@ where
     /// Converts this value into a [`Render`].
     #[inline]
     fn into_render(self) -> Render<impl FnOnce(&mut String)> {
-        Render(move |output| {
+        Render(|output| {
             self.render_to(output);
         })
     }
