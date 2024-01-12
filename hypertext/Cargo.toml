@@ -4,6 +4,7 @@ name = "hypertext"
 authors.workspace = true
 categories.workspace = true
 description.workspace = true
+documentation = "https://docs.rs/hypertext"
 edition.workspace = true
 homepage.workspace = true
 keywords.workspace = true
