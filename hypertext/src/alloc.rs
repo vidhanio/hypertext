@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use alloc::string::String;
+use alloc::{borrow::Cow, string::String};
 use core::fmt::{self, Display, Write};
 
 /// Generate HTML using [`maud`] syntax.
@@ -304,6 +304,13 @@ impl Renderable for &str {
 }
 
 impl Renderable for String {
+    #[inline]
+    fn render_to(self, output: &mut String) {
+        html_escape::encode_single_quoted_attribute_to_string(self, output);
+    }
+}
+
+impl Renderable for Cow<'_, str> {
     #[inline]
     fn render_to(self, output: &mut String) {
         html_escape::encode_single_quoted_attribute_to_string(self, output);
