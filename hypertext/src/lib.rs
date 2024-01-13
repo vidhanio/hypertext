@@ -99,6 +99,7 @@
 //! ```
 #![no_std]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![warn(clippy::missing_inline_in_public_items)]
 
 #[cfg(feature = "alloc")]
 mod alloc;
@@ -205,6 +206,7 @@ impl<T: AsRef<str>> AsRef<str> for Rendered<T> {
 }
 
 impl<T: AsRef<str>> PartialEq<&str> for Rendered<T> {
+    #[inline]
     fn eq(&self, &other: &&str) -> bool {
         self.0.as_ref() == other
     }

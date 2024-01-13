@@ -11,6 +11,7 @@ mod axum_support {
     use crate::Rendered;
 
     impl<T: Into<Body>> IntoResponse for Rendered<T> {
+        #[inline]
         fn into_response(self) -> Response {
             (
                 [(
