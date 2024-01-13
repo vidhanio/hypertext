@@ -32,8 +32,10 @@ axum-core = { version = "0.4", optional = true }
 http = { version = "1", optional = true }
 
 [features]
-default = ["alloc"]
+default = ["alloc", "svg"]
 
 alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
 
 axum = ["alloc", "dep:axum-core", "dep:http"]
+
+svg = []
