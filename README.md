@@ -13,7 +13,7 @@ A blazing fast type-checked HTML macro crate.
 
 ## Projects Using `hypertext`
 
-- [vidhan.io](https://github.com/vidhanio), my website
+- [vidhan.io](https://github.com/vidhanio/site), my website
 
 Make a pull request to list your project here!
 
