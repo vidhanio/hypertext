@@ -34,8 +34,6 @@
 //!
 //! # Examples
 //!
-//! This code:
-//!
 //! ```rust
 //! use hypertext::{html_elements, maud, GlobalAttributes, Renderable};
 //!
