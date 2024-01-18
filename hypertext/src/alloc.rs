@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use alloc::{borrow::Cow, boxed::Box, rc::Rc, string::String, sync::Arc};
+use alloc::{borrow::Cow, rc::Rc, string::String, sync::Arc};
 use core::fmt::{self, Display, Write};
 
 /// Generate HTML using [`maud`] syntax.
