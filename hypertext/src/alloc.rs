@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use alloc::{borrow::Cow, string::String};
+use alloc::{borrow::Cow, boxed::Box, rc::Rc, string::String, sync::Arc};
 use core::fmt::{self, Display, Write};
 
 /// Generate HTML using [`maud`] syntax.
@@ -305,4 +305,33 @@ macro_rules! render_via_ryu {
 
 render_via_ryu! {
     f32 f64
+}
+
+impl<T: Renderable> Renderable for Option<T> {
+    #[inline]
+    fn render_to(self, output: &mut String) {
+        if let Some(value) = self {
+            value.render_to(output);
+        }
+    }
+}
+
+impl<T> Renderable for Arc<T>
+where
+    for<'a> &'a T: Renderable,
+{
+    #[inline]
+    fn render_to(self, output: &mut String) {
+        (&*self).render_to(output);
+    }
+}
+
+impl<T> Renderable for Rc<T>
+where
+    for<'a> &'a T: Renderable,
+{
+    #[inline]
+    fn render_to(self, output: &mut String) {
+        (&*self).render_to(output);
+    }
 }
