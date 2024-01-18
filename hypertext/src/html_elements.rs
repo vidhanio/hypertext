@@ -1217,3 +1217,243 @@ macro_rules! void {
 void! {
     area base br col embed hr img input link meta source track wbr
 }
+
+#[cfg(feature = "svg")]
+macro_rules! svg_elements {
+    {
+        $(
+            $(#[$element_meta:meta])*
+            $element:ident $(
+                {
+                    $(
+                        $(#[$attr_meta:meta])*
+                        $attr:ident
+                    )*
+                }
+            )?
+        )*
+    } => {
+        $(
+            $(#[$element_meta])*
+            #[allow(non_camel_case_types)]
+            #[allow(missing_docs)] // TODO
+            #[derive(Debug, Clone, Copy)]
+            pub struct $element;
+
+            impl $element {
+                $(
+                    $(
+                        $(#[$attr_meta])*
+                        #[allow(non_upper_case_globals)]
+                        #[allow(missing_docs)] // TODO
+                        pub const $attr: crate::attributes::Attribute = crate::attributes::Attribute;
+                    )*
+                )?
+            }
+
+            impl crate::attributes::GlobalSVGAttributes for $element {}
+        )*
+    }
+}
+
+#[cfg(feature = "svg")]
+svg_elements! {
+    circle {
+        cx
+        cy
+        r
+        pathLength 
+    } 
+
+    defs
+
+    desc
+
+    ellipse {
+        cx
+        cy
+        rx
+        ry
+        pathLength 
+    } 
+
+    g
+
+    image {
+        x
+        y
+        width
+        height
+        href
+        preserveAspectRatio
+        crossorigin
+        decoding 
+    }
+
+    line {
+        x1
+        x2
+        y1
+        y2
+        pathLength 
+    }
+
+    linearGradient {
+        gradientUnits
+        gradientTransform
+        href
+        spreadMethod
+        x1
+        y1
+        y2 
+    }
+
+    mask {
+        width
+        height
+        maskContentUnits
+        maskUnits
+        x
+        y 
+    }
+
+    metadata
+
+    path {
+        d
+        pathLength 
+    }
+
+    pattern {
+        width
+        height
+        href
+        patternContentUnits
+        patternTransform
+        patternUnits
+        preserveAspectRatio
+        viewBox
+        x
+        y 
+    }
+
+    polygon {
+        points
+        pathLength 
+    }
+
+    polyline {
+        points
+        pathLength 
+    }
+
+    radialGradient {
+        cx
+        cy
+        fr
+        fx
+        fy
+        gradientUnits
+        gradientTransform
+        href
+        r
+        spreadMethod 
+    }
+
+    rect {
+        x
+        y
+        width
+        height
+        rx
+        ry
+        pathLength 
+    }
+
+    stop {
+        offset
+        stop_color
+        stop_opacity 
+    }
+
+    svg {
+        baseProfile
+        preserveAspectRatio
+        version
+        viewBox
+        width
+        height
+        x
+        y 
+    }
+
+    symbol {
+        width
+        height
+        preserveAspectRatio
+        refX
+        refY
+        viewBox
+        x
+        y 
+    }
+
+    text {
+        x
+        y
+        dx
+        dy
+        rotate
+        lengthAdjust
+        textLength 
+    }
+
+    textPath {
+        href
+        lengthAdjust
+        method
+        spacing
+        startOffset
+        textLength 
+    }
+
+    tspan {
+        x
+        y
+        dx
+        dy
+        rotate
+        lengthAdjust
+        textLength 
+    }
+
+    r#use {
+        href
+        x
+        y
+        width
+        height 
+    }
+
+    view {
+        viewBox
+        preserveAspectRatio 
+    }
+}
+
+#[cfg(feature = "svg")]
+void! {
+    circle ellipse image line path polygon polyline rect stop r#use view
+}
+
+#[cfg(feature = "svg")]
+macro_rules! presentation {
+    ($($el:ident)*) => {
+        $(impl crate::attributes::PresentationSVGAttributes for $el {})*
+    };
+}
+
+#[cfg(feature = "svg")]
+presentation! {
+    a circle ellipse g image line path pattern polygon polyline rect stop symbol text textPath tspan r#use svg
+}

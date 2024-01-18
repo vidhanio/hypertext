@@ -106,6 +106,9 @@ pub mod html_elements;
 mod web;
 
 pub use attributes::{Attribute, GlobalAttributes};
+
+#[cfg(feature = "svg")]
+pub use attributes::{GlobalSVGAttributes, PresentationSVGAttributes};
 /// Render static HTML using [`maud`] syntax.
 ///
 /// For details about the syntax, see [`maud!`].
