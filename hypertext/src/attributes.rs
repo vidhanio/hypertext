@@ -2,6 +2,10 @@
 #[derive(Debug, Clone, Copy)]
 pub struct Attribute;
 
+/// An HTML attribute namespace.
+#[derive(Debug, Clone, Copy)]
+pub struct AttributeNamespace;
+
 /// Global HTML attributes.
 ///
 /// This trait must be in scope to use well-known attributes such as

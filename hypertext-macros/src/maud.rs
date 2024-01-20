@@ -1,5 +1,7 @@
 #![allow(clippy::struct_field_names)]
 
+use std::ops::ControlFlow;
+
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::{
@@ -327,7 +329,13 @@ impl Generate for Element {
                 continue;
             }
 
-            gen.record_attribute(&self.name.ident(), &attr.name.ident());
+            let (attr_ident, is_namespace) = attr.name.ident_or_namespace();
+
+            if is_namespace {
+                gen.record_namespace(&self.name.ident(), &attr_ident);
+            } else {
+                gen.record_attribute(&self.name.ident(), &attr_ident);
+            }
         }
 
         gen.push_str(">");
@@ -841,6 +849,45 @@ struct Name {
 }
 
 impl Name {
+    /// If the ident should be a namespace, the boolean is true.
+    fn ident_or_namespace(&self) -> (Ident, bool) {
+        let string = self.name.pairs().map(Pair::into_tuple).try_fold(
+            String::new(),
+            |mut acc, (fragment, punct)| {
+                acc.push_str(&fragment.to_fragment_string());
+
+                match punct {
+                    Some(NamePunct::Colon(_)) => {
+                        return ControlFlow::Break(acc);
+                    }
+                    Some(NamePunct::Hyphen(_)) => {
+                        acc.push('_');
+                    }
+                    None => {}
+                }
+
+                ControlFlow::Continue(acc)
+            },
+        );
+
+        let (string, is_namespace) = match string {
+            ControlFlow::Break(string) => (string, true),
+            ControlFlow::Continue(string) => (string, false),
+        };
+
+        (
+            // results in better editor hover-doc support than unconditional `new_raw` usage
+            syn::parse_str::<Ident>(&string).map_or_else(
+                |_| Ident::new_raw(&string, self.span()),
+                |mut ident| {
+                    ident.set_span(self.span());
+                    ident
+                },
+            ),
+            is_namespace,
+        )
+    }
+
     fn ident(&self) -> Ident {
         let string = self.name.pairs().map(Pair::into_tuple).fold(
             String::new(),

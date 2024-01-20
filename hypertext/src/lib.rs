@@ -105,7 +105,7 @@ mod attributes;
 pub mod html_elements;
 mod web;
 
-pub use attributes::{Attribute, GlobalAttributes};
+pub use attributes::{Attribute, AttributeNamespace, GlobalAttributes};
 /// Render static HTML using [`maud`] syntax.
 ///
 /// For details about the syntax, see [`maud!`].

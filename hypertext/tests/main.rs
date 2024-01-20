@@ -1,5 +1,7 @@
 #![allow(clippy::useless_vec)]
 
+use hypertext::{Attribute, AttributeNamespace, GlobalAttributes};
+
 #[test]
 fn readme() {
     use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
@@ -39,4 +41,33 @@ fn readme() {
     .render();
 
     assert_eq!(shopping_list_maud, shopping_list_rsx);
+}
+
+#[allow(non_upper_case_globals)]
+trait HtmxAttributes: GlobalAttributes {
+    const hx_post: Attribute = Attribute;
+    const hx_on: AttributeNamespace = AttributeNamespace;
+}
+
+impl<T: GlobalAttributes> HtmxAttributes for T {}
+
+#[test]
+fn htmx() {
+    use hypertext::{html_elements, Renderable};
+
+    let htmx_maud = hypertext::maud! {
+        div {
+            form hx-post="/login" hx-on::after-request="this.reset()" {
+                input type="text" name="username";
+                input type="password" name="password";
+                input type="submit" value="Login";
+            }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        htmx_maud,
+        r#"<div><form hx-post="/login" hx-on::after-request="this.reset()"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></div>"#
+    );
 }

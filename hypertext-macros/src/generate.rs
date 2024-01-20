@@ -49,6 +49,7 @@ pub struct Generator {
     parts: Vec<Part>,
     elements: Vec<Ident>,
     attributes: Vec<(Ident, Ident)>,
+    namespaces: Vec<(Ident, Ident)>,
     void_elements: Vec<Ident>,
 }
 
@@ -59,6 +60,7 @@ impl Generator {
             parts: Vec::new(),
             elements: Vec::new(),
             attributes: Vec::new(),
+            namespaces: Vec::new(),
             void_elements: Vec::new(),
         }
     }
@@ -69,6 +71,9 @@ impl Generator {
             .attributes
             .iter()
             .map(|(el, attr)| quote!(let _: ::hypertext::Attribute = html_elements::#el::#attr;));
+        let namespaces = self.namespaces.iter().map(
+            |(el, ns)| quote!(let _: ::hypertext::AttributeNamespace = html_elements::#el::#ns;),
+        );
         let void_elements = self.void_elements.iter().map(|el| {
             quote_spanned! {el.span()=>
                 {
@@ -81,6 +86,7 @@ impl Generator {
             const _: () = {
                 #(#elements)*
                 #(#attributes)*
+                #(#namespaces)*
                 #(#void_elements)*
             };
         }
@@ -244,6 +250,10 @@ impl Generator {
 
     pub fn record_attribute(&mut self, el_name: &Ident, attr_name: &Ident) {
         self.attributes.push((el_name.clone(), attr_name.clone()));
+    }
+
+    pub fn record_namespace(&mut self, el_name: &Ident, namespace: &Ident) {
+        self.namespaces.push((el_name.clone(), namespace.clone()));
     }
 }
 
