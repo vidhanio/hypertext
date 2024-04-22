@@ -44,6 +44,7 @@ fn readme() {
 }
 
 #[allow(non_upper_case_globals)]
+#[allow(dead_code)]
 trait HtmxAttributes: GlobalAttributes {
     const hx_post: Attribute = Attribute;
     const hx_on: AttributeNamespace = AttributeNamespace;
