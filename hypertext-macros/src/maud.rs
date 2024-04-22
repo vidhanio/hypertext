@@ -131,10 +131,7 @@ impl Parse for ElementNode {
             input.parse().map(Self::Literal)
         } else if lookahead.peek(Paren) {
             input.parse().map(Self::Splice)
-        } else if lookahead.peek(Ident::peek_any)
-            || lookahead.peek(Token![.])
-            || lookahead.peek(Token![#])
-        {
+        } else if lookahead.peek(Ident::peek_any) {
             input.parse().map(Self::Element)
         } else if lookahead.peek(Token![@]) {
             input.parse().map(Self::Keyword)
