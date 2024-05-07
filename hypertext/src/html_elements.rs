@@ -1,6 +1,29 @@
 //! HTML elements.
 
 #[macro_export]
+/// Create a set of HTML elements.
+/// Every element is represented as a block containing its attributes.
+///
+/// This macro should be called from within the `html_elements` module.
+///
+/// Example:
+/// ```rust
+/// mod html_elements {
+///    use hypertext::elements;
+///
+///    // Import all existing html elements
+///    pub use hypertext::html_elements::*;
+///
+///    // Define a greeting element which is a custom web component (like the Lit example)
+///    elements! {
+///        /// A custom web component that greets the user.
+///        simple-greeting {
+///            /// The name of the person to greet.
+///            name
+///        }
+///    }
+/// }
+/// ```
 macro_rules! elements {
     {
         $(
