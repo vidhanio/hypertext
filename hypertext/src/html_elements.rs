@@ -1,5 +1,6 @@
 //! HTML elements.
 
+#[macro_export]
 macro_rules! elements {
     {
         $(
@@ -25,12 +26,12 @@ macro_rules! elements {
                     $(
                         $(#[$attr_meta])*
                         #[allow(non_upper_case_globals)]
-                        pub const $attr: crate::attributes::Attribute = crate::attributes::Attribute;
+                        pub const $attr: $crate::Attribute = $crate::Attribute;
                     )*
                 )?
             }
 
-            impl crate::attributes::GlobalAttributes for $element {}
+            impl $crate::GlobalAttributes for $element {}
         )*
     }
 }
