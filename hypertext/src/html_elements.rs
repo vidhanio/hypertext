@@ -17,7 +17,7 @@
 ///    // Define a greeting element which is a custom web component (like the Lit example)
 ///    elements! {
 ///        /// A custom web component that greets the user.
-///        simple-greeting {
+///        simple_greeting {
 ///            /// The name of the person to greet.
 ///            name
 ///        }
