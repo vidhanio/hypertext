@@ -14,9 +14,9 @@ repository.workspace = true
 version.workspace = true
 
 
-    [package.metadata.docs.rs]
-    all-features = true
-    rustdoc-args = ["--cfg", "docsrs"]
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lints]
 workspace = true
@@ -28,6 +28,7 @@ html-escape = { workspace = true, optional = true }
 itoa = { version = "1", optional = true }
 ryu = { version = "1", optional = true }
 
+actix-web = { version = "4", optional = true }
 axum-core = { version = "0.4", optional = true }
 http = { version = "1", optional = true }
 
@@ -37,3 +38,5 @@ default = ["alloc"]
 alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
 
 axum = ["alloc", "dep:axum-core", "dep:http"]
+
+actix = ["alloc", "dep:actix-web"]
