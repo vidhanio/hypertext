@@ -54,7 +54,7 @@ pub struct Generator {
 }
 
 impl Generator {
-    fn new(output_ident: Ident) -> Self {
+    const fn new(output_ident: Ident) -> Self {
         Self {
             output_ident,
             parts: Vec::new(),
