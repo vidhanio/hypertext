@@ -72,3 +72,35 @@ fn htmx() {
         r#"<div><form hx-post="/login" hx-on::after-request="this.reset()"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></div>"#
     );
 }
+
+#[test]
+fn elements_macro() {
+    use hypertext::Renderable;
+
+    mod html_elements {
+        use hypertext::elements;
+        pub use hypertext::html_elements::*;
+
+        elements! {
+            /// This is a test element
+            my_element {
+                /// This is a test attribute
+                my_attribute
+            }
+        }
+    }
+
+    let custom_maud = hypertext::maud! {
+        div {
+            my_element my_attribute="test" {
+                "Hello, world!"
+            }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        custom_maud,
+        r#"<div><my_element my_attribute="test">Hello, world!</my_element></div>"#
+    );
+}
