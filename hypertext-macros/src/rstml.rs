@@ -5,11 +5,9 @@ use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
 use quote::ToTokens;
 use rstml::{
     node::{
-        AttributeValueExpr, KeyedAttribute, KeyedAttributeValue, Node, NodeAttribute, NodeBlock,
-        NodeComment, NodeDoctype, NodeElement, NodeFragment, NodeName, NodeNameFragment, NodeText,
-        RawText,
+        AttributeValueExpr, KVAttributeValue, KeyedAttribute, KeyedAttributeValue, Node, NodeAttribute, NodeBlock, NodeComment, NodeDoctype, NodeElement, NodeFragment, NodeName, NodeNameFragment, NodeText, RawText
     },
-    Parser, ParserConfig,
+    Infallible, Parser, ParserConfig,
 };
 use syn::{
     parse_quote, punctuated::Pair, spanned::Spanned, Expr, ExprBlock, ExprLit, ExprPath, Ident,
@@ -129,6 +127,7 @@ impl Generate for Node {
             Self::Block(block) => gen.push(block),
             Self::Text(text) => gen.push(text),
             Self::RawText(raw_text) => gen.push(raw_text),
+            Self::Custom(_) => {}
         }
     }
 }
@@ -151,13 +150,13 @@ impl Generate for NodeDoctype {
     }
 }
 
-impl Generate for NodeFragment {
+impl Generate for NodeFragment<Infallible> {
     fn generate(&self, gen: &mut Generator) {
         gen.push_all(&self.children);
     }
 }
 
-impl Generate for NodeElement {
+impl Generate for NodeElement<Infallible> {
     fn generate(&self, gen: &mut Generator) {
         gen.record_element(&node_name_ident(&self.open_tag.name));
 
@@ -214,7 +213,7 @@ impl Generate for KeyedAttribute {
 
         gen.push_escaped_lit(node_name_lit(&self.key));
 
-        if let KeyedAttributeValue::Value(AttributeValueExpr { value, .. }) = &self.possible_value {
+        if let KeyedAttributeValue::Value(AttributeValueExpr { value: KVAttributeValue::Expr(value), .. }) = &self.possible_value {
             gen.push_str("=\"");
             match value {
                 Expr::Lit(ExprLit { lit, .. }) => match lit {
