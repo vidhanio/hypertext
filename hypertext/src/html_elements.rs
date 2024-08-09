@@ -9,19 +9,18 @@
 /// Example:
 /// ```rust
 /// mod html_elements {
-///    use hypertext::elements;
+///     use hypertext::elements;
+///     // Import all existing html elements
+///     pub use hypertext::html_elements::*;
 ///
-///    // Import all existing html elements
-///    pub use hypertext::html_elements::*;
-///
-///    // Define a greeting element which is a custom web component (like the Lit example)
-///    elements! {
-///        /// A custom web component that greets the user.
-///        simple_greeting {
-///            /// The name of the person to greet.
-///            name
-///        }
-///    }
+///     // Define a greeting element which is a custom web component (like the Lit example)
+///     elements! {
+///         /// A custom web component that greets the user.
+///         simple_greeting {
+///             /// The name of the person to greet.
+///             name
+///         }
+///     }
 /// }
 /// ```
 macro_rules! elements {

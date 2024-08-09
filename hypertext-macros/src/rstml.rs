@@ -5,7 +5,9 @@ use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
 use quote::ToTokens;
 use rstml::{
     node::{
-        AttributeValueExpr, KVAttributeValue, KeyedAttribute, KeyedAttributeValue, Node, NodeAttribute, NodeBlock, NodeComment, NodeDoctype, NodeElement, NodeFragment, NodeName, NodeNameFragment, NodeText, RawText
+        AttributeValueExpr, KVAttributeValue, KeyedAttribute, KeyedAttributeValue, Node,
+        NodeAttribute, NodeBlock, NodeComment, NodeDoctype, NodeElement, NodeFragment, NodeName,
+        NodeNameFragment, NodeText, RawText,
     },
     Infallible, Parser, ParserConfig,
 };
@@ -213,7 +215,11 @@ impl Generate for KeyedAttribute {
 
         gen.push_escaped_lit(node_name_lit(&self.key));
 
-        if let KeyedAttributeValue::Value(AttributeValueExpr { value: KVAttributeValue::Expr(value), .. }) = &self.possible_value {
+        if let KeyedAttributeValue::Value(AttributeValueExpr {
+            value: KVAttributeValue::Expr(value),
+            ..
+        }) = &self.possible_value
+        {
             gen.push_str("=\"");
             match value {
                 Expr::Lit(ExprLit { lit, .. }) => match lit {

@@ -27,14 +27,13 @@ mod axum_support {
 
 #[cfg(feature = "actix")]
 mod actix_support {
-    use actix_web::{HttpRequest, HttpResponse, Responder};
-    use actix_web::body::EitherBody;
+    use actix_web::{body::EitherBody, HttpRequest, HttpResponse, Responder};
 
     use crate::Rendered;
 
     impl<T> Responder for Rendered<T>
-        where
-            T: Responder,
+    where
+        T: Responder,
     {
         type Body = EitherBody<T::Body>;
 
