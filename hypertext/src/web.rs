@@ -46,3 +46,17 @@ mod actix_support {
         }
     }
 }
+
+#[cfg(feature = "poem")]
+mod poem_support {
+    use poem::{web::Html, IntoResponse, Response};
+
+    use crate::Rendered;
+
+    impl<T: IntoResponse> IntoResponse for Rendered<T> {
+        #[inline]
+        fn into_response(self) -> Response {
+            Html(self.0).into_response()
+        }
+    }
+}
