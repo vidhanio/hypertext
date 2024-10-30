@@ -53,7 +53,10 @@ mod poem_support {
 
     use crate::Rendered;
 
-    impl<T: IntoResponse> IntoResponse for Rendered<T> {
+    impl<T: IntoResponse> IntoResponse for Rendered<T>
+    where
+        T: Into<String>,
+    {
         #[inline]
         fn into_response(self) -> Response {
             Html(self.0).into_response()
