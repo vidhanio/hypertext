@@ -46,3 +46,20 @@ mod actix_support {
         }
     }
 }
+
+#[cfg(feature = "poem")]
+mod poem_support {
+    extern crate alloc;
+
+    use crate::Rendered;
+    use alloc::string::String;
+    use core::marker::Send;
+    use poem::{web::Html, IntoResponse, Response};
+
+    impl<T: Into<String> + Send> IntoResponse for Rendered<T> {
+        #[inline]
+        fn into_response(self) -> Response {
+            Html(self.0).into_response()
+        }
+    }
+}
