@@ -144,7 +144,7 @@ impl Generate for NodeComment {
 
 impl Generate for NodeDoctype {
     fn generate(&self, gen: &mut Generator) {
-        gen.push_str("<! ");
+        gen.push_str("<!");
         gen.push_spanned_str("DOCTYPE", self.token_doctype.span());
         gen.push_str(" ");
         gen.push(&self.value);
