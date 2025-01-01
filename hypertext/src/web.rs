@@ -51,10 +51,12 @@ mod actix_support {
 mod poem_support {
     extern crate alloc;
 
-    use crate::Rendered;
     use alloc::string::String;
     use core::marker::Send;
+
     use poem::{web::Html, IntoResponse, Response};
+
+    use crate::Rendered;
 
     impl<T: Into<String> + Send> IntoResponse for Rendered<T> {
         #[inline]

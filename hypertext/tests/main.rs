@@ -27,23 +27,10 @@ fn readme() {
 
     // or, alternatively:
 
-    let condition = false;
-
     let shopping_list_rsx = hypertext::rsx! {
         <div>
             <h1>Shopping List</h1>
             <ul>
-                {
-                    if condition {
-                        hypertext::rsx! {
-                            <b>Condition is true</b>
-                        }
-                    } else {
-                        hypertext::rsx! {
-                            <i>Condition is false</i>
-                        }
-                    }
-                }
                 { shopping_list.iter().zip(1..).map(|(&item, i)| hypertext::rsx_move! {
                     <li class="item">
                         <input id=format!("item-{i}") type="checkbox">
