@@ -13,11 +13,11 @@ resolver = "2"
     license = "MIT"
     readme = "README.md"
     repository = "https://github.com/vidhanio/hypertext"
-    version = "0.5.2"
+    version = "0.6.0"
 
 
     [workspace.dependencies]
-    hypertext-macros = { version = "0.5.0", path = "./hypertext-macros" }
+    hypertext-macros = { version = "0.6", path = "./hypertext-macros" }
 
     html-escape = { version = "0.2", default-features = false }
 
@@ -29,6 +29,7 @@ resolver = "2"
         unsafe_code = "forbid"
 
         [workspace.lints.clippy]
-        cargo = "warn"
-        nursery = "warn"
-        pedantic = "warn"
+        cargo = { level = "warn", priority = -1 }
+        nursery = { level = "warn", priority = -1 }
+        pedantic = { level = "warn", priority = -1 }
+        too_long_first_doc_paragraph = "allow"

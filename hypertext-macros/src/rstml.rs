@@ -89,7 +89,7 @@ pub fn parse(tokens: TokenStream) -> (Vec<Node>, Vec<Diagnostic>) {
                         }
                         NodeName::Punctuated(punctuated) => {
                             if !punctuated.pairs().all(|pair| {
-                                pair.punct().map_or(true, |punct| {
+                                pair.punct().is_none_or(|punct| {
                                     punct.as_char() == '-' || punct.as_char() == ':'
                                 })
                             }) {

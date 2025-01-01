@@ -144,7 +144,7 @@ impl<T: Display> Renderable for Displayed<T> {
     fn render_to(self, output: &mut String) {
         struct Escaper<'a>(&'a mut String);
 
-        impl<'a> fmt::Write for Escaper<'a> {
+        impl fmt::Write for Escaper<'_> {
             #[inline]
             fn write_str(&mut self, s: &str) -> fmt::Result {
                 html_escape::encode_double_quoted_attribute_to_string(s, self.0);
