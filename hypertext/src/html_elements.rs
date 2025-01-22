@@ -847,6 +847,10 @@ elements! {
         /// Hint for form autofill feature
         autocomplete
 
+        /// On mobile devices, offers to use the camera, and asks for 
+        /// either the back (environment) or the front (user) camera.
+        capture
+
         /// Whether the control is checked
         checked
 
