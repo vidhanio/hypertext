@@ -847,6 +847,9 @@ elements! {
         /// Hint for form autofill feature
         autocomplete
 
+        /// Media capture input method in file upload controls
+        capture
+
         /// Whether the control is checked
         checked
 
