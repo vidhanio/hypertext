@@ -59,11 +59,11 @@
 //!         let _: hypertext::Attribute = html_elements::h1::class;
 //!     };
 //!
-//!     |hypertext_output: &mut String| {
+//!     hypertext::Delayed(|hypertext_output: &mut String| {
 //!         hypertext_output.push_str(
 //!             r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1></div>"#
 //!         );
-//!     }
+//!     })
 //! }
 //! .render()
 //! # );
