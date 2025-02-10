@@ -1,14 +1,12 @@
 //! Tests for the `hypertext` crate.
 
-#![allow(clippy::useless_vec)]
-
 use hypertext::{Attribute, AttributeNamespace, GlobalAttributes};
 
 #[test]
 fn readme() {
     use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
 
-    let shopping_list = vec!["milk", "eggs", "bread"];
+    let shopping_list = ["milk", "eggs", "bread"];
 
     let shopping_list_maud = hypertext::maud! {
         div {
@@ -105,4 +103,44 @@ fn elements_macro() {
         custom_maud,
         r#"<div><my_element my_attribute="test">Hello, world!</my_element></div>"#
     );
+}
+
+#[test]
+fn can_render_arc() {
+    use hypertext::{html_elements, Renderable};
+
+    let value = std::sync::Arc::new("arc");
+    let result = hypertext::maud!(span { (value) }).render();
+
+    assert_eq!(result, "<span>arc</span>");
+}
+
+#[test]
+fn can_render_box() {
+    use hypertext::{html_elements, Renderable};
+
+    let value = Box::new("box");
+    let result = hypertext::maud!(span { (value) }).render();
+
+    assert_eq!(result, "<span>box</span>");
+}
+
+#[test]
+fn can_render_rc() {
+    use hypertext::{html_elements, Renderable};
+
+    let value = std::rc::Rc::new("rc");
+    let result = hypertext::maud!(span { (value) }).render();
+
+    assert_eq!(result, "<span>rc</span>");
+}
+
+#[test]
+fn can_render_cow() {
+    use hypertext::{html_elements, Renderable};
+
+    let value = std::borrow::Cow::from("cow");
+    let result = hypertext::maud!(span { (value) }).render();
+
+    assert_eq!(result, "<span>cow</span>");
 }

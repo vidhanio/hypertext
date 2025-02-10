@@ -12,8 +12,7 @@ use rstml::{
     Infallible, Parser, ParserConfig,
 };
 use syn::{
-    parse_quote, punctuated::Pair, spanned::Spanned, Expr, ExprBlock, ExprLit, ExprPath, Ident,
-    Lit, LitStr,
+    punctuated::Pair, spanned::Spanned, Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit, LitStr,
 };
 
 use crate::generate::{Generate, Generator};
@@ -314,7 +313,7 @@ impl Generate for NodeBlock {
     fn generate(&self, gen: &mut Generator) {
         if let Self::ValidBlock(block) = self {
             gen.push_rendered_expr(&Expr::Block(ExprBlock {
-                attrs: vec![parse_quote!(#[allow(unused_braces)])],
+                attrs: vec![],
                 label: None,
                 block: block.clone(),
             }));
