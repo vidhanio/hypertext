@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use alloc::{borrow::Cow, rc::Rc, string::String, sync::Arc};
+use alloc::{string::String, vec::Vec};
 use core::fmt::{self, Display, Write};
 
 /// Generate HTML using [`maud`] syntax.
@@ -94,7 +94,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// }
 ///
 /// impl Renderable for Person {
-///     fn render_to(self, output: &mut String) {
+///     fn render_to(&self, output: &mut String) {
 ///         maud! {
 ///             div {
 ///                 h1 { (self.name) }
@@ -115,21 +115,27 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 ///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
 /// );
 /// ```
-pub trait Renderable
-where
-    Self: Sized,
-{
+pub trait Renderable {
     /// Renders this type to the given string.
     ///
     /// The implementation must handle escaping any special characters.
-    fn render_to(self, output: &mut String);
+    fn render_to(&self, output: &mut String);
 
     /// Renders this value to a string.
     #[inline]
-    fn render(self) -> Rendered<String> {
+    fn render(&self) -> Rendered<String> {
         let mut output = String::new();
         self.render_to(&mut output);
         Rendered(output)
+    }
+
+    /// Pre-renders the type and stores the result
+    /// so that it can be shared amongst multiple renderings.
+    #[inline]
+    fn memoize(&self) -> Raw<String> {
+        let mut output = String::new();
+        self.render_to(&mut output);
+        Raw(output)
     }
 }
 
@@ -141,7 +147,7 @@ pub struct Displayed<T: Display>(pub T);
 
 impl<T: Display> Renderable for Displayed<T> {
     #[inline]
-    fn render_to(self, output: &mut String) {
+    fn render_to(&self, output: &mut String) {
         struct Escaper<'a>(&'a mut String);
 
         impl fmt::Write for Escaper<'_> {
@@ -157,10 +163,14 @@ impl<T: Display> Renderable for Displayed<T> {
     }
 }
 
-impl<F: FnOnce(&mut String)> Renderable for F {
+/// A value rendered via a closure.
+#[derive(Debug, Clone, Copy)]
+pub struct Delayed<F: Fn(&mut String)>(pub F);
+
+impl<F: Fn(&mut String)> Renderable for Delayed<F> {
     #[inline]
-    fn render_to(self, output: &mut String) {
-        self(output);
+    fn render_to(&self, output: &mut String) {
+        (self.0)(output);
     }
 }
 
@@ -171,21 +181,17 @@ impl<F: FnOnce(&mut String)> Renderable for F {
 /// unsure, render the actual string instead, as its implementation will
 /// escape any special characters.
 #[derive(Debug, Clone, Copy)]
-pub struct Raw<T: AsRef<str>>(pub T);
+pub struct Raw<T>(pub T);
 
 impl<T: AsRef<str>> Renderable for Raw<T> {
     #[inline]
-    fn render_to(self, output: &mut String) {
+    fn render_to(&self, output: &mut String) {
         output.push_str(self.0.as_ref());
     }
 }
 
 /// An extension trait for [`IntoIterator`]s that can be rendered.
-pub trait RenderIterator: IntoIterator
-where
-    Self: Sized,
-    Self::Item: Renderable,
-{
+pub trait RenderIterator {
     /// Renders each item in this iterator.
     ///
     /// # Example
@@ -206,22 +212,29 @@ where
     ///     }.render(),
     ///     r#"<ul id="shopping-list"><li>milks</li><li>eggs</li><li>bread</li></ul>"#
     /// );
+    fn render_all(self) -> impl Renderable;
+}
+
+impl<I, T> RenderIterator for I
+where
+    I: Iterator<Item = T>,
+    T: Renderable,
+{
     #[inline]
-    fn render_all(self) -> impl FnOnce(&mut String) {
-        |output| {
-            self.into_iter().for_each(|item| {
+    fn render_all(self) -> impl Renderable {
+        let renderables: Vec<_> = self.collect();
+        Delayed(move |output| {
+            for item in &renderables {
                 item.render_to(output);
-            });
-        }
+            }
+        })
     }
 }
 
-impl<I: IntoIterator> RenderIterator for I where Self::Item: Renderable {}
-
 impl Renderable for char {
     #[inline]
-    fn render_to(self, output: &mut String) {
-        match self {
+    fn render_to(&self, output: &mut String) {
+        match *self {
             '&' => output.push_str("&amp;"),
             '<' => output.push_str("&lt;"),
             '>' => output.push_str("&gt;"),
@@ -233,42 +246,24 @@ impl Renderable for char {
     }
 }
 
-impl Renderable for &str {
+impl Renderable for str {
     #[inline]
-    fn render_to(self, output: &mut String) {
+    fn render_to(&self, output: &mut String) {
         html_escape::encode_single_quoted_attribute_to_string(self, output);
-    }
-}
-
-impl Renderable for &String {
-    #[inline]
-    fn render_to(self, output: &mut String) {
-        self.as_str().render_to(output);
     }
 }
 
 impl Renderable for String {
     #[inline]
-    fn render_to(self, output: &mut String) {
+    fn render_to(&self, output: &mut String) {
         self.as_str().render_to(output);
-    }
-}
-
-impl Renderable for Cow<'_, str> {
-    #[inline]
-    fn render_to(self, output: &mut String) {
-        self.as_ref().render_to(output);
     }
 }
 
 impl Renderable for bool {
     #[inline]
-    fn render_to(self, output: &mut String) {
-        if self {
-            output.push_str("true");
-        } else {
-            output.push_str("false");
-        }
+    fn render_to(&self, output: &mut String) {
+        output.push_str(if *self { "true" } else { "false" });
     }
 }
 
@@ -277,8 +272,8 @@ macro_rules! render_via_itoa {
         $(
             impl Renderable for $Ty {
                 #[inline]
-                fn render_to(self, output: &mut String) {
-                    output.push_str(itoa::Buffer::new().format(self));
+                fn render_to(&self, output: &mut String) {
+                    output.push_str(itoa::Buffer::new().format(*self));
                 }
             }
         )*
@@ -295,8 +290,8 @@ macro_rules! render_via_ryu {
         $(
             impl Renderable for $Ty {
                 #[inline]
-                fn render_to(self, output: &mut String) {
-                    output.push_str(ryu::Buffer::new().format(self));
+                fn render_to(&self, output: &mut String) {
+                    output.push_str(ryu::Buffer::new().format(*self));
                 }
             }
         )*
@@ -309,29 +304,9 @@ render_via_ryu! {
 
 impl<T: Renderable> Renderable for Option<T> {
     #[inline]
-    fn render_to(self, output: &mut String) {
+    fn render_to(&self, output: &mut String) {
         if let Some(value) = self {
             value.render_to(output);
         }
-    }
-}
-
-impl<T> Renderable for Arc<T>
-where
-    for<'a> &'a T: Renderable,
-{
-    #[inline]
-    fn render_to(self, output: &mut String) {
-        (&*self).render_to(output);
-    }
-}
-
-impl<T> Renderable for Rc<T>
-where
-    for<'a> &'a T: Renderable,
-{
-    #[inline]
-    fn render_to(self, output: &mut String) {
-        (&*self).render_to(output);
     }
 }
