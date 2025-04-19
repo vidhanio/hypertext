@@ -1,5 +1,2 @@
 [licenses]
-allow = ["Apache-2.0", "MIT", "Unicode-DFS-2016"]
-
-[advisories]
-ignore = ["RUSTSEC-2024-0370"]
+allow = ["Apache-2.0", "MIT", "Unicode-3.0"]

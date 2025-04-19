@@ -7,13 +7,13 @@ resolver = "2"
     authors = ["Vidhan Bhatt <me@vidhan.io>"]
     categories = ["template-engine"]
     description = "A blazing fast type-checked HTML macro crate."
-    edition = "2021"
+    edition = "2024"
     homepage = "https://github.com/vidhanio/hypertext"
     keywords = ["html", "macro"]
     license = "MIT"
     readme = "README.md"
     repository = "https://github.com/vidhanio/hypertext"
-    version = "0.6.2"
+    version = "0.6.3"
 
 
     [workspace.dependencies]

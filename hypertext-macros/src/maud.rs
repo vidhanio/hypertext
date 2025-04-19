@@ -5,7 +5,8 @@ use std::ops::ControlFlow;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::{
-    braced, bracketed,
+    Arm, Expr, ExprBlock, ExprForLoop, ExprIf, ExprMatch, ExprParen, ExprWhile, Ident, LitBool,
+    LitInt, LitStr, Local, Pat, Stmt, Token, braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -13,8 +14,6 @@ use syn::{
     punctuated::{Pair, Punctuated},
     spanned::Spanned,
     token::{At, Brace, Bracket, Comma, Else, FatArrow, For, If, In, Match, Paren, While},
-    Arm, Expr, ExprBlock, ExprForLoop, ExprIf, ExprMatch, ExprParen, ExprWhile, Ident, LitBool,
-    LitInt, LitStr, Local, Pat, Stmt, Token,
 };
 
 use crate::generate::{Generate, Generator};
@@ -57,12 +56,12 @@ impl ToTokens for Markup {
 }
 
 impl Generate for Markup {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         if let Some(doctype) = &self.doctype {
-            gen.push(doctype);
+            g.push(doctype);
         }
 
-        gen.push_all(&self.nodes);
+        g.push_all(&self.nodes);
     }
 }
 
@@ -91,8 +90,8 @@ impl ToTokens for Doctype {
 }
 
 impl Generate for Doctype {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_spanned_str("<!DOCTYPE html>", self.span());
+    fn generate(&self, g: &mut Generator) {
+        g.push_spanned_str("<!DOCTYPE html>", self.span());
     }
 }
 
@@ -154,13 +153,13 @@ impl ToTokens for ElementNode {
 }
 
 impl Generate for ElementNode {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         match self {
-            Self::Block(block) => gen.push(block),
-            Self::Element(element) => gen.push(element),
-            Self::Splice(splice) => gen.push(splice),
-            Self::Literal(lit) => gen.push(lit),
-            Self::Keyword(kw) => gen.push(kw),
+            Self::Block(block) => g.push(block),
+            Self::Element(element) => g.push(element),
+            Self::Splice(splice) => g.push(splice),
+            Self::Literal(lit) => g.push(lit),
+            Self::Keyword(kw) => g.push(kw),
         }
     }
 }
@@ -198,11 +197,11 @@ impl<N: Node> ToTokens for Block<N> {
 }
 
 impl<N: Node> Generate for Block<N> {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         if self.nodes.iter().any(Node::is_let) {
-            gen.in_block(|gen| gen.push_all(&self.nodes));
+            g.in_block(|g| g.push_all(&self.nodes));
         } else {
-            gen.push_all(&self.nodes);
+            g.push_all(&self.nodes);
         }
     }
 }
@@ -232,8 +231,8 @@ impl ToTokens for Splice {
 }
 
 impl Generate for Splice {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_rendered_expr(&self.expr);
+    fn generate(&self, g: &mut Generator) {
+        g.push_rendered_expr(&self.expr);
     }
 }
 
@@ -291,28 +290,28 @@ impl ToTokens for Element {
 }
 
 impl Generate for Element {
-    fn generate(&self, gen: &mut Generator) {
-        gen.record_element(&self.name.ident());
+    fn generate(&self, g: &mut Generator) {
+        g.record_element(&self.name.ident());
 
-        gen.push_str("<");
-        gen.push_escaped_lit(self.name.lit());
+        g.push_str("<");
+        g.push_escaped_lit(self.name.lit());
 
         if let Some(id) = &self.id {
-            gen.record_attribute(&self.name.ident(), &id.attr_name_ident());
+            g.record_attribute(&self.name.ident(), &id.attr_name_ident());
 
-            gen.push_str(" ");
-            gen.push(id);
+            g.push_str(" ");
+            g.push(id);
         }
 
         if let Some(classes) = &self.classes {
-            gen.record_attribute(&self.name.ident(), &classes.attr_name_ident());
+            g.record_attribute(&self.name.ident(), &classes.attr_name_ident());
 
-            gen.push_str(" ");
-            gen.push(classes);
+            g.push_str(" ");
+            g.push(classes);
         }
 
         for attr in &self.attrs {
-            gen.push(attr);
+            g.push(attr);
 
             let mut name_pairs = attr.name.name.pairs();
             if name_pairs.next().is_some_and(|pair| {
@@ -329,21 +328,21 @@ impl Generate for Element {
             let (attr_ident, is_namespace) = attr.name.ident_or_namespace();
 
             if is_namespace {
-                gen.record_namespace(&self.name.ident(), &attr_ident);
+                g.record_namespace(&self.name.ident(), &attr_ident);
             } else {
-                gen.record_attribute(&self.name.ident(), &attr_ident);
+                g.record_attribute(&self.name.ident(), &attr_ident);
             }
         }
 
-        gen.push_str(">");
+        g.push_str(">");
 
         match &self.body {
-            ElementBody::Void(_) => gen.record_void_element(&self.name.ident()),
+            ElementBody::Void(_) => g.record_void_element(&self.name.ident()),
             ElementBody::Block(block) => {
-                gen.push(block);
-                gen.push_str("</");
-                gen.push_escaped_lit(self.name.lit());
-                gen.push_str(">");
+                g.push(block);
+                g.push_str("</");
+                g.push_escaped_lit(self.name.lit());
+                g.push_str(">");
             }
         }
     }
@@ -411,11 +410,11 @@ impl ToTokens for IdAttribute {
 }
 
 impl Generate for IdAttribute {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_escaped_lit(self.attr_name_lit());
-        gen.push_str("=\"");
-        gen.push(&self.value);
-        gen.push_str("\"");
+    fn generate(&self, g: &mut Generator) {
+        g.push_escaped_lit(self.attr_name_lit());
+        g.push_str("=\"");
+        g.push(&self.value);
+        g.push_str("\"");
     }
 }
 
@@ -482,29 +481,29 @@ impl ToTokens for Classes {
 }
 
 impl Generate for Classes {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_escaped_lit(self.attr_name_lit());
-        gen.push_str("=\"");
+    fn generate(&self, g: &mut Generator) {
+        g.push_escaped_lit(self.attr_name_lit());
+        g.push_str("=\"");
 
         for (i, class) in self.classes.iter().enumerate() {
             if i > 0 {
-                gen.push_str(" ");
+                g.push_str(" ");
             }
 
-            gen.push(&class.value);
+            g.push(&class.value);
         }
 
         for (i, class) in self.toggled_classes.iter().enumerate() {
-            gen.push_conditional(&class.toggle.parenthesized_cond(), |gen| {
+            g.push_conditional(&class.toggle.parenthesized_cond(), |g| {
                 if !self.classes.is_empty() || i > 0 {
-                    gen.push_str(" ");
+                    g.push_str(" ");
                 }
 
-                gen.push(&class.value);
+                g.push(&class.value);
             });
         }
 
-        gen.push_str("\"");
+        g.push_str("\"");
     }
 }
 
@@ -623,13 +622,13 @@ impl ToTokens for IdOrClassNode {
 }
 
 impl Generate for IdOrClassNode {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         match self {
-            Self::Block(block) => gen.push(block),
-            Self::Splice(splice) => gen.push(splice),
-            Self::Literal(lit) => gen.push_escaped_lit(lit.clone()),
-            Self::Keyword(kw) => gen.push(kw),
-            Self::Name(name) => gen.push_escaped_lit(name.lit()),
+            Self::Block(block) => g.push(block),
+            Self::Splice(splice) => g.push(splice),
+            Self::Literal(lit) => g.push_escaped_lit(lit.clone()),
+            Self::Keyword(kw) => g.push(kw),
+            Self::Name(name) => g.push_escaped_lit(name.lit()),
         }
     }
 }
@@ -657,52 +656,52 @@ impl ToTokens for Attribute {
 }
 
 impl Generate for Attribute {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         match &self.kind {
             AttributeKind::Normal {
                 value,
                 toggle: Some(toggle),
                 ..
-            } => gen.push_conditional(&toggle.parenthesized_cond(), |gen| {
-                gen.push_str(" ");
-                gen.push_escaped_lit(self.name.lit());
-                gen.push_str("=\"");
-                gen.push(value);
-                gen.push_str("\"");
+            } => g.push_conditional(&toggle.parenthesized_cond(), |g| {
+                g.push_str(" ");
+                g.push_escaped_lit(self.name.lit());
+                g.push_str("=\"");
+                g.push(value);
+                g.push_str("\"");
             }),
             AttributeKind::Normal {
                 value,
                 toggle: None,
                 ..
             } => {
-                gen.push_str(" ");
-                gen.push_escaped_lit(self.name.lit());
-                gen.push_str("=\"");
-                gen.push(value);
-                gen.push_str("\"");
+                g.push_str(" ");
+                g.push_escaped_lit(self.name.lit());
+                g.push_str("=\"");
+                g.push(value);
+                g.push_str("\"");
             }
             AttributeKind::Optional {
                 toggle: Toggle { cond, .. },
                 ..
-            } => gen.push_conditional(
+            } => g.push_conditional(
                 &parse_quote!(let ::core::option::Option::Some(value) = (#cond)),
-                |gen| {
-                    gen.push_str(" ");
-                    gen.push_escaped_lit(self.name.lit());
-                    gen.push_str("=\"");
-                    gen.push_rendered_expr(&parse_quote!(value));
-                    gen.push_str("\"");
+                |g| {
+                    g.push_str(" ");
+                    g.push_escaped_lit(self.name.lit());
+                    g.push_str("=\"");
+                    g.push_rendered_expr(&parse_quote!(value));
+                    g.push_str("\"");
                 },
             ),
             AttributeKind::Empty(Some(toggle)) => {
-                gen.push_conditional(&toggle.parenthesized_cond(), |gen| {
-                    gen.push_str(" ");
-                    gen.push_escaped_lit(self.name.lit());
+                g.push_conditional(&toggle.parenthesized_cond(), |g| {
+                    g.push_str(" ");
+                    g.push_escaped_lit(self.name.lit());
                 });
             }
             AttributeKind::Empty(None) => {
-                gen.push_str(" ");
-                gen.push_escaped_lit(self.name.lit());
+                g.push_str(" ");
+                g.push_escaped_lit(self.name.lit());
             }
         }
     }
@@ -830,12 +829,12 @@ impl ToTokens for AttributeValueNode {
 }
 
 impl Generate for AttributeValueNode {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         match self {
-            Self::Block(block) => gen.push(block),
-            Self::Splice(splice) => gen.push(splice),
-            Self::Literal(lit) => gen.push_escaped_lit(lit.lit_str()),
-            Self::Keyword(kw) => gen.push(kw),
+            Self::Block(block) => g.push(block),
+            Self::Splice(splice) => g.push(splice),
+            Self::Literal(lit) => g.push_escaped_lit(lit.lit_str()),
+            Self::Keyword(kw) => g.push(kw),
         }
     }
 }
@@ -1081,8 +1080,8 @@ impl ToTokens for Lit {
 }
 
 impl Generate for Lit {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_escaped_lit(self.lit_str());
+    fn generate(&self, g: &mut Generator) {
+        g.push_escaped_lit(self.lit_str());
     }
 }
 
@@ -1169,15 +1168,15 @@ impl<N: Node> ToTokens for Keyword<N> {
 }
 
 impl<N: Node> Generate for Keyword<N> {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         match &self.kind {
             KeywordKind::Let(let_) => {
-                gen.push_dynamic(Stmt::Local(let_.clone()), Some(self.span()));
+                g.push_dynamic(Stmt::Local(let_.clone()), Some(self.span()));
             }
-            KeywordKind::If(if_) => gen.push(if_),
-            KeywordKind::For(for_) => gen.push(for_),
-            KeywordKind::While(while_) => gen.push(while_),
-            KeywordKind::Match(match_) => gen.push(match_),
+            KeywordKind::If(if_) => g.push(if_),
+            KeywordKind::For(for_) => g.push(for_),
+            KeywordKind::While(while_) => g.push(while_),
+            KeywordKind::Match(match_) => g.push(match_),
         }
     }
 }
@@ -1230,13 +1229,13 @@ impl<N: Node> ToTokens for IfNode<N> {
 }
 
 impl<N: Node> Generate for IfNode<N> {
-    fn generate(&self, gen: &mut Generator) {
-        fn to_expr<N: Node>(if_: &IfNode<N>, gen: &mut Generator) -> ExprIf {
+    fn generate(&self, g: &mut Generator) {
+        fn to_expr<N: Node>(if_: &IfNode<N>, g: &mut Generator) -> ExprIf {
             ExprIf {
                 attrs: Vec::new(),
                 if_token: if_.if_token,
                 cond: Box::new(if_.cond.clone()),
-                then_branch: gen.block(&if_.then_branch),
+                then_branch: g.block(&if_.then_branch),
                 else_branch: if_
                     .else_branch
                     .as_ref()
@@ -1244,11 +1243,11 @@ impl<N: Node> Generate for IfNode<N> {
                         (
                             *else_token,
                             Box::new(match &**if_or_block {
-                                IfOrBlock::If(if_) => Expr::If(to_expr(if_, gen)),
+                                IfOrBlock::If(if_) => Expr::If(to_expr(if_, g)),
                                 IfOrBlock::Block(block) => Expr::Block(ExprBlock {
                                     attrs: Vec::new(),
                                     label: None,
-                                    block: gen.block(block),
+                                    block: g.block(block),
                                 }),
                             }),
                         )
@@ -1256,9 +1255,9 @@ impl<N: Node> Generate for IfNode<N> {
             }
         }
 
-        let expr = to_expr(self, gen);
+        let expr = to_expr(self, g);
 
-        gen.push_expr(expr);
+        g.push_expr(expr);
     }
 }
 
@@ -1292,10 +1291,10 @@ impl<N: Node> ToTokens for IfOrBlock<N> {
 }
 
 impl<N: Node> Generate for IfOrBlock<N> {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         match self {
-            Self::If(if_) => gen.push(if_),
-            Self::Block(block) => gen.push(block),
+            Self::If(if_) => g.push(if_),
+            Self::Block(block) => g.push(block),
         }
     }
 }
@@ -1332,9 +1331,9 @@ impl<N: Node> ToTokens for ForNode<N> {
 }
 
 impl<N: Node> Generate for ForNode<N> {
-    fn generate(&self, gen: &mut Generator) {
-        let body = gen.block(&self.body);
-        gen.push_expr(ExprForLoop {
+    fn generate(&self, g: &mut Generator) {
+        let body = g.block(&self.body);
+        g.push_expr(ExprForLoop {
             attrs: Vec::new(),
             label: None,
             for_token: self.for_token,
@@ -1372,9 +1371,9 @@ impl<N: Node> ToTokens for WhileNode<N> {
 }
 
 impl<N: Node> Generate for WhileNode<N> {
-    fn generate(&self, gen: &mut Generator) {
-        let body = gen.block(&self.body);
-        gen.push_expr(ExprWhile {
+    fn generate(&self, g: &mut Generator) {
+        let body = g.block(&self.body);
+        g.push_expr(ExprWhile {
             attrs: Vec::new(),
             label: None,
             while_token: self.while_token,
@@ -1427,7 +1426,7 @@ impl<N: Node> ToTokens for MatchNode<N> {
 }
 
 impl<N: Node> Generate for MatchNode<N> {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         let arms = self
             .arms
             .iter()
@@ -1442,13 +1441,13 @@ impl<N: Node> Generate for MatchNode<N> {
                 body: Box::new(Expr::Block(ExprBlock {
                     attrs: Vec::new(),
                     label: None,
-                    block: gen.block(&arm.body),
+                    block: g.block(&arm.body),
                 })),
                 comma: arm.comma_token,
             })
             .collect();
 
-        gen.push_expr(ExprMatch {
+        g.push_expr(ExprMatch {
             attrs: Vec::new(),
             match_token: self.match_token,
             expr: Box::new(self.expr.clone()),

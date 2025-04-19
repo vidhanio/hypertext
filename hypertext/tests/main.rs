@@ -2,7 +2,7 @@
 
 #![allow(clippy::useless_vec)]
 
-use hypertext::{Attribute, AttributeNamespace, GlobalAttributes};
+use hypertext::{Attribute, AttributeNamespace, GlobalAttributes, Renderable};
 
 #[test]
 fn readme() {
@@ -105,4 +105,18 @@ fn elements_macro() {
         custom_maud,
         r#"<div><my_element my_attribute="test">Hello, world!</my_element></div>"#
     );
+}
+
+#[test]
+fn correct_attr_escape() {
+    use hypertext::{html_elements, maud};
+
+    let xss = r#""alert('XSS')"#;
+
+    let test = maud! {
+        div data-code=(xss) {}
+    }
+    .render();
+
+    assert_eq!(test, r#"<div data-code="&quot;alert('XSS')"></div>"#);
 }

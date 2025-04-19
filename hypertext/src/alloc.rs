@@ -236,7 +236,7 @@ impl Renderable for char {
 impl Renderable for &str {
     #[inline]
     fn render_to(self, output: &mut String) {
-        html_escape::encode_single_quoted_attribute_to_string(self, output);
+        html_escape::encode_double_quoted_attribute_to_string(self, output);
     }
 }
 
