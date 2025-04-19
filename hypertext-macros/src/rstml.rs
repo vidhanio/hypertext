@@ -4,16 +4,16 @@ use proc_macro2::TokenStream;
 use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
 use quote::ToTokens;
 use rstml::{
+    Infallible, Parser, ParserConfig,
     node::{
         AttributeValueExpr, KVAttributeValue, KeyedAttribute, KeyedAttributeValue, Node,
         NodeAttribute, NodeBlock, NodeComment, NodeDoctype, NodeElement, NodeFragment, NodeName,
         NodeNameFragment, NodeText, RawText,
     },
-    Infallible, Parser, ParserConfig,
 };
 use syn::{
-    parse_quote, punctuated::Pair, spanned::Spanned, Expr, ExprBlock, ExprLit, ExprPath, Ident,
-    Lit, LitStr,
+    Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit, LitStr, parse_quote, punctuated::Pair,
+    spanned::Spanned,
 };
 
 use crate::generate::{Generate, Generator};

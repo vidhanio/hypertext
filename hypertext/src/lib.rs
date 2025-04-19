@@ -79,7 +79,7 @@
 //! Here's an example of how you could define your own attributes for use with
 //! the wonderful frontend library [htmx](https://htmx.org):
 //! ```rust
-//! use hypertext::{html_elements, maud, Attribute, GlobalAttributes, Renderable};
+//! use hypertext::{Attribute, GlobalAttributes, Renderable, html_elements, maud};
 //!
 //! trait HtmxAttributes: GlobalAttributes {
 //!     const hx_get: Attribute = Attribute;
@@ -119,7 +119,7 @@ pub use attributes::{Attribute, AttributeNamespace, GlobalAttributes};
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, maud_static, GlobalAttributes};
+/// use hypertext::{GlobalAttributes, html_elements, maud_static};
 ///
 /// assert_eq!(
 ///     maud_static! {
@@ -144,7 +144,7 @@ pub use hypertext_macros::maud_static;
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, rsx_static, GlobalAttributes};
+/// use hypertext::{GlobalAttributes, html_elements, rsx_static};
 ///
 /// assert_eq!(
 ///     rsx_static! {

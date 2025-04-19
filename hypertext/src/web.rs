@@ -6,7 +6,7 @@ mod axum_support {
         body::Body,
         response::{IntoResponse, Response},
     };
-    use http::{header, HeaderValue};
+    use http::{HeaderValue, header};
 
     use crate::Rendered;
 
@@ -27,7 +27,7 @@ mod axum_support {
 
 #[cfg(feature = "actix")]
 mod actix_support {
-    use actix_web::{body::EitherBody, HttpRequest, HttpResponse, Responder};
+    use actix_web::{HttpRequest, HttpResponse, Responder, body::EitherBody};
 
     use crate::Rendered;
 
@@ -54,7 +54,7 @@ mod poem_support {
     use alloc::string::String;
     use core::marker::Send;
 
-    use poem::{web::Html, IntoResponse, Response};
+    use poem::{IntoResponse, Response, web::Html};
 
     use crate::Rendered;
 

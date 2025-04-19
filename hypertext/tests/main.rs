@@ -6,7 +6,7 @@ use hypertext::{Attribute, AttributeNamespace, GlobalAttributes, Renderable};
 
 #[test]
 fn readme() {
-    use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
+    use hypertext::{GlobalAttributes, RenderIterator, Renderable, html_elements};
 
     let shopping_list = vec!["milk", "eggs", "bread"];
 
@@ -56,7 +56,7 @@ impl<T: GlobalAttributes> HtmxAttributes for T {}
 
 #[test]
 fn htmx() {
-    use hypertext::{html_elements, Renderable};
+    use hypertext::{Renderable, html_elements};
 
     let htmx_maud = hypertext::maud! {
         div {

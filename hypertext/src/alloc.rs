@@ -24,7 +24,7 @@ use core::fmt::{self, Display, Write};
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, maud, GlobalAttributes, Renderable};
+/// use hypertext::{GlobalAttributes, Renderable, html_elements, maud};
 ///
 /// assert_eq!(
 ///     maud! {
@@ -52,7 +52,7 @@ pub use hypertext_macros::maud_move;
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, rsx, GlobalAttributes, Renderable};
+/// use hypertext::{GlobalAttributes, Renderable, html_elements, rsx};
 ///
 /// assert_eq!(
 ///     rsx! {
@@ -86,7 +86,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, maud, Renderable};
+/// use hypertext::{Renderable, html_elements, maud};
 ///
 /// pub struct Person {
 ///     name: String,
