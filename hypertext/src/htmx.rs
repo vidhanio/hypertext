@@ -49,7 +49,7 @@ pub trait HtmxAttributes: GlobalAttributes {
     const hx_history: Attribute = Attribute;
     /// The element to snapshot and restore during history navigation
     const hx_history_elt: Attribute = Attribute;
-    /// 	Include additional data in requests
+    /// Include additional data in requests
     const hx_include: Attribute = Attribute;
     /// The element to put the htmx-request class on during the request
     const hx_indicator: Attribute = Attribute;
