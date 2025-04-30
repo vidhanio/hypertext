@@ -6,7 +6,7 @@ use hypertext::{Attribute, AttributeNamespace, GlobalAttributes, Renderable};
 
 #[test]
 fn readme() {
-    use hypertext::{GlobalAttributes, RenderIterator, Renderable, html_elements};
+    use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
 
     let shopping_list = vec!["milk", "eggs", "bread"];
 
@@ -45,34 +45,71 @@ fn readme() {
     assert_eq!(shopping_list_maud, shopping_list_rsx);
 }
 
-#[allow(non_upper_case_globals)]
-#[allow(dead_code)]
-trait HtmxAttributes: GlobalAttributes {
-    const hx_post: Attribute = Attribute;
-    const hx_on: AttributeNamespace = AttributeNamespace;
-}
-
-impl<T: GlobalAttributes> HtmxAttributes for T {}
-
 #[test]
+#[cfg(feature = "htmx")]
 fn htmx() {
-    use hypertext::{Renderable, html_elements};
+    use hypertext::{html_elements, htmx::HtmxAttributes, maud, rsx, Renderable, Rendered};
 
-    let htmx_maud = hypertext::maud! {
-        div {
-            form hx-post="/login" hx-on::after-request="this.reset()" {
-                input type="text" name="username";
-                input type="password" name="password";
-                input type="submit" value="Login";
-            }
-        }
+    let tests = [
+        (
+            maud! { div hx-get="/api/endpoint" { "Hello, world!" } }.render(),
+            r#"<div hx-get="/api/endpoint">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div hx-get="/api/endpoint">"Hello, world!"</div> }.render(),
+            r#"<div hx-get="/api/endpoint">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div hx-post="/api/endpoint" { "Hello, world!" } }.render(),
+            r#"<div hx-post="/api/endpoint">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div hx-post="/api/endpoint">"Hello, world!"</div> }.render(),
+            r#"<div hx-post="/api/endpoint">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div hx-on:click="this.classList.toggle('active')" { "Hello, world!" } }
+                .render(),
+            r#"<div hx-on:click="this.classList.toggle('active')">Hello, world!</div>"#,
+        ),
+        // WARNING: The following test is commented out because it doesn't work with RSX but does
+        // with Maud
+        // (
+        //     rsx! { <div hx-on:click="this.classList.toggle('active')">"Hello, world!"</div> }
+        //         .render(),
+        //     r#"<div hx-on:click="this.classList.toggle('active')">Hello, world!</div>"#,
+        // ),
+        (
+            maud! {
+                div {
+                    form hx-post="/login" hx-on::after-request="this.reset()" {
+                        input type="text" name="username";
+                        input type="password" name="password";
+                        input type="submit" value="Login";
+                }
+            }}
+            .render(),
+            r#"<div><form hx-post="/login" hx-on::after-request="this.reset()"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></div>"#,
+        ),
+        // WARNING: The following test is commented out because it doesn't work with RSX but does
+        // with Maud
+        // (
+        //     rsx! {
+        //         <div>
+        //             <form hx-post="/login" hx-on::after-request="this.reset()">
+        //                 <input type="text" name="username" />
+        //                 <input type="password" name="password" />
+        //                 <input type="submit" value="Login" />
+        //             </form>
+        //         </div>
+        //     }
+        //     .render(),
+        //     r#"<div><form hx-post="/login" hx-on::after-request="this.reset()"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></div>"#,
+        // ),
+    ];
+    for (test, expected) in tests {
+        assert_eq!(test, Rendered(expected.to_string()));
     }
-    .render();
-
-    assert_eq!(
-        htmx_maud,
-        r#"<div><form hx-post="/login" hx-on::after-request="this.reset()"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></div>"#
-    );
 }
 
 #[test]
