@@ -48,7 +48,7 @@ fn readme() {
 #[test]
 #[cfg(feature = "htmx")]
 fn htmx() {
-    use hypertext::{html_elements, htmx::HtmxAttributes, maud, rsx, Renderable, Rendered};
+    use hypertext::{html_elements, maud, rsx, HtmxAttributes, Renderable, Rendered};
 
     let tests = [
         (

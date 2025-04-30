@@ -105,7 +105,7 @@ mod attributes;
 pub mod html_elements;
 /// HTMX attributes for use with [`maud!`] and [`rsx!`].
 #[cfg(feature = "htmx")]
-pub mod htmx;
+mod htmx;
 mod web;
 
 pub use attributes::{Attribute, AttributeNamespace, GlobalAttributes};
