@@ -26,9 +26,7 @@ pub fn parse(tokens: TokenStream) -> (Vec<Node>, Vec<Diagnostic>) {
     .into_iter()
     .collect::<HashSet<_>>();
 
-    let config = ParserConfig::new()
-        .recover_block(true)
-        .always_self_closed_elements(void_elements);
+    let config = ParserConfig::new().always_self_closed_elements(void_elements);
 
     let parser = Parser::new(config);
     let (parsed_nodes, mut diagnostics) = parser.parse_recoverable(tokens).split_vec();
