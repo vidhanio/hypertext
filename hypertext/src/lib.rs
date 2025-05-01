@@ -103,9 +103,15 @@
 mod alloc;
 mod attributes;
 pub mod html_elements;
+/// HTMX attributes for use with [`maud!`] and [`rsx!`].
+#[cfg(feature = "htmx")]
+mod htmx;
 mod web;
 
 pub use attributes::{Attribute, AttributeNamespace, GlobalAttributes};
+/// Use HTMX attributes in your HTML elements.
+#[cfg(feature = "htmx")]
+pub use htmx::HtmxAttributes;
 /// Render static HTML using [`maud`] syntax.
 ///
 /// For details about the syntax, see [`maud!`].

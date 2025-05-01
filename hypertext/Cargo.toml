@@ -43,3 +43,5 @@ axum = ["alloc", "dep:axum-core", "dep:http"]
 actix = ["alloc", "dep:actix-web"]
 
 poem = ["alloc", "dep:poem"]
+
+htmx = []
