@@ -292,13 +292,13 @@ fn node_name_ident(node_name: &NodeName) -> Ident {
 fn node_name_ident_or_namespace(node_name: &NodeName) -> (Ident, bool) {
     match node_name {
         NodeName::Path(ExprPath { path, .. }) => match path.segments.len() {
-            0 => (Ident::new("_", path.span()), false),
+            0 => (Ident::new("_", node_name.span()), false),
             1 => {
                 let segment = path.segments.last().unwrap();
                 let ident = syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
-                    |_| Ident::new_raw(&segment.ident.to_string(), segment.ident.span()),
+                    |_| Ident::new_raw(&segment.ident.to_string(), node_name.span()),
                     |mut ident| {
-                        ident.set_span(segment.ident.span());
+                        ident.set_span(node_name.span());
                         ident
                     },
                 );
@@ -307,9 +307,9 @@ fn node_name_ident_or_namespace(node_name: &NodeName) -> (Ident, bool) {
             _ => {
                 let segment = path.segments.first().unwrap();
                 let ident = syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
-                    |_| Ident::new_raw(&segment.ident.to_string(), segment.ident.span()),
+                    |_| Ident::new_raw(&segment.ident.to_string(), node_name.span()),
                     |mut ident| {
-                        ident.set_span(segment.ident.span());
+                        ident.set_span(node_name.span());
                         ident
                     },
                 );
