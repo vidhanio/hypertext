@@ -74,16 +74,14 @@ impl Generator {
         let namespaces = self.namespaces.iter().map(
             |(el, ns)| quote!(let _: ::hypertext::AttributeNamespace = html_elements::#el::#ns;),
         );
-        let void_elements = self.void_elements.iter().map(|el| {
-            quote_spanned! {el.span()=>
-                {
-                    struct _VoidCheck where html_elements::#el: ::hypertext::VoidElement;
-                }
-            }
-        });
+        let void_elements = self
+            .void_elements
+            .iter()
+            .map(|el| quote_spanned!(el.span()=> void_check::<html_elements::#el>();));
 
         parse_quote! {
             const _: () = {
+                const fn void_check<T: ?core::marker::Sized + ::hypertext::VoidElement>() {}
                 #(#elements)*
                 #(#attributes)*
                 #(#namespaces)*
