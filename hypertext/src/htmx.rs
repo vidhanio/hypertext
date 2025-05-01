@@ -2,8 +2,9 @@
 use crate::{Attribute, AttributeNamespace, GlobalAttributes};
 
 /// Attributes for HTMX elements.
-/// https://htmx.org/reference/
-#[allow(non_upper_case_globals, dead_code)]
+///
+/// [HTMX Reference](https://htmx.org/reference/)
+#[allow(non_upper_case_globals, clippy::doc_markdown)]
 pub trait HtmxAttributes: GlobalAttributes {
     /// Issues a GET to the specified URL
     const hx_get: Attribute = Attribute;
@@ -15,7 +16,8 @@ pub trait HtmxAttributes: GlobalAttributes {
     const hx_push_url: Attribute = Attribute;
     /// Select content to swap in from a response
     const hx_select: Attribute = Attribute;
-    /// Select content to swap in from a response, somewhere other than the target (out of band)
+    /// Select content to swap in from a response, somewhere other than the
+    /// target (out of band)
     const hx_select_oob: Attribute = Attribute;
     /// Controls how content will swap in (outerHTML, beforeend, afterend, …)
     const hx_swap: Attribute = Attribute;
@@ -35,7 +37,8 @@ pub trait HtmxAttributes: GlobalAttributes {
     const hx_delete: Attribute = Attribute;
     /// Disables htmx processing for the given node and any children nodes
     const hx_disable: Attribute = Attribute;
-    /// Adds the disabled attribute to the specified elements while a request is in flight
+    /// Adds the disabled attribute to the specified elements while a request is
+    /// in flight
     const hx_disabled_elt: Attribute = Attribute;
     /// Control and disable automatic attribute inheritance for child nodes
     const hx_disinherit: Attribute = Attribute;
@@ -53,7 +56,8 @@ pub trait HtmxAttributes: GlobalAttributes {
     const hx_include: Attribute = Attribute;
     /// The element to put the htmx-request class on during the request
     const hx_indicator: Attribute = Attribute;
-    /// Control and enable automatic attribute inheritance for child nodes if it has been disabled by default
+    /// Control and enable automatic attribute inheritance for child nodes if it
+    /// has been disabled by default
     const hx_inherit: Attribute = Attribute;
     /// Filters the parameters that will be submitted with a request
     const hx_params: Attribute = Attribute;
@@ -73,7 +77,8 @@ pub trait HtmxAttributes: GlobalAttributes {
     const hx_sync: Attribute = Attribute;
     /// Force elements to validate themselves before a request
     const hx_validate: Attribute = Attribute;
-    /// Adds values dynamically to the parameters to submit with the request (deprecated, please use hx-vals)
+    /// Adds values dynamically to the parameters to submit with the request
+    /// (deprecated, please use hx-vals)
     const hx_vars: Attribute = Attribute;
 }
 

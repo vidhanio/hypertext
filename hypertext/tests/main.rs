@@ -2,11 +2,9 @@
 
 #![allow(clippy::useless_vec)]
 
-use hypertext::{Attribute, AttributeNamespace, GlobalAttributes, Renderable};
-
 #[test]
 fn readme() {
-    use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
+    use hypertext::{GlobalAttributes, RenderIterator, Renderable, html_elements};
 
     let shopping_list = vec!["milk", "eggs", "bread"];
 
@@ -48,7 +46,7 @@ fn readme() {
 #[test]
 #[cfg(feature = "htmx")]
 fn htmx() {
-    use hypertext::{html_elements, maud, rsx, HtmxAttributes, Renderable, Rendered};
+    use hypertext::{HtmxAttributes, Renderable, Rendered, html_elements, maud, rsx};
 
     let tests = [
         (
@@ -72,13 +70,11 @@ fn htmx() {
                 .render(),
             r#"<div hx-on:click="this.classList.toggle('active')">Hello, world!</div>"#,
         ),
-        // WARNING: The following test is commented out because it doesn't work with RSX but does
-        // with Maud
-        // (
-        //     rsx! { <div hx-on:click="this.classList.toggle('active')">"Hello, world!"</div> }
-        //         .render(),
-        //     r#"<div hx-on:click="this.classList.toggle('active')">Hello, world!</div>"#,
-        // ),
+        (
+            rsx! { <div hx-on:click="this.classList.toggle('active')">"Hello, world!"</div> }
+                .render(),
+            r#"<div hx-on:click="this.classList.toggle('active')">Hello, world!</div>"#,
+        ),
         (
             maud! {
                 div {
@@ -91,22 +87,21 @@ fn htmx() {
             .render(),
             r#"<div><form hx-post="/login" hx-on::after-request="this.reset()"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></div>"#,
         ),
-        // WARNING: The following test is commented out because it doesn't work with RSX but does
-        // with Maud
-        // (
-        //     rsx! {
-        //         <div>
-        //             <form hx-post="/login" hx-on::after-request="this.reset()">
-        //                 <input type="text" name="username" />
-        //                 <input type="password" name="password" />
-        //                 <input type="submit" value="Login" />
-        //             </form>
-        //         </div>
-        //     }
-        //     .render(),
-        //     r#"<div><form hx-post="/login" hx-on::after-request="this.reset()"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></div>"#,
-        // ),
+        (
+            rsx! {
+                <div>
+                    <form hx-post="/login" hx-on::after-request="this.reset()">
+                        <input type="text" name="username" />
+                        <input type="password" name="password" />
+                        <input type="submit" value="Login" />
+                    </form>
+                </div>
+            }
+            .render(),
+            r#"<div><form hx-post="/login" hx-on::after-request="this.reset()"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></div>"#,
+        ),
     ];
+
     for (test, expected) in tests {
         assert_eq!(test, Rendered(expected.to_string()));
     }
@@ -146,7 +141,7 @@ fn elements_macro() {
 
 #[test]
 fn correct_attr_escape() {
-    use hypertext::{html_elements, maud};
+    use hypertext::{Renderable, html_elements, maud};
 
     let xss = r#""alert('XSS')"#;
 
