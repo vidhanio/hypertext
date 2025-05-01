@@ -314,23 +314,22 @@ impl Generate for Element {
             g.push(attr);
 
             let mut name_pairs = attr.name.name.pairs();
-            if name_pairs.next().is_some_and(|pair| {
+            let is_data = name_pairs.next().is_some_and(|pair| {
                 if let Pair::Punctuated(NameFragment::Ident(ident), NamePunct::Hyphen(_)) = pair {
                     ident == "data"
                 } else {
                     false
                 }
-            }) && name_pairs.next().is_some()
-            {
-                continue;
-            }
+            }) && name_pairs.next().is_some();
 
-            let (attr_ident, is_namespace) = attr.name.ident_or_namespace();
+            if !is_data {
+                let (attr_ident, is_namespace) = attr.name.ident_or_namespace();
 
-            if is_namespace {
-                g.record_namespace(&self.name.ident(), &attr_ident);
-            } else {
-                g.record_attribute(&self.name.ident(), &attr_ident);
+                if is_namespace {
+                    g.record_namespace(&self.name.ident(), &attr_ident);
+                } else {
+                    g.record_attribute(&self.name.ident(), &attr_ident);
+                }
             }
         }
 

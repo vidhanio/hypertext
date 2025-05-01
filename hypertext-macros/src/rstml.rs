@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::ControlFlow};
 
 use proc_macro2::TokenStream;
 use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
@@ -177,22 +177,25 @@ impl Generate for NodeElement<Infallible> {
             } = attr
             {
                 let mut name_pairs = punct.pairs();
-                if name_pairs.next().is_some_and(|pair| {
+
+                let is_data = name_pairs.next().is_some_and(|pair| {
                     if let Pair::Punctuated(NodeNameFragment::Ident(ident), punct) = pair {
                         ident == "data" && punct.as_char() == '-'
                     } else {
                         false
                     }
-                }) && name_pairs.next().is_some()
-                {
-                    continue;
+                }) && name_pairs.next().is_some();
+
+                if !is_data {
+                    let (attr_ident, is_namespace) = node_name_ident_or_namespace(&attr.key);
+
+                    if is_namespace {
+                        g.record_namespace(&node_name_ident(&self.open_tag.name), &attr_ident);
+                    } else {
+                        g.record_attribute(&node_name_ident(&self.open_tag.name), &attr_ident);
+                    }
                 }
             }
-
-            g.record_attribute(
-                &node_name_ident(&self.open_tag.name),
-                &node_name_ident(&attr.key),
-            );
         }
         g.push_str(">");
 
@@ -286,12 +289,89 @@ fn node_name_ident(node_name: &NodeName) -> Ident {
     }
 }
 
+fn node_name_ident_or_namespace(node_name: &NodeName) -> (Ident, bool) {
+    match node_name {
+        NodeName::Path(ExprPath { path, .. }) => match path.segments.len() {
+            0 => (Ident::new("_", path.span()), false),
+            1 => {
+                let segment = path.segments.last().unwrap();
+                let ident = syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
+                    |_| Ident::new_raw(&segment.ident.to_string(), segment.ident.span()),
+                    |mut ident| {
+                        ident.set_span(segment.ident.span());
+                        ident
+                    },
+                );
+                (ident, false)
+            }
+            _ => {
+                let segment = path.segments.first().unwrap();
+                let ident = syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
+                    |_| Ident::new_raw(&segment.ident.to_string(), segment.ident.span()),
+                    |mut ident| {
+                        ident.set_span(segment.ident.span());
+                        ident
+                    },
+                );
+                (ident, true)
+            }
+        },
+        NodeName::Punctuated(punctuated) => {
+            let string = punctuated.pairs().map(Pair::into_tuple).try_fold(
+                String::new(),
+                |mut acc, (fragment, punct)| {
+                    acc.push_str(&fragment.to_string());
+
+                    if let Some(punct) = punct {
+                        if punct.as_char() == ':' {
+                            return ControlFlow::Break(acc);
+                        } else if punct.as_char() == '-' {
+                            acc.push('_');
+                        }
+                    }
+
+                    ControlFlow::Continue(acc)
+                },
+            );
+
+            let (string, is_namespace) = match string {
+                ControlFlow::Break(string) => (string, true),
+                ControlFlow::Continue(string) => (string, false),
+            };
+
+            (
+                // results in better editor hover-doc support than unconditional `new_raw` usage
+                syn::parse_str::<Ident>(&string).map_or_else(
+                    |_| Ident::new_raw(&string, node_name.span()),
+                    |mut ident| {
+                        ident.set_span(node_name.span());
+                        ident
+                    },
+                ),
+                is_namespace,
+            )
+        }
+        NodeName::Block(_) => (Ident::new("_", node_name.span()), false),
+    }
+}
+
 fn node_name_lit(node_name: &NodeName) -> LitStr {
     match node_name {
-        NodeName::Path(ExprPath { path, .. }) => path.segments.last().map_or_else(
-            || LitStr::new("", path.span()),
-            |segment| LitStr::new(&segment.ident.to_string(), segment.ident.span()),
-        ),
+        NodeName::Path(ExprPath { path, .. }) => {
+            let string =
+                path.segments
+                    .iter()
+                    .enumerate()
+                    .fold(String::new(), |mut acc, (i, segment)| {
+                        if i > 0 {
+                            acc.push_str("::");
+                        }
+                        acc.push_str(&segment.ident.to_string());
+                        acc
+                    });
+
+            LitStr::new(&string, path.span())
+        }
         NodeName::Punctuated(punctuated) => {
             let string = punctuated.pairs().map(Pair::into_tuple).fold(
                 String::new(),
