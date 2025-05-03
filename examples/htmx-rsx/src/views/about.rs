@@ -4,7 +4,7 @@ use hypertext::{GlobalAttributes, Renderable, html_elements, rsx_move};
 pub fn about(nav_oob: bool) -> impl Renderable {
     rsx_move! {
         @if nav_oob {
-            { nav("/", true) }
+            { nav("/about", true) }
         }
         <div class="flex flex-col items-center">
             <h1 class="text-4xl font-bold">"About HTMX-RSX"</h1>

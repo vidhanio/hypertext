@@ -5,7 +5,7 @@ pub fn list(nav_oob: bool) -> impl Renderable {
     let list_items = vec!["Hypertext", "is", "fun!"];
     rsx_move! {
         @if nav_oob {
-            { nav("/", true) }
+            { nav("/list", true) }
         }
         <div class="flex flex-col items-center">
             <h1 class="text-4xl font-bold">"Loop through items using Rust code!"</h1>
