@@ -25,13 +25,9 @@ use hypertext::{Renderable, html_elements, rsx, rsx_move};
 
 pub fn about(nav_oob: bool) -> impl Renderable {
     rsx_move! {
-        { if nav_oob {
-            rsx! {
-                { nav("/", true) }
-            }
-        } else {
-            rsx! {}
-        }}
+        @if nav_oob {
+            { nav("/", true) }
+        } 
         <div class="flex flex-col items-center">
             <h1 class="text-4xl font-bold">"About HTMX-RSX"</h1>
             <p class="mt-4">"HTMX-RSX is a simple example of using HTMX with RSX."</p>
@@ -44,6 +40,6 @@ You can even pass a component into another component as a parameter!
 
 In this example we are setting a parameter `page` so that any component can be passed into this one.
 ```rust
-pub fn index(selected: &str, page: impl Renderable) -> impl Renderable {
+pub fn index(selected: &str, page: &impl Renderable) -> impl Renderable {
 
 ```
