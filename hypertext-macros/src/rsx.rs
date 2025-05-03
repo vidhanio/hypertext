@@ -247,6 +247,8 @@ impl Generate for KeyedAttribute {
 impl Generate for NodeBlock {
     fn generate(&self, g: &mut Generator) {
         if let Self::ValidBlock(block) = self {
+            // if the block is a single expression, unwrap it for better
+            // interaction with borrowing
             if let [Stmt::Expr(expr, None)] = &*block.stmts {
                 g.push_rendered_expr(expr);
             } else {
