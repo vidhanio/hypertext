@@ -438,9 +438,7 @@ impl<T: Renderable> Renderable for [T] {
 impl<T: Renderable> Renderable for Vec<T> {
     #[inline]
     fn render_to(&self, output: &mut String) {
-        for item in self {
-            item.render_to(output);
-        }
+        self.as_slice().render_to(output);
     }
 }
 
