@@ -2,7 +2,7 @@
 
 #[test]
 fn readme() {
-    use hypertext::{GlobalAttributes, RenderIterator, Renderable, html_elements};
+    use hypertext::{GlobalAttributes, Renderable, html_elements};
 
     let shopping_list = ["milk", "eggs", "bread"];
 
@@ -27,18 +27,23 @@ fn readme() {
         <div>
             <h1>Shopping List</h1>
             <ul>
-                { shopping_list.iter().zip(1..).map(|(&item, i)| hypertext::rsx_move! {
+                @for (&item, i) in shopping_list.iter().zip(1..) {
                     <li class="item">
-                        <input id=format!("item-{i}") type="checkbox">
-                        <label for=format!("item-{i}")>{ item }</label>
+                        <input id={ format!("item-{i}") } type="checkbox" />
+                        <label for={ format!("item-{i}") }>{ item }</label>
                     </li>
-                }).render_all() }
+                }
             </ul>
         </div>
     }
     .render();
 
-    assert_eq!(shopping_list_maud, shopping_list_rsx);
+    for result in [shopping_list_maud, shopping_list_rsx] {
+        assert_eq!(
+            result,
+            "<div><h1>Shopping List</h1><ul><li class=\"item\"><input id=\"item-1\" type=\"checkbox\"><label for=\"item-1\">milk</label></li><li class=\"item\"><input id=\"item-2\" type=\"checkbox\"><label for=\"item-2\">eggs</label></li><li class=\"item\"><input id=\"item-3\" type=\"checkbox\"><label for=\"item-3\">bread</label></li></ul></div>"
+        );
+    }
 }
 
 #[test]
