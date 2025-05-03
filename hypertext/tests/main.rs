@@ -2,7 +2,7 @@
 
 #[test]
 fn readme() {
-    use hypertext::{GlobalAttributes, RenderIterator, Renderable, html_elements};
+    use hypertext::{GlobalAttributes, Renderable, html_elements};
 
     let shopping_list = ["milk", "eggs", "bread"];
 
@@ -27,12 +27,12 @@ fn readme() {
         <div>
             <h1>Shopping List</h1>
             <ul>
-                { shopping_list.iter().zip(1..).map(|(&item, i)| hypertext::rsx_move! {
+                @for (&item, i) in shopping_list.iter().zip(1..) {
                     <li class="item">
-                        <input id=format!("item-{i}") type="checkbox">
-                        <label for=format!("item-{i}")>{ item }</label>
+                        <input id={ format!("item-{i}") } type="checkbox" />
+                        <label for={ format!("item-{i}") }>{ item }</label>
                     </li>
-                }).render_all() }
+                }
             </ul>
         </div>
     }

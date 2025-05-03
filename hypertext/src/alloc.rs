@@ -503,38 +503,3 @@ impl<'a, B: 'a + Renderable + ToOwned + ?Sized> Renderable for Cow<'a, B> {
         B::memoize(&**self)
     }
 }
-
-/// An extension trait for [`IntoIterator`]s that can be rendered.
-pub trait RenderIterator {
-    /// Renders each item in this iterator.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use hypertext::{html_elements, maud, maud_move, GlobalAttributes, Renderable, RenderIterator};
-    ///
-    /// let items = ["milks", "eggs", "bread"];
-    ///
-    /// assert_eq!(
-    ///     maud! {
-    ///         ul #shopping-list {
-    ///             (items
-    ///                 .iter()
-    ///                 .map(|&item| maud_move! { li { (item) } })
-    ///                 .render_all())
-    ///         }
-    ///     }.render(),
-    ///     r#"<ul id="shopping-list"><li>milks</li><li>eggs</li><li>bread</li></ul>"#
-    /// );
-    fn render_all(self) -> impl Renderable;
-}
-
-impl<I: IntoIterator<Item: Renderable>> RenderIterator for I {
-    #[inline]
-    fn render_all(self) -> impl Renderable {
-        let renderables = self.into_iter().collect::<Vec<_>>();
-        Lazy(move |output| {
-            renderables.render_to(output);
-        })
-    }
-}
