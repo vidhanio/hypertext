@@ -19,7 +19,6 @@ pub fn index(selected: &str, page: impl Renderable) -> impl Renderable {
                     crossorigin="anonymous"
                 ></script>
                 <link rel="stylesheet" href="/static/output.css" />
-                <script src="https://unpkg.com/htmx.org@2.0.4"></script>
             </head>
             <body class="bg-gray-900 text-gray-100">
                 <h1 class="flex text-5xl mx-auto font-bold justify-center items-center mb-2">Hypertext</h1>
