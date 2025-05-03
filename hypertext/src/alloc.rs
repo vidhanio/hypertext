@@ -81,6 +81,40 @@ pub use hypertext_macros::rsx_move;
 
 use crate::Rendered;
 
+/// Generate a [`Box<dyn Renderable>`] using [`maud!`] syntax.
+///
+/// This macro is identical to [`maud!`], except that it returns a
+/// [`Box<dyn Renderable>`] instead of a [`Delayed`] closure. This is useful for
+/// dynamically generated HTML that needs to be passed around as a trait object
+/// without being pre-rendered.
+#[macro_export]
+macro_rules! maud_dyn {
+    ($($tokens:tt)*) => {
+        {
+            extern crate alloc;
+
+            alloc::boxed::Box::new($crate::maud!($($tokens)*)) as alloc::boxed::Box<dyn $crate::Renderable>
+        }
+    };
+}
+
+/// Generate a [`Box<dyn Renderable>`] using [`rsx!`] syntax.
+///
+/// This macro is identical to [`rsx!`], except that it returns a
+/// [`Box<dyn Renderable>`] instead of a [`Delayed`] closure. This is useful for
+/// dynamically generated HTML that needs to be passed around as a trait object
+/// without being pre-rendered.
+#[macro_export]
+macro_rules! rsx_dyn {
+    ($($tokens:tt)*) => {
+        {
+            extern crate alloc;
+
+            alloc::boxed::Box::new($crate::rsx!($($tokens)*)) as alloc::boxed::Box<dyn $crate::Renderable>
+        }
+    };
+}
+
 impl<T: Into<Self>> From<Rendered<T>> for String {
     #[inline]
     fn from(Rendered(value): Rendered<T>) -> Self {

@@ -107,7 +107,7 @@ fn htmx() {
 
 #[test]
 fn elements_macro() {
-    use hypertext::Renderable;
+    use hypertext::{Renderable, maud};
 
     mod html_elements {
         use hypertext::elements;
@@ -122,7 +122,7 @@ fn elements_macro() {
         }
     }
 
-    let custom_maud = hypertext::maud! {
+    let custom_maud = maud! {
         div {
             my_element my_attribute="test" {
                 "Hello, world!"
@@ -139,54 +139,54 @@ fn elements_macro() {
 
 #[test]
 fn can_render_arc() {
-    use hypertext::{Renderable, html_elements};
+    use hypertext::{Renderable, html_elements, maud};
 
     let value = std::sync::Arc::new("arc");
-    let result = hypertext::maud!(span { (value) }).render();
+    let result = maud!(span { (value) }).render();
 
     assert_eq!(result, "<span>arc</span>");
 }
 
 #[test]
 fn can_render_box() {
-    use hypertext::{Renderable, html_elements};
+    use hypertext::{Renderable, html_elements, maud};
 
     let value = Box::new("box");
-    let result = hypertext::maud!(span { (value) }).render();
+    let result = maud!(span { (value) }).render();
 
     assert_eq!(result, "<span>box</span>");
 }
 
 #[test]
 fn can_render_rc() {
-    use hypertext::{Renderable, html_elements};
+    use hypertext::{Renderable, html_elements, maud};
 
     let value = std::rc::Rc::new("rc");
-    let result = hypertext::maud!(span { (value) }).render();
+    let result = maud!(span { (value) }).render();
 
     assert_eq!(result, "<span>rc</span>");
 }
 
 #[test]
 fn can_render_cow() {
-    use hypertext::{Renderable, html_elements};
+    use hypertext::{Renderable, html_elements, maud};
 
     let value = std::borrow::Cow::from("cow");
-    let result = hypertext::maud!(span { (value) }).render();
+    let result = maud!(span { (value) }).render();
 
     assert_eq!(result, "<span>cow</span>");
 }
 
 #[test]
 fn can_render_vec() {
-    use hypertext::{Renderable, html_elements, maud_move};
+    use hypertext::{Renderable, html_elements, maud, maud_move};
 
     let groceries = ["milk", "eggs", "bread"]
         .into_iter()
         .map(|s| maud_move! { li { (s) } })
         .collect::<Vec<_>>();
 
-    let result = hypertext::maud! {
+    let result = maud! {
         ul { (groceries) }
     }
     .render();
@@ -200,10 +200,50 @@ fn correct_attr_escape() {
 
     let xss = r#""alert('XSS')"#;
 
-    let test = maud! {
+    let result = maud! {
         div data-code=(xss) {}
     }
     .render();
 
-    assert_eq!(test, r#"<div data-code="&quot;alert('XSS')"></div>"#);
+    assert_eq!(result, r#"<div data-code="&quot;alert('XSS')"></div>"#);
+}
+
+#[test]
+fn maud_dyn() {
+    use hypertext::{Renderable, html_elements, maud, maud_dyn};
+
+    let cond = true;
+    let result = maud! {
+        div {
+            (if cond {
+                maud_dyn! { span { "closure 1" } }
+            } else {
+                maud_dyn! { span { "closure 2" } }
+            })
+        }
+    }
+    .render();
+
+    assert_eq!(result, "<div><span>closure 1</span></div>");
+}
+
+#[test]
+fn rsx_dyn() {
+    use hypertext::{Renderable, html_elements, rsx, rsx_dyn};
+
+    let cond = true;
+    let result = rsx! {
+        <div>
+            {
+                if cond {
+                    rsx_dyn! { <span>"closure 1"</span> }
+                } else {
+                    rsx_dyn! { <span>"closure 2"</span> }
+                }
+            }
+        </div>
+    }
+    .render();
+
+    assert_eq!(result, "<div><span>closure 1</span></div>");
 }
