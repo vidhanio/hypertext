@@ -41,7 +41,7 @@ mod actix_support {
         fn respond_to(self, req: &HttpRequest) -> HttpResponse<Self::Body> {
             self.0
                 .customize()
-                .insert_header(("content-type", "text/html"))
+                .insert_header(("content-type", "text/html; charset=utf-8"))
                 .respond_to(req)
         }
     }

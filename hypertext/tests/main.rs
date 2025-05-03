@@ -1,11 +1,12 @@
 //! Tests for the `hypertext` crate.
 
-use hypertext::maud_move;
+use hypertext::{
+    GlobalAttributes, HtmxAttributes, Raw, Renderable, Rendered, html_elements, maud, maud_dyn,
+    maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
+};
 
 #[test]
 fn readme() {
-    use hypertext::{GlobalAttributes, Renderable, html_elements};
-
     let shopping_list = ["milk", "eggs", "bread"];
 
     let shopping_list_maud = hypertext::maud! {
@@ -49,10 +50,7 @@ fn readme() {
 }
 
 #[test]
-#[cfg(feature = "htmx")]
 fn htmx() {
-    use hypertext::{HtmxAttributes, Renderable, Rendered, html_elements, maud, rsx};
-
     let tests = [
         (
             maud! { div hx-get="/api/endpoint" { "Hello, world!" } }.render(),
@@ -114,8 +112,6 @@ fn htmx() {
 
 #[test]
 fn elements_macro() {
-    use hypertext::{Renderable, maud};
-
     mod html_elements {
         use hypertext::elements;
         pub use hypertext::html_elements::*;
@@ -146,8 +142,6 @@ fn elements_macro() {
 
 #[test]
 fn can_render_arc() {
-    use hypertext::{Renderable, html_elements, maud};
-
     let value = std::sync::Arc::new("arc");
     let result = maud!(span { (value) }).render();
 
@@ -156,8 +150,6 @@ fn can_render_arc() {
 
 #[test]
 fn can_render_box() {
-    use hypertext::{Renderable, html_elements, maud};
-
     let value = Box::new("box");
     let result = maud!(span { (value) }).render();
 
@@ -166,8 +158,6 @@ fn can_render_box() {
 
 #[test]
 fn can_render_rc() {
-    use hypertext::{Renderable, html_elements, maud};
-
     let value = std::rc::Rc::new("rc");
     let result = maud!(span { (value) }).render();
 
@@ -176,8 +166,6 @@ fn can_render_rc() {
 
 #[test]
 fn can_render_cow() {
-    use hypertext::{Renderable, html_elements, maud};
-
     let value = std::borrow::Cow::from("cow");
     let result = maud!(span { (value) }).render();
 
@@ -186,8 +174,6 @@ fn can_render_cow() {
 
 #[test]
 fn can_render_vec() {
-    use hypertext::{Renderable, html_elements, maud, maud_move};
-
     let groceries = ["milk", "eggs", "bread"]
         .into_iter()
         .map(|s| maud_move! { li { (s) } })
@@ -203,8 +189,6 @@ fn can_render_vec() {
 
 #[test]
 fn correct_attr_escape() {
-    use hypertext::{Renderable, html_elements, maud};
-
     let xss = r#""alert('XSS')"#;
 
     let result = maud! {
@@ -217,8 +201,6 @@ fn correct_attr_escape() {
 
 #[test]
 fn maud_dyn() {
-    use hypertext::{Renderable, html_elements, maud, maud_dyn};
-
     let cond = true;
     let result = maud! {
         div {
@@ -236,8 +218,6 @@ fn maud_dyn() {
 
 #[test]
 fn rsx_dyn() {
-    use hypertext::{Renderable, html_elements, rsx, rsx_dyn};
-
     let cond = true;
     let result = rsx! {
         <div>
@@ -257,8 +237,6 @@ fn rsx_dyn() {
 
 #[test]
 fn statics() {
-    use hypertext::{GlobalAttributes, Raw, html_elements, maud_static, rsx_static};
-
     const MAUD_RESULT: Raw<&str> = maud_static! {
         div #profile title="Profile" {
             h1 { "Hello, world!" }
@@ -281,8 +259,6 @@ fn statics() {
 
 #[test]
 fn keywords() {
-    use hypertext::{Renderable, html_elements, maud, rsx};
-
     let cond = true;
 
     let maud_result = maud! {
@@ -352,36 +328,29 @@ fn keywords() {
 
 #[test]
 fn components() {
-    use hypertext::{Renderable, html_elements, maud, rsx};
-
     fn component() -> impl Renderable {
         maud! { span { "Hello, world!" } }
     }
 
-    fn wrapping_component(c: impl Renderable) -> impl Renderable {
+    fn wrapping_component_maud(c: impl Renderable) -> impl Renderable {
         maud_move! { div { (c) } }
     }
 
-    let maud_result = maud! {
+    fn wrapping_component_rsx(c: impl Renderable) -> impl Renderable {
+        rsx_move! { <div>{ c }</div> }
+    }
+
+    let result = maud! {
         div {
             (component())
-            (wrapping_component(component()))
+            (wrapping_component_maud(component()))
+            (wrapping_component_rsx(component()))
         }
     }
     .render();
 
-    let rsx_result = rsx! {
-        <div>
-            { component() }
-            { wrapping_component(component()) }
-        </div>
-    }
-    .render();
-
-    for result in [maud_result, rsx_result] {
-        assert_eq!(
-            result,
-            "<div><span>Hello, world!</span><div><span>Hello, world!</span></div></div>"
-        );
-    }
+    assert_eq!(
+        result,
+        "<div><span>Hello, world!</span><div><span>Hello, world!</span></div><div><span>Hello, world!</span></div></div>"
+    );
 }
