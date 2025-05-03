@@ -79,7 +79,7 @@ pub use hypertext_macros::rsx;
 /// will most likely need this when using [`rsx!`] inside an iterator method.
 pub use hypertext_macros::rsx_move;
 
-use crate::Rendered;
+use crate::{Raw, Rendered};
 
 /// Generate a [`Box<dyn Renderable>`] using [`maud!`] syntax.
 ///
@@ -238,15 +238,6 @@ impl<F: Fn(&mut String)> Renderable for Lazy<F> {
         (self.0)(output);
     }
 }
-
-/// A raw value that is rendered without escaping.
-///
-/// This is useful for rendering raw HTML, but should be used with caution
-/// as it can lead to XSS vulnerabilities if used incorrectly. If you are
-/// unsure, render the string itself, as its [`Renderable`] implementation will
-/// escape any dangerous characters.
-#[derive(Debug, Clone, Copy)]
-pub struct Raw<T: AsRef<str>>(pub T);
 
 impl<T: AsRef<str>> Renderable for Raw<T> {
     #[inline]

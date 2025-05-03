@@ -40,7 +40,7 @@ pub fn r#static(output_ident: Ident, value: impl Generate) -> TokenStream {
 
     let block = g.finish_static();
 
-    quote!(::hypertext::Rendered(#block))
+    quote!(::hypertext::Raw(#block))
 }
 
 pub struct Generator {
