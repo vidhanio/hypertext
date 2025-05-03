@@ -1,52 +1,28 @@
 root = "."
-testdata_dir = "testdata"
-tmp_dir = "target/debug"
+tmp_dir = "tmp"
 
 [build]
-  args_bin = []
-  bin = "target/debug/htmx-rsx"
-  cmd = "cargo build"
-  delay = 1000
-  exclude_dir = ["assets", "tmp", "vendor", "testdata", "target", "node_modules", "static"]
-  exclude_file = []
-  exclude_regex = []
-  exclude_unchanged = false
-  follow_symlink = false
-  full_bin = ""
-  include_dir = ["src"]
-  include_ext = ["rs"]
-  include_file = []
-  kill_delay = "0s"
-  log = "build-errors.log"
-  poll = false
-  poll_interval = 0
-  post_cmd = []
-  pre_cmd = []
-  rerun = false
-  rerun_delay = 500
-  send_interrupt = false
-  stop_on_error = false
+bin = "../../target/debug/htmx-rsx"
+cmd = "cargo build"
+delay = 1000
+exclude_dir = ["node_modules", "target", "vendor"]
+include_dir = ["src"]
+include_ext = ["rs"]
 
 [color]
-  app = ""
-  build = "yellow"
-  main = "magenta"
-  runner = "green"
-  watcher = "cyan"
-
-[log]
-  main_only = false
-  silent = false
-  time = false
+app = ""
+build = "yellow"
+main = "magenta"
+runner = "green"
+watcher = "cyan"
 
 [misc]
-  clean_on_exit = false
+clean_on_exit = false
 
 [proxy]
-  app_port = 3000
-  enabled = true
-  proxy_port = 3001
+app_port = 3000
+enabled = true
+proxy_port = 3001
 
 [screen]
-  clear_on_rebuild = false
-  keep_scroll = true
+clear_on_rebuild = false

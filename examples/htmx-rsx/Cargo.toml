@@ -1,11 +1,13 @@
 [package]
 name = "htmx-rsx"
+
 edition = "2024"
-build = "build.rs"
+publish = false
+version = "0.1.0"
 
 [dependencies]
-axum = "0.8.4"
-axum-htmx = "0.7.0"
+axum = "0.8"
+axum-htmx = "0.7"
 hypertext = { path = "../../hypertext", features = ["axum", "htmx"] }
-tokio = { version = "1.44.2", features = ["full"] }
-tower-http = { version = "0.6.2", features = ["fs"] }
+tokio = { version = "1", features = ["full"] }
+tower-http = { version = "0.6", features = ["fs"] }
