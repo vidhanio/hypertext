@@ -52,7 +52,8 @@ pub use hypertext_macros::maud;
 ///
 /// This macro is identical to [`maud!`], except that it adds `move` to the
 /// generated closure, allowing it to take ownership of its environment. You
-/// will most likely need this when using [`maud!`] inside an iterator method.
+/// will most likely need this when using [`maud!`] inside an iterator method or
+/// when constructing components that wrap other components.
 pub use hypertext_macros::maud_move;
 /// Generate HTML using rsx syntax.
 ///
@@ -76,7 +77,8 @@ pub use hypertext_macros::rsx;
 ///
 /// This macro is identical to [`rsx!`], except that it adds `move` to the
 /// generated closure, allowing it to take ownership of its environment. You
-/// will most likely need this when using [`rsx!`] inside an iterator method.
+/// will most likely need this when using [`rsx!`] inside an iterator method or
+/// when constructing components that wrap other components.
 pub use hypertext_macros::rsx_move;
 
 use crate::{Raw, Rendered};

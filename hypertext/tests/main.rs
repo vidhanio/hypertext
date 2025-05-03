@@ -1,5 +1,7 @@
 //! Tests for the `hypertext` crate.
 
+use hypertext::maud_move;
+
 #[test]
 fn readme() {
     use hypertext::{GlobalAttributes, Renderable, html_elements};
@@ -344,6 +346,42 @@ fn keywords() {
         assert_eq!(
             result,
             "<div><span>branch 1</span><span>branch 2</span><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>"
+        );
+    }
+}
+
+#[test]
+fn components() {
+    use hypertext::{Renderable, html_elements, maud, rsx};
+
+    fn component() -> impl Renderable {
+        maud! { span { "Hello, world!" } }
+    }
+
+    fn wrapping_component(c: impl Renderable) -> impl Renderable {
+        maud_move! { div { (c) } }
+    }
+
+    let maud_result = maud! {
+        div {
+            (component())
+            (wrapping_component(component()))
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            { component() }
+            { wrapping_component(component()) }
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result,
+            "<div><span>Hello, world!</span><div><span>Hello, world!</span></div></div>"
         );
     }
 }
