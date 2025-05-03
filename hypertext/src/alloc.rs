@@ -125,13 +125,18 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 pub trait Renderable {
     /// Renders this type to the given string.
     ///
-    /// The implementation must handle escaping any special characters.
+    /// This must handle escaping any special characters and match the
+    /// implementation of [`render`] and [`memoize`].
+    ///
+    /// [`render`]: Renderable::render
+    /// [`memoize`]: Renderable::memoize
     fn render_to(&self, output: &mut String);
 
     /// Renders this value to a string. This is a convenience method that
     /// calls [`render_to`] on a new [`String`] and returns the result.
     ///
-    /// This must match the implementation of [`render_to`] and [`memoize`].
+    /// This must handle escaping any special characters and match the
+    /// implementation of [`render_to`] and [`memoize`].
     ///
     /// [`render_to`]: Renderable::render_to
     /// [`memoize`]: Renderable::memoize
@@ -149,7 +154,8 @@ pub trait Renderable {
     /// may be useful if it is more expensive to compute the value multiple
     /// times.
     ///
-    /// This must match the implementation of [`render`] and [`render_to`].
+    /// This must handle escaping any special characters and match the
+    /// implementation of [`render`] and [`render_to`].
     ///
     /// [`render`]: Renderable::render
     /// [`render_to`]: Renderable::render_to
@@ -248,11 +254,7 @@ pub trait RenderIterator {
     fn render_all(self) -> impl Renderable;
 }
 
-impl<I, T> RenderIterator for I
-where
-    I: IntoIterator<Item = T>,
-    T: Renderable,
-{
+impl<I: IntoIterator<Item: Renderable>> RenderIterator for I {
     #[inline]
     fn render_all(self) -> impl Renderable {
         let renderables = self.into_iter().collect::<Vec<_>>();
@@ -270,10 +272,30 @@ impl Renderable for char {
             '<' => output.push_str("&lt;"),
             '>' => output.push_str("&gt;"),
             '"' => output.push_str("&quot;"),
-            '\'' => output.push_str("&#x27;"),
-            '/' => output.push_str("&#x2f;"),
             c => output.push(c),
         }
+    }
+
+    #[inline]
+    fn render(&self) -> Rendered<String> {
+        Rendered(match *self {
+            '&' => "&amp;".to_owned(),
+            '<' => "&lt;".to_owned(),
+            '>' => "&gt;".to_owned(),
+            '"' => "&quot;".to_owned(),
+            c => c.into(),
+        })
+    }
+
+    #[inline]
+    fn memoize(&self) -> Raw<String> {
+        Raw(match *self {
+            '&' => "&amp;".to_owned(),
+            '<' => "&lt;".to_owned(),
+            '>' => "&gt;".to_owned(),
+            '"' => "&quot;".to_owned(),
+            c => c.into(),
+        })
     }
 }
 
@@ -302,12 +324,12 @@ impl Renderable for String {
 
     #[inline]
     fn render(&self) -> Rendered<String> {
-        Rendered(self.clone())
+        self.as_str().render()
     }
 
     #[inline]
     fn memoize(&self) -> Raw<String> {
-        Raw(self.clone())
+        self.as_str().memoize()
     }
 }
 
