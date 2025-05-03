@@ -59,11 +59,11 @@
 //!         let _: hypertext::Attribute = html_elements::h1::class;
 //!     };
 //!
-//!     |hypertext_output: &mut String| {
+//!     hypertext::Lazy(|hypertext_output: &mut String| {
 //!         hypertext_output.push_str(
 //!             r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1></div>"#
 //!         );
-//!     }
+//!     })
 //! }
 //! .render()
 //! # );
@@ -172,7 +172,7 @@ pub trait VoidElement {}
 /// A rendered HTML string.
 ///
 /// This type is returned by [`Renderable::render`] ([`Rendered<String>`]), as
-/// well as [`maud_static!`] and [`rsx_static!`] ([`Rendered<&str>`]).
+/// well as [`maud_static!`] and [`rsx_static!`] ([`Rendered<&'static str>`]).
 ///
 /// This type intentionally does **not** implement [`Renderable`] to prevent
 /// anti-patterns such as rendering to a string then embedding that HTML string
@@ -213,5 +213,12 @@ impl<T: AsRef<str>> PartialEq<&str> for Rendered<T> {
     #[inline]
     fn eq(&self, &other: &&str) -> bool {
         self.0.as_ref() == other
+    }
+}
+
+impl<T: AsRef<str>> PartialEq<Rendered<T>> for &str {
+    #[inline]
+    fn eq(&self, other: &Rendered<T>) -> bool {
+        *self == other.0.as_ref()
     }
 }
