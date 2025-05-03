@@ -1,4 +1,4 @@
-#![allow(missing_docs)]
+#![allow(missing_docs, clippy::large_enum_variant)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 use proc_macro2::{Ident, Span};
@@ -7,7 +7,7 @@ use quote::quote;
 
 mod generate;
 mod maud;
-mod rstml;
+mod rsx;
 
 #[proc_macro]
 pub fn maud(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -49,7 +49,7 @@ pub fn maud_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 pub fn rsx(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let len_estimate = tokens.to_string().len();
 
-    let (nodes, diagnostics) = rstml::parse(tokens.into());
+    let (nodes, diagnostics) = rsx::parse(tokens.into());
     let output = generate::normal(nodes, len_estimate, false);
     let diagnostics = diagnostics.into_iter().map(Diagnostic::emit_as_expr_tokens);
 
@@ -66,7 +66,7 @@ pub fn rsx(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 pub fn rsx_move(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let len_estimate = tokens.to_string().len();
 
-    let (nodes, diagnostics) = rstml::parse(tokens.into());
+    let (nodes, diagnostics) = rsx::parse(tokens.into());
     let output = generate::normal(nodes, len_estimate, true);
     let diagnostics = diagnostics.into_iter().map(Diagnostic::emit_as_expr_tokens);
 
@@ -83,7 +83,7 @@ pub fn rsx_move(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 pub fn rsx_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output_ident = Ident::new("hypertext_output", Span::mixed_site());
 
-    let (nodes, diagnostics) = rstml::parse(tokens.into());
+    let (nodes, diagnostics) = rsx::parse(tokens.into());
     let output = generate::r#static(output_ident, nodes);
     let diagnostics = diagnostics.into_iter().map(Diagnostic::emit_as_expr_tokens);
 

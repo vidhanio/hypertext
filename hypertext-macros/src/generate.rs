@@ -3,18 +3,18 @@ use std::iter;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, quote_spanned};
 use syn::{
-    parse_quote, parse_quote_spanned, spanned::Spanned, token::Brace, Block, Expr, ExprBlock,
-    ExprIf, LitStr, Stmt, Token,
+    Block, Expr, ExprBlock, ExprIf, LitStr, Stmt, Token, parse_quote, parse_quote_spanned,
+    spanned::Spanned, token::Brace,
 };
 
 pub fn normal(value: impl Generate, len_estimate: usize, r#move: bool) -> TokenStream {
     let output_ident = Ident::new("hypertext_output", Span::mixed_site());
 
-    let mut gen = Generator::new(output_ident.clone());
+    let mut g = Generator::new(output_ident.clone());
 
-    gen.push(value);
+    g.push(value);
 
-    let block = gen.finish();
+    let block = g.finish();
 
     let move_kw = if r#move {
         Some(<Token![move]>::default())
@@ -34,11 +34,11 @@ pub fn normal(value: impl Generate, len_estimate: usize, r#move: bool) -> TokenS
 }
 
 pub fn r#static(output_ident: Ident, value: impl Generate) -> TokenStream {
-    let mut gen = Generator::new(output_ident);
+    let mut g = Generator::new(output_ident);
 
-    gen.push(value);
+    g.push(value);
 
-    let block = gen.finish_static();
+    let block = g.finish_static();
 
     quote!(::hypertext::Rendered(#block))
 }
@@ -73,16 +73,14 @@ impl Generator {
         let namespaces = self.namespaces.iter().map(
             |(el, ns)| quote!(let _: ::hypertext::AttributeNamespace = html_elements::#el::#ns;),
         );
-        let void_elements = self.void_elements.iter().map(|el| {
-            quote_spanned! {el.span()=>
-                {
-                    struct _VoidCheck where html_elements::#el: ::hypertext::VoidElement;
-                }
-            }
-        });
+        let void_elements = self
+            .void_elements
+            .iter()
+            .map(|el| quote_spanned!(el.span()=> void_check::<html_elements::#el>();));
 
         parse_quote! {
             const _: () = {
+                const fn void_check<T: ?core::marker::Sized + ::hypertext::VoidElement>() {}
                 #(#elements)*
                 #(#attributes)*
                 #(#namespaces)*
@@ -157,26 +155,26 @@ impl Generator {
     }
 
     pub fn block_with(&self, f: impl FnOnce(&mut Self)) -> Block {
-        let mut gen = Self::new(self.output_ident.clone());
+        let mut g = Self::new(self.output_ident.clone());
 
-        f(&mut gen);
+        f(&mut g);
 
-        gen.finish()
+        g.finish()
     }
 
     pub fn block(&self, value: impl Generate) -> Block {
-        self.block_with(|gen| value.generate(gen))
+        self.block_with(|g| value.generate(g))
     }
 
     pub fn in_block(&mut self, f: impl FnOnce(&mut Self)) {
-        let mut gen = Self::new(self.output_ident.clone());
+        let mut g = Self::new(self.output_ident.clone());
 
-        f(&mut gen);
+        f(&mut g);
 
         self.push_expr(ExprBlock {
             attrs: Vec::new(),
             label: None,
-            block: gen.finish(),
+            block: g.finish(),
         });
     }
 
@@ -262,11 +260,11 @@ enum Part {
 }
 
 pub trait Generate {
-    fn generate(&self, gen: &mut Generator);
+    fn generate(&self, g: &mut Generator);
 }
 
 impl<T: Generate> Generate for &T {
-    fn generate(&self, gen: &mut Generator) {
-        (*self).generate(gen);
+    fn generate(&self, g: &mut Generator) {
+        (*self).generate(g);
     }
 }

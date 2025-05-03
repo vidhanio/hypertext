@@ -31,7 +31,7 @@ use core::fmt::{self, Display, Write};
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, maud, GlobalAttributes, Renderable};
+/// use hypertext::{GlobalAttributes, Renderable, html_elements, maud};
 ///
 /// assert_eq!(
 ///     maud! {
@@ -59,7 +59,7 @@ pub use hypertext_macros::maud_move;
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, rsx, GlobalAttributes, Renderable};
+/// use hypertext::{GlobalAttributes, Renderable, html_elements, rsx};
 ///
 /// assert_eq!(
 ///     rsx! {
@@ -93,7 +93,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// # Example
 ///
 /// ```
-/// use hypertext::{html_elements, maud, Renderable};
+/// use hypertext::{Renderable, html_elements, maud};
 ///
 /// pub struct Person {
 ///     name: String,
@@ -280,17 +280,17 @@ impl Renderable for char {
 impl Renderable for str {
     #[inline]
     fn render_to(&self, output: &mut String) {
-        html_escape::encode_single_quoted_attribute_to_string(self, output);
+        html_escape::encode_double_quoted_attribute_to_string(self, output);
     }
 
     #[inline]
     fn render(&self) -> Rendered<String> {
-        Rendered(html_escape::encode_single_quoted_attribute(self).into_owned())
+        Rendered(html_escape::encode_double_quoted_attribute(self).into_owned())
     }
 
     #[inline]
     fn memoize(&self) -> Raw<String> {
-        Raw(html_escape::encode_single_quoted_attribute(self).into_owned())
+        Raw(html_escape::encode_double_quoted_attribute(self).into_owned())
     }
 }
 

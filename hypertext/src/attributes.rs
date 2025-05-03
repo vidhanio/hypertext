@@ -15,13 +15,13 @@ pub struct AttributeNamespace;
 /// # Usage With Custom Elements
 ///
 /// ```
-/// use hypertext::{maud, GlobalAttributes, Renderable}; // `GlobalAttributes` must be in scope!
+/// use hypertext::{GlobalAttributes, Renderable, maud}; // `GlobalAttributes` must be in scope!
 ///
 /// mod html_elements {
 ///     #![allow(non_camel_case_types)]
 ///
-///     pub use hypertext::html_elements::*;
 ///     use hypertext::GlobalAttributes;
+///     pub use hypertext::html_elements::*;
 ///
 ///     pub struct custom_element;
 ///

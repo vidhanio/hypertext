@@ -1,18 +1,18 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::ControlFlow};
 
 use proc_macro2::TokenStream;
 use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
 use quote::ToTokens;
 use rstml::{
+    Infallible, Parser, ParserConfig,
     node::{
         AttributeValueExpr, KVAttributeValue, KeyedAttribute, KeyedAttributeValue, Node,
         NodeAttribute, NodeBlock, NodeComment, NodeDoctype, NodeElement, NodeFragment, NodeName,
         NodeNameFragment, NodeText, RawText,
     },
-    Infallible, Parser, ParserConfig,
 };
 use syn::{
-    punctuated::Pair, spanned::Spanned, Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit, LitStr,
+    Expr, ExprBlock, ExprLit, ExprPath, Ident, Lit, LitStr, punctuated::Pair, spanned::Spanned,
 };
 
 use crate::generate::{Generate, Generator};
@@ -25,9 +25,7 @@ pub fn parse(tokens: TokenStream) -> (Vec<Node>, Vec<Diagnostic>) {
     .into_iter()
     .collect::<HashSet<_>>();
 
-    let config = ParserConfig::new()
-        .recover_block(true)
-        .always_self_closed_elements(void_elements);
+    let config = ParserConfig::new().always_self_closed_elements(void_elements);
 
     let parser = Parser::new(config);
     let (parsed_nodes, mut diagnostics) = parser.parse_recoverable(tokens).split_vec();
@@ -113,62 +111,62 @@ pub fn parse(tokens: TokenStream) -> (Vec<Node>, Vec<Diagnostic>) {
 }
 
 impl Generate for Vec<Node> {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_all(self);
+    fn generate(&self, g: &mut Generator) {
+        g.push_all(self);
     }
 }
 
 impl Generate for Node {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         match self {
-            Self::Comment(comment) => gen.push(comment),
-            Self::Doctype(doctype) => gen.push(doctype),
-            Self::Fragment(fragment) => gen.push(fragment),
-            Self::Element(element) => gen.push(element),
-            Self::Block(block) => gen.push(block),
-            Self::Text(text) => gen.push(text),
-            Self::RawText(raw_text) => gen.push(raw_text),
+            Self::Comment(comment) => g.push(comment),
+            Self::Doctype(doctype) => g.push(doctype),
+            Self::Fragment(fragment) => g.push(fragment),
+            Self::Element(element) => g.push(element),
+            Self::Block(block) => g.push(block),
+            Self::Text(text) => g.push(text),
+            Self::RawText(raw_text) => g.push(raw_text),
             Self::Custom(_) => {}
         }
     }
 }
 
 impl Generate for NodeComment {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_str("<!--");
-        gen.push_escaped_lit(self.value.clone());
-        gen.push_str("-->");
+    fn generate(&self, g: &mut Generator) {
+        g.push_str("<!--");
+        g.push_escaped_lit(self.value.clone());
+        g.push_str("-->");
     }
 }
 
 impl Generate for NodeDoctype {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_str("<!");
-        gen.push_spanned_str("DOCTYPE", self.token_doctype.span());
-        gen.push_str(" ");
-        gen.push(&self.value);
-        gen.push_str(">");
+    fn generate(&self, g: &mut Generator) {
+        g.push_str("<!");
+        g.push_spanned_str("DOCTYPE", self.token_doctype.span());
+        g.push_str(" ");
+        g.push(&self.value);
+        g.push_str(">");
     }
 }
 
 impl Generate for NodeFragment<Infallible> {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_all(&self.children);
+    fn generate(&self, g: &mut Generator) {
+        g.push_all(&self.children);
     }
 }
 
 impl Generate for NodeElement<Infallible> {
-    fn generate(&self, gen: &mut Generator) {
-        gen.record_element(&node_name_ident(&self.open_tag.name));
+    fn generate(&self, g: &mut Generator) {
+        g.record_element(&node_name_ident(&self.open_tag.name));
 
-        gen.push_str("<");
-        gen.push_escaped_lit(node_name_lit(&self.open_tag.name));
+        g.push_str("<");
+        g.push_escaped_lit(node_name_lit(&self.open_tag.name));
         for attr in &self.open_tag.attributes {
             let NodeAttribute::Attribute(attr) = attr else {
                 continue;
             };
 
-            gen.push(attr);
+            g.push(attr);
 
             if let KeyedAttribute {
                 key: NodeName::Punctuated(punct),
@@ -176,73 +174,76 @@ impl Generate for NodeElement<Infallible> {
             } = attr
             {
                 let mut name_pairs = punct.pairs();
-                if name_pairs.next().is_some_and(|pair| {
+
+                let is_data = name_pairs.next().is_some_and(|pair| {
                     if let Pair::Punctuated(NodeNameFragment::Ident(ident), punct) = pair {
                         ident == "data" && punct.as_char() == '-'
                     } else {
                         false
                     }
-                }) && name_pairs.next().is_some()
-                {
-                    continue;
+                }) && name_pairs.next().is_some();
+
+                if !is_data {
+                    let (attr_ident, is_namespace) = node_name_ident_or_namespace(&attr.key);
+
+                    if is_namespace {
+                        g.record_namespace(&node_name_ident(&self.open_tag.name), &attr_ident);
+                    } else {
+                        g.record_attribute(&node_name_ident(&self.open_tag.name), &attr_ident);
+                    }
                 }
             }
-
-            gen.record_attribute(
-                &node_name_ident(&self.open_tag.name),
-                &node_name_ident(&attr.key),
-            );
         }
-        gen.push_str(">");
+        g.push_str(">");
 
         if let Some(tag) = &self.close_tag {
-            gen.record_element(&node_name_ident(&tag.name));
-            gen.push_all(&self.children);
+            g.record_element(&node_name_ident(&tag.name));
+            g.push_all(&self.children);
 
-            gen.push_str("</");
-            gen.push_escaped_lit(node_name_lit(&tag.name));
-            gen.push_str(">");
+            g.push_str("</");
+            g.push_escaped_lit(node_name_lit(&tag.name));
+            g.push_str(">");
         } else {
-            gen.record_void_element(&node_name_ident(&self.open_tag.name));
+            g.record_void_element(&node_name_ident(&self.open_tag.name));
         }
     }
 }
 
 impl Generate for KeyedAttribute {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_str(" ");
+    fn generate(&self, g: &mut Generator) {
+        g.push_str(" ");
 
-        gen.push_escaped_lit(node_name_lit(&self.key));
+        g.push_escaped_lit(node_name_lit(&self.key));
 
         if let KeyedAttributeValue::Value(AttributeValueExpr {
             value: KVAttributeValue::Expr(value),
             ..
         }) = &self.possible_value
         {
-            gen.push_str("=\"");
+            g.push_str("=\"");
             match value {
                 Expr::Lit(ExprLit { lit, .. }) => match lit {
                     Lit::Str(lit_str) => {
-                        gen.push_escaped_lit(lit_str.clone());
+                        g.push_escaped_lit(lit_str.clone());
                     }
                     Lit::Int(lit_int) => {
-                        gen.push_escaped_lit(LitStr::new(&lit_int.to_string(), lit_int.span()));
+                        g.push_escaped_lit(LitStr::new(&lit_int.to_string(), lit_int.span()));
                     }
                     Lit::Bool(lit_bool) => {
-                        gen.push_escaped_lit(LitStr::new(
+                        g.push_escaped_lit(LitStr::new(
                             &lit_bool.value.to_string(),
                             lit_bool.span(),
                         ));
                     }
                     _ => {
-                        gen.push_rendered_expr(value);
+                        g.push_rendered_expr(value);
                     }
                 },
                 _ => {
-                    gen.push_rendered_expr(value);
+                    g.push_rendered_expr(value);
                 }
             }
-            gen.push_str("\"");
+            g.push_str("\"");
         }
     }
 }
@@ -285,12 +286,89 @@ fn node_name_ident(node_name: &NodeName) -> Ident {
     }
 }
 
+fn node_name_ident_or_namespace(node_name: &NodeName) -> (Ident, bool) {
+    match node_name {
+        NodeName::Path(ExprPath { path, .. }) => match path.segments.len() {
+            0 => (Ident::new("_", node_name.span()), false),
+            1 => {
+                let segment = path.segments.last().unwrap();
+                let ident = syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
+                    |_| Ident::new_raw(&segment.ident.to_string(), node_name.span()),
+                    |mut ident| {
+                        ident.set_span(node_name.span());
+                        ident
+                    },
+                );
+                (ident, false)
+            }
+            _ => {
+                let segment = path.segments.first().unwrap();
+                let ident = syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
+                    |_| Ident::new_raw(&segment.ident.to_string(), node_name.span()),
+                    |mut ident| {
+                        ident.set_span(node_name.span());
+                        ident
+                    },
+                );
+                (ident, true)
+            }
+        },
+        NodeName::Punctuated(punctuated) => {
+            let string = punctuated.pairs().map(Pair::into_tuple).try_fold(
+                String::new(),
+                |mut acc, (fragment, punct)| {
+                    acc.push_str(&fragment.to_string());
+
+                    if let Some(punct) = punct {
+                        if punct.as_char() == ':' {
+                            return ControlFlow::Break(acc);
+                        } else if punct.as_char() == '-' {
+                            acc.push('_');
+                        }
+                    }
+
+                    ControlFlow::Continue(acc)
+                },
+            );
+
+            let (string, is_namespace) = match string {
+                ControlFlow::Break(string) => (string, true),
+                ControlFlow::Continue(string) => (string, false),
+            };
+
+            (
+                // results in better editor hover-doc support than unconditional `new_raw` usage
+                syn::parse_str::<Ident>(&string).map_or_else(
+                    |_| Ident::new_raw(&string, node_name.span()),
+                    |mut ident| {
+                        ident.set_span(node_name.span());
+                        ident
+                    },
+                ),
+                is_namespace,
+            )
+        }
+        NodeName::Block(_) => (Ident::new("_", node_name.span()), false),
+    }
+}
+
 fn node_name_lit(node_name: &NodeName) -> LitStr {
     match node_name {
-        NodeName::Path(ExprPath { path, .. }) => path.segments.last().map_or_else(
-            || LitStr::new("", path.span()),
-            |segment| LitStr::new(&segment.ident.to_string(), segment.ident.span()),
-        ),
+        NodeName::Path(ExprPath { path, .. }) => {
+            let string =
+                path.segments
+                    .iter()
+                    .enumerate()
+                    .fold(String::new(), |mut acc, (i, segment)| {
+                        if i > 0 {
+                            acc.push_str("::");
+                        }
+                        acc.push_str(&segment.ident.to_string());
+                        acc
+                    });
+
+            LitStr::new(&string, path.span())
+        }
         NodeName::Punctuated(punctuated) => {
             let string = punctuated.pairs().map(Pair::into_tuple).fold(
                 String::new(),
@@ -310,9 +388,9 @@ fn node_name_lit(node_name: &NodeName) -> LitStr {
 }
 
 impl Generate for NodeBlock {
-    fn generate(&self, gen: &mut Generator) {
+    fn generate(&self, g: &mut Generator) {
         if let Self::ValidBlock(block) = self {
-            gen.push_rendered_expr(&Expr::Block(ExprBlock {
+            g.push_rendered_expr(&Expr::Block(ExprBlock {
                 attrs: vec![],
                 label: None,
                 block: block.clone(),
@@ -322,13 +400,13 @@ impl Generate for NodeBlock {
 }
 
 impl Generate for NodeText {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_escaped_lit(self.value.clone());
+    fn generate(&self, g: &mut Generator) {
+        g.push_escaped_lit(self.value.clone());
     }
 }
 
 impl Generate for RawText {
-    fn generate(&self, gen: &mut Generator) {
-        gen.push_escaped_lit(LitStr::new(&self.to_string_best(), self.span()));
+    fn generate(&self, g: &mut Generator) {
+        g.push_escaped_lit(LitStr::new(&self.to_string_best(), self.span()));
     }
 }
