@@ -207,8 +207,8 @@ impl<F: Fn(&mut String)> Renderable for Delayed<F> {
 ///
 /// This is useful for rendering raw HTML, but should be used with caution
 /// as it can lead to XSS vulnerabilities if used incorrectly. If you are
-/// unsure, render the actual string instead, as its implementation will
-/// escape any special characters.
+/// unsure, render the string itself, as its [`Renderable`] implementation will
+/// escape any dangerous characters.
 #[derive(Debug, Clone, Copy)]
 pub struct Raw<T>(pub T);
 
