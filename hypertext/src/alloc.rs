@@ -10,6 +10,8 @@ use alloc::{
 };
 use core::fmt::{self, Display, Write};
 
+use crate::{Raw, Rendered};
+
 /// Generate HTML using [`maud`] syntax.
 ///
 /// Note that this is not a complete 1:1 port of [`maud`]'s syntax as it is
@@ -47,14 +49,57 @@ use core::fmt::{self, Display, Write};
 /// [`maud`]: https://docs.rs/maud
 /// [`id`]: crate::GlobalAttributes::id
 /// [`class`]: crate::GlobalAttributes::class
-pub use hypertext_macros::maud;
-/// Generate HTML using [`maud`] syntax.
+#[macro_export]
+macro_rules! maud {
+    ($($tokens:tt)*) => {
+        {
+            extern crate alloc;
+
+            $crate::Lazy($crate::proc_macros::maud_closure!($($tokens)*))
+        }
+    };
+}
+
+/// Generate HTML which owns its environment using [`maud!`] syntax.
 ///
 /// This macro is identical to [`maud!`], except that it adds `move` to the
 /// generated closure, allowing it to take ownership of its environment. You
 /// will most likely need this when using [`maud!`] inside an iterator method or
-/// when constructing components that wrap other components.
-pub use hypertext_macros::maud_move;
+/// when returning a [`Renderable`] which wraps other [`Renderable`]s.
+///
+/// [`maud!`]: crate::maud
+#[macro_export]
+macro_rules! maud_move {
+    ($($tokens:tt)*) => {
+        {
+            extern crate alloc;
+
+            $crate::Lazy(move |output: &mut alloc::string::String| {
+                $crate::proc_macros::maud_closure!($($tokens)*)(output)
+            })
+        }
+    };
+}
+
+/// Generate a [`Box<dyn Renderable>`] using [`maud!`] syntax.
+///
+/// This macro is identical to [`maud!`], except that it returns a
+/// [`Box<dyn Renderable>`] instead of a [`Lazy`] closure. This is useful for
+/// dynamically generated HTML that needs to be passed around as a trait object
+/// without being pre-rendered.
+///
+/// [`maud!`]: crate::maud
+#[macro_export]
+macro_rules! maud_dyn {
+    ($($tokens:tt)*) => {
+        {
+            extern crate alloc;
+
+            alloc::boxed::Box::new($crate::maud!($($tokens)*)) as alloc::boxed::Box<dyn $crate::Renderable>
+        }
+    };
+}
+
 /// Generate HTML using rsx syntax.
 ///
 /// # Example
@@ -72,30 +117,34 @@ pub use hypertext_macros::maud_move;
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
-pub use hypertext_macros::rsx;
-/// Generate HTML using [`rsx!`] syntax.
-///
-/// This macro is identical to [`rsx!`], except that it adds `move` to the
-/// generated closure, allowing it to take ownership of its environment. You
-/// will most likely need this when using [`rsx!`] inside an iterator method or
-/// when constructing components that wrap other components.
-pub use hypertext_macros::rsx_move;
-
-use crate::{Raw, Rendered};
-
-/// Generate a [`Box<dyn Renderable>`] using [`maud!`] syntax.
-///
-/// This macro is identical to [`maud!`], except that it returns a
-/// [`Box<dyn Renderable>`] instead of a [`Lazy`] closure. This is useful for
-/// dynamically generated HTML that needs to be passed around as a trait object
-/// without being pre-rendered.
 #[macro_export]
-macro_rules! maud_dyn {
+macro_rules! rsx {
     ($($tokens:tt)*) => {
         {
             extern crate alloc;
 
-            alloc::boxed::Box::new($crate::maud!($($tokens)*)) as alloc::boxed::Box<dyn $crate::Renderable>
+            $crate::Lazy($crate::proc_macros::rsx_closure!($($tokens)*))
+        }
+    };
+}
+
+/// Generate HTML which owns its environment using [`rsx!`] syntax.
+///
+/// This macro is identical to [`rsx!`], except that it adds `move` to the
+/// generated closure, allowing it to take ownership of its environment. You
+/// will most likely need this when using [`rsx!`] inside an iterator method or
+/// when returning a [`Renderable`] which wraps other [`Renderable`]s.
+///
+/// [`rsx!`]: crate::rsx
+#[macro_export]
+macro_rules! rsx_move {
+    ($($tokens:tt)*) => {
+        {
+            extern crate alloc;
+
+            $crate::Lazy(move |output: &mut alloc::string::String| {
+                $crate::proc_macros::rsx_closure!($($tokens)*)(output)
+            })
         }
     };
 }
@@ -106,6 +155,8 @@ macro_rules! maud_dyn {
 /// [`Box<dyn Renderable>`] instead of a [`Lazy`] closure. This is useful for
 /// dynamically generated HTML that needs to be passed around as a trait object
 /// without being pre-rendered.
+///
+/// [`rsx!`]: crate::rsx
 #[macro_export]
 macro_rules! rsx_dyn {
     ($($tokens:tt)*) => {

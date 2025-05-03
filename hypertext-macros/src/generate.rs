@@ -1,13 +1,13 @@
 use std::iter;
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, quote_spanned};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    Block, Expr, ExprBlock, ExprIf, LitStr, Stmt, Token, parse_quote, parse_quote_spanned,
-    spanned::Spanned, token::Brace,
+    Block, Expr, ExprBlock, ExprIf, LitStr, Stmt, Token, parse_quote, spanned::Spanned,
+    token::Brace,
 };
 
-pub fn normal(value: impl Generate, len_estimate: usize, r#move: bool) -> TokenStream {
+pub fn lazy(value: impl Generate, len_estimate: usize) -> TokenStream {
     let output_ident = Ident::new("hypertext_output", Span::mixed_site());
 
     let mut g = Generator::new(output_ident.clone());
@@ -16,19 +16,14 @@ pub fn normal(value: impl Generate, len_estimate: usize, r#move: bool) -> TokenS
 
     let block = g.finish();
 
-    let move_kw = if r#move {
-        Some(<Token![move]>::default())
-    } else {
-        None
-    };
-
     quote! {
         {
             extern crate alloc;
-            ::hypertext::Lazy(#move_kw |#output_ident: &mut alloc::string::String| {
+
+            |#output_ident: &mut alloc::string::String| {
                 #output_ident.reserve(#len_estimate);
                 #block
-            })
+            }
         }
     }
 }
@@ -40,7 +35,7 @@ pub fn r#static(output_ident: Ident, value: impl Generate) -> TokenStream {
 
     let block = g.finish_static();
 
-    quote!(::hypertext::Raw(#block))
+    block.into_token_stream()
 }
 
 pub struct Generator {
@@ -222,7 +217,7 @@ impl Generator {
     pub fn push_rendered_expr(&mut self, expr: &Expr) {
         let output_ident = &self.output_ident;
         self.push_dynamic(
-            parse_quote_spanned!(expr.span()=> ::hypertext::Renderable::render_to(&(#expr), #output_ident);),
+            parse_quote!(::hypertext::Renderable::render_to(&(#expr), #output_ident);),
             Some(expr.span()),
         );
     }

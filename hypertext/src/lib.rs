@@ -106,12 +106,17 @@ pub mod html_elements;
 /// HTMX attributes for use with [`maud!`] and [`rsx!`].
 #[cfg(feature = "htmx")]
 mod htmx;
+#[doc(hidden)]
+pub mod proc_macros;
 mod web;
 
-pub use attributes::{Attribute, AttributeNamespace, GlobalAttributes};
+#[cfg(feature = "alloc")]
+pub use self::alloc::*;
+pub use self::attributes::{Attribute, AttributeNamespace, GlobalAttributes};
 /// Use HTMX attributes in your HTML elements.
 #[cfg(feature = "htmx")]
-pub use htmx::HtmxAttributes;
+pub use self::htmx::HtmxAttributes;
+
 /// Render static HTML using [`maud`] syntax.
 ///
 /// For details about the syntax, see [`maud!`].
@@ -138,7 +143,12 @@ pub use htmx::HtmxAttributes;
 /// ```
 ///
 /// [`maud`]: https://docs.rs/maud
-pub use hypertext_macros::maud_static;
+#[macro_export]
+macro_rules! maud_static {
+    ($($tokens:tt)*) => {
+        $crate::Raw($crate::proc_macros::maud_literal!($($tokens)*))
+    };
+}
 /// Render static HTML using rsx syntax.
 ///
 /// This will return a [`Rendered<&str>`], which can be used in `const`
@@ -161,10 +171,12 @@ pub use hypertext_macros::maud_static;
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
-pub use hypertext_macros::rsx_static;
-
-#[cfg(feature = "alloc")]
-pub use self::alloc::*;
+#[macro_export]
+macro_rules! rsx_static {
+    ($($tokens:tt)*) => {
+        $crate::Raw($crate::proc_macros::rsx_literal!($($tokens)*))
+    };
+}
 
 /// Elements that can be self-closing.
 pub trait VoidElement {}

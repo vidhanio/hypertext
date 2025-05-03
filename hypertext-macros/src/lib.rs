@@ -10,31 +10,19 @@ mod maud;
 mod rsx;
 
 #[proc_macro]
-pub fn maud(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn maud_closure(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let len_estimate = tokens.to_string().len();
 
     maud::parse(tokens.into())
         .map_or_else(
             |err| err.to_compile_error(),
-            |markup| generate::normal(markup, len_estimate, false),
+            |markup| generate::lazy(markup, len_estimate),
         )
         .into()
 }
 
 #[proc_macro]
-pub fn maud_move(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let len_estimate = tokens.to_string().len();
-
-    maud::parse(tokens.into())
-        .map_or_else(
-            |err| err.to_compile_error(),
-            |markup| generate::normal(markup, len_estimate, true),
-        )
-        .into()
-}
-
-#[proc_macro]
-pub fn maud_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn maud_literal(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output_ident = Ident::new("hypertext_output", Span::mixed_site());
 
     maud::parse(tokens.into())
@@ -46,11 +34,11 @@ pub fn maud_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[proc_macro]
-pub fn rsx(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn rsx_closure(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let len_estimate = tokens.to_string().len();
 
     let (nodes, diagnostics) = rsx::parse(tokens.into());
-    let output = generate::normal(nodes, len_estimate, false);
+    let output = generate::lazy(nodes, len_estimate);
     let diagnostics = diagnostics.into_iter().map(Diagnostic::emit_as_expr_tokens);
 
     quote! {
@@ -63,24 +51,7 @@ pub fn rsx(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[proc_macro]
-pub fn rsx_move(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let len_estimate = tokens.to_string().len();
-
-    let (nodes, diagnostics) = rsx::parse(tokens.into());
-    let output = generate::normal(nodes, len_estimate, true);
-    let diagnostics = diagnostics.into_iter().map(Diagnostic::emit_as_expr_tokens);
-
-    quote! {
-        {
-            #(#diagnostics;)*
-            #output
-        }
-    }
-    .into()
-}
-
-#[proc_macro]
-pub fn rsx_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn rsx_literal(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let output_ident = Ident::new("hypertext_output", Span::mixed_site());
 
     let (nodes, diagnostics) = rsx::parse(tokens.into());
