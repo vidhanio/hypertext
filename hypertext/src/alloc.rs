@@ -244,7 +244,7 @@ impl<F: Fn(&mut String)> Renderable for Lazy<F> {
 /// unsure, render the string itself, as its [`Renderable`] implementation will
 /// escape any dangerous characters.
 #[derive(Debug, Clone, Copy)]
-pub struct Raw<T>(pub T);
+pub struct Raw<T: AsRef<str>>(pub T);
 
 impl<T: AsRef<str>> Renderable for Raw<T> {
     #[inline]
