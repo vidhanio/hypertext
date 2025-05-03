@@ -14,11 +14,11 @@ resolver = "2"
     license = "MIT"
     readme = "README.md"
     repository = "https://github.com/vidhanio/hypertext"
-    version = "0.6.5"
+    version = "0.8.0"
 
 
     [workspace.dependencies]
-    hypertext-macros = { version = "0.6", path = "./hypertext-macros" }
+    hypertext-macros = { version = "0.8.0", path = "./hypertext-macros" }
 
     html-escape = { version = "0.2", default-features = false }
 

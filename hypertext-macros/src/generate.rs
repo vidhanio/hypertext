@@ -25,11 +25,10 @@ pub fn normal(value: impl Generate, len_estimate: usize, r#move: bool) -> TokenS
     quote! {
         {
             extern crate alloc;
-
-            #move_kw |#output_ident: &mut alloc::string::String| {
+            ::hypertext::Lazy(#move_kw |#output_ident: &mut alloc::string::String| {
                 #output_ident.reserve(#len_estimate);
                 #block
-            }
+            })
         }
     }
 }
@@ -41,7 +40,7 @@ pub fn r#static(output_ident: Ident, value: impl Generate) -> TokenStream {
 
     let block = g.finish_static();
 
-    quote!(::hypertext::Rendered(#block))
+    quote!(::hypertext::Raw(#block))
 }
 
 pub struct Generator {
@@ -223,7 +222,7 @@ impl Generator {
     pub fn push_rendered_expr(&mut self, expr: &Expr) {
         let output_ident = &self.output_ident;
         self.push_dynamic(
-            parse_quote_spanned!(expr.span()=> ::hypertext::Renderable::render_to(#expr, #output_ident);),
+            parse_quote_spanned!(expr.span()=> ::hypertext::Renderable::render_to(&(#expr), #output_ident);),
             Some(expr.span()),
         );
     }

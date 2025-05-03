@@ -59,11 +59,11 @@
 //!         let _: hypertext::Attribute = html_elements::h1::class;
 //!     };
 //!
-//!     |hypertext_output: &mut String| {
+//!     hypertext::Lazy(|hypertext_output: &mut String| {
 //!         hypertext_output.push_str(
 //!             r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1></div>"#
 //!         );
-//!     }
+//!     })
 //! }
 //! .render()
 //! # );
@@ -169,15 +169,61 @@ pub use self::alloc::*;
 /// Elements that can be self-closing.
 pub trait VoidElement {}
 
+/// A raw value that is rendered without escaping.
+///
+/// This is the type returned by [`maud_static!`] and [`rsx_static!`]
+/// ([`Raw<&str>`]).
+///
+/// This is useful for rendering raw HTML, but should be used with caution
+/// as it can lead to XSS vulnerabilities if used incorrectly. If you are
+/// unsure, render the string itself, as its [`Renderable`] implementation will
+/// escape any dangerous characters.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Raw<T: AsRef<str>>(pub T);
+
+impl<T: AsRef<str>> Raw<T> {
+    /// Extracts the inner value.
+    #[inline]
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+
+    /// Gets a reference to the inner value.
+    #[inline]
+    pub const fn as_inner(&self) -> &T {
+        &self.0
+    }
+
+    /// Directly render the raw value.
+    #[inline]
+    pub fn rendered(self) -> Rendered<T> {
+        Rendered(self.0)
+    }
+}
+
+impl<T: AsRef<str>> PartialEq<&str> for Raw<T> {
+    #[inline]
+    fn eq(&self, &other: &&str) -> bool {
+        self.0.as_ref() == other
+    }
+}
+
+impl<T: AsRef<str>> PartialEq<Raw<T>> for &str {
+    #[inline]
+    fn eq(&self, other: &Raw<T>) -> bool {
+        *self == other.0.as_ref()
+    }
+}
+
 /// A rendered HTML string.
 ///
 /// This type is returned by [`Renderable::render`] ([`Rendered<String>`]), as
-/// well as [`maud_static!`] and [`rsx_static!`] ([`Rendered<&str>`]).
+/// well as [`Raw::rendered`].
 ///
 /// This type intentionally does **not** implement [`Renderable`] to prevent
 /// anti-patterns such as rendering to a string then embedding that HTML string
 /// into another page.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Rendered<T>(pub T);
 
 impl<T> Rendered<T> {
@@ -213,5 +259,12 @@ impl<T: AsRef<str>> PartialEq<&str> for Rendered<T> {
     #[inline]
     fn eq(&self, &other: &&str) -> bool {
         self.0.as_ref() == other
+    }
+}
+
+impl<T: AsRef<str>> PartialEq<Rendered<T>> for &str {
+    #[inline]
+    fn eq(&self, other: &Rendered<T>) -> bool {
+        *self == other.0.as_ref()
     }
 }

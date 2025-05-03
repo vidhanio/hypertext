@@ -45,12 +45,12 @@ let shopping_list_rsx = hypertext::rsx! {
     <div>
         <h1>Shopping List</h1>
         <ul>
-            { shopping_list.iter().zip(1..).map(|(&item, i)| hypertext::rsx_move! {
+            @for (&item, i) in shopping_list.iter().zip(1..) {
                 <li class="item">
-                    <input id=format!("item-{i}") type="checkbox">
-                    <label for=format!("item-{i}")>{ item }</label>
+                    <input id={ format!("item-{i}") } type="checkbox" />
+                    <label for={ format!("item-{i}") }>{ item }</label>
                 </li>
-            }).render_all() }
+            }
         </ul>
     </div>
 }
