@@ -84,7 +84,7 @@ use crate::Rendered;
 /// Generate a [`Box<dyn Renderable>`] using [`maud!`] syntax.
 ///
 /// This macro is identical to [`maud!`], except that it returns a
-/// [`Box<dyn Renderable>`] instead of a [`Delayed`] closure. This is useful for
+/// [`Box<dyn Renderable>`] instead of a [`Lazy`] closure. This is useful for
 /// dynamically generated HTML that needs to be passed around as a trait object
 /// without being pre-rendered.
 #[macro_export]
@@ -101,7 +101,7 @@ macro_rules! maud_dyn {
 /// Generate a [`Box<dyn Renderable>`] using [`rsx!`] syntax.
 ///
 /// This macro is identical to [`rsx!`], except that it returns a
-/// [`Box<dyn Renderable>`] instead of a [`Delayed`] closure. This is useful for
+/// [`Box<dyn Renderable>`] instead of a [`Lazy`] closure. This is useful for
 /// dynamically generated HTML that needs to be passed around as a trait object
 /// without being pre-rendered.
 #[macro_export]
@@ -225,12 +225,12 @@ impl<T: Display> Renderable for Displayed<T> {
     }
 }
 
-/// A value rendered via a closure. This is the type returned by
+/// A value lazily rendered via a closure. This is the type returned by
 /// [`maud!`] and [`rsx!`], as well as their `move` variants.
 #[derive(Debug, Clone, Copy)]
-pub struct Delayed<F: Fn(&mut String)>(pub F);
+pub struct Lazy<F: Fn(&mut String)>(pub F);
 
-impl<F: Fn(&mut String)> Renderable for Delayed<F> {
+impl<F: Fn(&mut String)> Renderable for Lazy<F> {
     #[inline]
     fn render_to(&self, output: &mut String) {
         (self.0)(output);
@@ -292,7 +292,7 @@ impl<I: IntoIterator<Item: Renderable>> RenderIterator for I {
     #[inline]
     fn render_all(self) -> impl Renderable {
         let renderables = self.into_iter().collect::<Vec<_>>();
-        Delayed(move |output| {
+        Lazy(move |output| {
             renderables.render_to(output);
         })
     }

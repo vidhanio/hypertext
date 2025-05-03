@@ -25,7 +25,7 @@ pub fn normal(value: impl Generate, len_estimate: usize, r#move: bool) -> TokenS
     quote! {
         {
             extern crate alloc;
-            ::hypertext::Delayed(#move_kw |#output_ident: &mut alloc::string::String| {
+            ::hypertext::Lazy(#move_kw |#output_ident: &mut alloc::string::String| {
                 #output_ident.reserve(#len_estimate);
                 #block
             })
