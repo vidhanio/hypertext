@@ -1,6 +1,6 @@
 [package]
 name = "htmx-rsx"
-
+license = "MIT"
 edition = "2024"
 publish = false
 version = "0.1.0"
