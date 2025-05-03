@@ -23,7 +23,7 @@ pub fn parse(tokens: TokenStream) -> (Vec<Node>, Vec<Diagnostic>) {
         "track", "wbr",
     ]
     .into_iter()
-    .collect::<HashSet<_>>();
+    .collect();
 
     let config = ParserConfig::new().always_self_closed_elements(void_elements);
 
@@ -248,6 +248,30 @@ impl Generate for KeyedAttribute {
     }
 }
 
+impl Generate for NodeBlock {
+    fn generate(&self, g: &mut Generator) {
+        if let Self::ValidBlock(block) = self {
+            g.push_rendered_expr(&Expr::Block(ExprBlock {
+                attrs: vec![],
+                label: None,
+                block: block.clone(),
+            }));
+        }
+    }
+}
+
+impl Generate for NodeText {
+    fn generate(&self, g: &mut Generator) {
+        g.push_escaped_lit(self.value.clone());
+    }
+}
+
+impl Generate for RawText {
+    fn generate(&self, g: &mut Generator) {
+        g.push_escaped_lit(LitStr::new(&self.to_string_best(), self.span()));
+    }
+}
+
 fn node_name_ident(node_name: &NodeName) -> Ident {
     match node_name {
         NodeName::Path(ExprPath { path, .. }) => path.segments.last().map_or_else(
@@ -384,29 +408,5 @@ fn node_name_lit(node_name: &NodeName) -> LitStr {
             LitStr::new(&string, punctuated.span())
         }
         NodeName::Block(_) => LitStr::new("", node_name.span()),
-    }
-}
-
-impl Generate for NodeBlock {
-    fn generate(&self, g: &mut Generator) {
-        if let Self::ValidBlock(block) = self {
-            g.push_rendered_expr(&Expr::Block(ExprBlock {
-                attrs: vec![],
-                label: None,
-                block: block.clone(),
-            }));
-        }
-    }
-}
-
-impl Generate for NodeText {
-    fn generate(&self, g: &mut Generator) {
-        g.push_escaped_lit(self.value.clone());
-    }
-}
-
-impl Generate for RawText {
-    fn generate(&self, g: &mut Generator) {
-        g.push_escaped_lit(LitStr::new(&self.to_string_best(), self.span()));
     }
 }
