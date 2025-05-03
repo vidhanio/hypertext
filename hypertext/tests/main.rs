@@ -247,3 +247,74 @@ fn rsx_dyn() {
 
     assert_eq!(result, "<div><span>closure 1</span></div>");
 }
+
+#[test]
+fn keywords() {
+    use hypertext::{Renderable, html_elements, maud, rsx};
+
+    let cond = true;
+
+    let maud_result = maud! {
+        div {
+            @if cond {
+                span { "branch 1" }
+            } @else {
+                span { "branch 2" }
+            }
+
+
+            @match !cond {
+                true => span { "branch 1" },
+                false => span { "branch 2" },
+            }
+
+            @for i in 0..3 {
+                span { (i) }
+            }
+
+            @let mut i = 3;
+
+            @while i < 6 {
+                span { (i) }
+                (i += 1)
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            @if cond {
+                <span>branch 1</span>
+            } @else {
+                <span>branch 2</span>
+            }
+
+            @match !cond {
+                true => {
+                    <span>branch 1</span>
+                },
+                false => <span>branch 2</span>,
+            }
+
+            @for i in 0..3 {
+                <span>{ i }</span>
+            }
+
+            @let mut i = 3;
+
+            @while i < 6 {
+                <span>{ i }</span>
+                {i += 1}
+            }
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result,
+            "<div><span>branch 1</span><span>branch 2</span><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>"
+        );
+    }
+}
