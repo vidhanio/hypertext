@@ -1,6 +1,6 @@
 [workspace]
 default-members = ["hypertext", "hypertext-macros"]
-members = ["hypertext", "hypertext-macros"]
+members = ["examples/*", "hypertext", "hypertext-macros"]
 resolver = "2"
 
     [workspace.package]

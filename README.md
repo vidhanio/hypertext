@@ -28,7 +28,7 @@ let shopping_list_maud = hypertext::maud! {
     div {
         h1 { "Shopping List" }
         ul {
-            @for (&item, i) in shopping_list.iter().zip(1..) {
+            @for (i, item) in (1..).zip(shopping_list) {
                 li.item {
                     input #{ "item-" (i) } type="checkbox";
                     label for={ "item-" (i) } { (item) }
@@ -45,7 +45,7 @@ let shopping_list_rsx = hypertext::rsx! {
     <div>
         <h1>Shopping List</h1>
         <ul>
-            @for (&item, i) in shopping_list.iter().zip(1..) {
+            @for (i, item) in (1..).zip(shopping_list) {
                 <li class="item">
                     <input id={ format!("item-{i}") } type="checkbox" />
                     <label for={ format!("item-{i}") }>{ item }</label>

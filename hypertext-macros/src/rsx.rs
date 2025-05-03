@@ -247,11 +247,17 @@ impl Generate for KeyedAttribute {
 impl Generate for NodeBlock {
     fn generate(&self, g: &mut Generator) {
         if let Self::ValidBlock(block) = self {
-            g.push_rendered_expr(&Expr::Block(ExprBlock {
-                attrs: vec![],
-                label: None,
-                block: block.clone(),
-            }));
+            // if the block is a single expression, unwrap it for better
+            // interaction with borrowing
+            if let [Stmt::Expr(expr, None)] = &*block.stmts {
+                g.push_rendered_expr(expr);
+            } else {
+                g.push_rendered_expr(&Expr::Block(ExprBlock {
+                    attrs: vec![],
+                    label: None,
+                    block: block.clone(),
+                }));
+            }
         }
     }
 }
