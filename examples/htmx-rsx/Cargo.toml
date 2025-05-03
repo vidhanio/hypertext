@@ -6,6 +6,8 @@ edition = "2024"
 publish = false
 version = "0.1.0"
 
+build = "build.rs"
+
 [dependencies]
 axum = "0.8"
 axum-htmx = "0.7"

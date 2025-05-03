@@ -5,7 +5,7 @@ tmp_dir = "tmp"
 bin = "../../target/debug/htmx-rsx"
 cmd = "cargo build"
 delay = 1000
-exclude_dir = ["node_modules", "target", "vendor"]
+exclude_dir = ["node_modules", "target"]
 include_dir = ["src"]
 include_ext = ["rs"]
 

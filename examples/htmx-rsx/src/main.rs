@@ -1,5 +1,5 @@
 use axum::{Router, routing::get};
-use handlers::{handle_about, handle_index, handle_list};
+use handlers::{handle_about, handle_home, handle_list};
 use tower_http::services::ServeDir;
 
 mod handlers;
@@ -9,7 +9,7 @@ mod views;
 async fn main() {
     // build our application with a route
     let app = Router::new()
-        .route("/", get(handle_index))
+        .route("/", get(handle_home))
         .route("/about", get(handle_about))
         .route("/list", get(handle_list))
         .nest_service("/static", ServeDir::new("static"));
