@@ -19,7 +19,7 @@ pub fn index(selected: &str, page: &impl Renderable) -> impl Renderable {
                 <h1 class="flex text-5xl mx-auto font-bold justify-center items-center mb-2">Hypertext</h1>
                 { nav(selected, false) }
                 <div id="page" class="mt-2">
-                    { page }
+                    { &page }
                 </div>
             </body>
         </html>
