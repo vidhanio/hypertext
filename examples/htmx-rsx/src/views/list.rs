@@ -1,5 +1,6 @@
-use crate::views::nav;
 use hypertext::{GlobalAttributes, Renderable, html_elements, rsx_move};
+
+use crate::views::nav;
 
 pub fn list(nav_oob: bool) -> impl Renderable {
     let list_items = vec!["Hypertext", "is", "fun!"];

@@ -1,5 +1,6 @@
-use crate::views::nav;
 use hypertext::{GlobalAttributes, Renderable, html_elements, rsx_move};
+
+use crate::views::nav;
 
 pub fn home(nav_oob: bool) -> impl Renderable {
     rsx_move! {
