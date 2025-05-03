@@ -45,3 +45,5 @@ actix = ["alloc", "dep:actix-web"]
 poem = ["alloc", "dep:poem"]
 
 htmx = []
+
+alpine-js = []

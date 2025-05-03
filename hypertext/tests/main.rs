@@ -1,8 +1,8 @@
 //! Tests for the `hypertext` crate.
 
 use hypertext::{
-    GlobalAttributes, HtmxAttributes, Raw, Renderable, Rendered, html_elements, maud, maud_dyn,
-    maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
+    html_elements, maud, maud_dyn, maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
+    AlpineJsAttributes, GlobalAttributes, HtmxAttributes, Raw, Renderable, Rendered,
 };
 
 #[test]
@@ -102,6 +102,154 @@ fn htmx() {
             }
             .render(),
             r#"<div><form hx-post="/login" hx-on::after-request="this.reset()"><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></form></div>"#,
+        ),
+    ];
+
+    for (test, expected) in tests {
+        assert_eq!(test, Rendered(expected.to_string()));
+    }
+}
+
+#[test]
+fn alpinejs() {
+    let tests = [
+        (
+            maud! { div x-data="{ open: false }" { "Hello, world!" } }.render(),
+            r#"<div x-data="{ open: false }">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-data="{ open: false }">"Hello, world!"</div> }.render(),
+            r#"<div x-data="{ open: false }">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div x-bind:class="! open ? 'hidden' : ''" { "Hello, world!" } }.render(),
+            r#"<div x-bind:class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-bind:class="! open ? 'hidden' : ''">"Hello, world!"</div> }.render(),
+            r#"<div x-bind:class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div x-on:click="open = ! open" { "Hello, world!" } }.render(),
+            r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-on:click="open = ! open">"Hello, world!"</div> }.render(),
+            r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div x-text="new Date().getFullYear()" { "Hello, world!" } }.render(),
+            r#"<div x-text="new Date().getFullYear()">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-text="new Date().getFullYear()">"Hello, world!"</div> }.render(),
+            r#"<div x-text="new Date().getFullYear()">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div x-html="(await axios.get('/some/html/partial')).data" { "Hello, world!" } }.render(),
+            r#"<div x-html="(await axios.get('/some/html/partial')).data">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-html="(await axios.get('/some/html/partial')).data">"Hello, world!"</div> }.render(),
+            r#"<div x-html="(await axios.get('/some/html/partial')).data">Hello, world!</div>"#,
+        ),
+        // WARNING: It seems the input element doesn't render consistently and doesn't auto-close
+        (
+            maud! { input type="text" x-model="search" {} }.render(),
+            r#"<input type="text" x-model="search"></input>"#,
+        ),
+        (
+            rsx! { <input type="text" x-model="search" /> }.render(),
+            r#"<input type="text" x-model="search">"#,
+        ),
+        (
+            maud! { div x-show="open" { "Hello, world!" } }.render(),
+            r#"<div x-show="open">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-show="open">"Hello, world!"</div> }.render(),
+            r#"<div x-show="open">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div x-show="open" x-transition { "Hello, world!" } }.render(),
+            r#"<div x-show="open" x-transition>Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-show="open" x-transition>"Hello, world!"</div> }.render(),
+            r#"<div x-show="open" x-transition>Hello, world!</div>"#,
+        ),
+        (
+            maud! { 
+                template x-for="post in posts" {
+                    h2 x-text="post.title" {}
+                }
+            }.render(),
+            r#"<template x-for="post in posts"><h2 x-text="post.title"></h2></template>"#,
+        ),
+        (
+            rsx! { 
+                <template x-for="post in posts">
+                    <h2 x-text="post.title"></h2>
+                </template>
+            }.render(),
+            r#"<template x-for="post in posts"><h2 x-text="post.title"></h2></template>"#,
+        ),
+        (
+            maud! { 
+                template x-if="open" {
+                    h2 x-text="post.title" {}
+                }
+            }.render(),
+            r#"<template x-if="open"><h2 x-text="post.title"></h2></template>"#,
+        ),
+        (
+            rsx! { 
+                <template x-if="open">
+                    <h2 x-text="post.title"></h2>
+                </template>
+            }.render(),
+            r#"<template x-if="open"><h2 x-text="post.title"></h2></template>"#,
+        ),
+        (
+            maud! { div x-init="date = new Date()" {} }.render(),
+            r#"<div x-init="date = new Date()"></div>"#,
+        ),
+        (
+            rsx! { <div x-init="date = new Date()"></div> }.render(),
+            r#"<div x-init="date = new Date()"></div>"#,
+        ),
+        (
+            maud! { div x-effect="console.log('Count is '+count)" {} }.render(),
+            r#"<div x-effect="console.log('Count is '+count)"></div>"#,
+        ),
+        (
+            rsx! { <div x-effect="console.log('Count is '+count)"></div> }.render(),
+            r#"<div x-effect="console.log('Count is '+count)"></div>"#,
+        ),
+        // WARNING: It seems the input element doesn't render consistently and doesn't auto-close
+        (
+            maud! { input type="text" x-ref="content" {} }.render(),
+            r#"<input type="text" x-ref="content"></input>"#,
+        ),
+        (
+            rsx! { <input type="text" x-ref="content" /> }.render(),
+            r#"<input type="text" x-ref="content">"#,
+        ),
+        (
+            maud! { div x-cloak {} }.render(),
+            r#"<div x-cloak></div>"#,
+        ),
+        (
+            rsx! { <div x-cloak></div> }.render(),
+            r#"<div x-cloak></div>"#,
+        ),
+        (
+            maud! { div x-ignore {} }.render(),
+            r#"<div x-ignore></div>"#,
+        ),
+        (
+            rsx! { <div x-ignore></div> }.render(),
+            r#"<div x-ignore></div>"#,
         ),
     ];
 

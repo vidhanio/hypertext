@@ -101,6 +101,8 @@
 
 #[cfg(feature = "alloc")]
 mod alloc;
+#[cfg(feature = "alpine-js")]
+mod alpine_js;
 mod attributes;
 pub mod html_elements;
 /// HTMX attributes for use with [`maud!`] and [`rsx!`].
@@ -112,6 +114,9 @@ mod web;
 
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;
+/// Use AlpineJs attributes in your HTML elements.
+#[cfg(feature = "alpine-js")]
+pub use self::alpine_js::AlpineJsAttributes;
 pub use self::attributes::{Attribute, AttributeNamespace, GlobalAttributes};
 /// Use HTMX attributes in your HTML elements.
 #[cfg(feature = "htmx")]
