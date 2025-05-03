@@ -1,6 +1,13 @@
 extern crate alloc;
 
-use alloc::{string::String, vec::Vec};
+use alloc::{
+    borrow::{Cow, ToOwned},
+    boxed::Box,
+    rc::Rc,
+    string::String,
+    sync::Arc,
+    vec::Vec,
+};
 use core::fmt::{self, Display, Write};
 
 /// Generate HTML using [`maud`] syntax.
@@ -121,7 +128,13 @@ pub trait Renderable {
     /// The implementation must handle escaping any special characters.
     fn render_to(&self, output: &mut String);
 
-    /// Renders this value to a string.
+    /// Renders this value to a string. This is a convenience method that
+    /// calls [`render_to`] on a new [`String`] and returns the result.
+    ///
+    /// This must match the implementation of [`render_to`] and [`memoize`].
+    ///
+    /// [`render_to`]: Renderable::render_to
+    /// [`memoize`]: Renderable::memoize
     #[inline]
     fn render(&self) -> Rendered<String> {
         let mut output = String::new();
@@ -129,8 +142,17 @@ pub trait Renderable {
         Rendered(output)
     }
 
-    /// Pre-renders the type and stores the result
-    /// so that it can be shared amongst multiple renderings.
+    /// Pre-renders the value and stores it in a [`Raw`] so that it can be
+    /// re-used among multiple renderings without re-computing the value.
+    ///
+    /// This should generally be avoided to avoid unnecessary allocations, but
+    /// may be useful if it is more expensive to compute the value multiple
+    /// times.
+    ///
+    /// This must match the implementation of [`render`] and [`render_to`].
+    ///
+    /// [`render`]: Renderable::render
+    /// [`render_to`]: Renderable::render_to
     #[inline]
     fn memoize(&self) -> Raw<String> {
         let mut output = String::new();
@@ -158,12 +180,13 @@ impl<T: Display> Renderable for Displayed<T> {
             }
         }
 
-        // ignore errors, as we are writing to a string
-        let _ = write!(Escaper(output), "{}", self.0);
+        // ignore errors, as writing to a string is infallible
+        _ = write!(Escaper(output), "{}", self.0);
     }
 }
 
-/// A value rendered via a closure.
+/// A value rendered via a closure. This is the type returned by
+/// [`maud!`] and [`rsx!`], as well as their `move` variants.
 #[derive(Debug, Clone, Copy)]
 pub struct Delayed<F: Fn(&mut String)>(pub F);
 
@@ -187,6 +210,16 @@ impl<T: AsRef<str>> Renderable for Raw<T> {
     #[inline]
     fn render_to(&self, output: &mut String) {
         output.push_str(self.0.as_ref());
+    }
+
+    #[inline]
+    fn render(&self) -> Rendered<String> {
+        Rendered(self.0.as_ref().to_owned())
+    }
+
+    #[inline]
+    fn memoize(&self) -> Raw<String> {
+        Raw(self.0.as_ref().to_owned())
     }
 }
 
@@ -217,16 +250,14 @@ pub trait RenderIterator {
 
 impl<I, T> RenderIterator for I
 where
-    I: Iterator<Item = T>,
+    I: IntoIterator<Item = T>,
     T: Renderable,
 {
     #[inline]
     fn render_all(self) -> impl Renderable {
-        let renderables: Vec<_> = self.collect();
+        let renderables = self.into_iter().collect::<Vec<_>>();
         Delayed(move |output| {
-            for item in &renderables {
-                item.render_to(output);
-            }
+            renderables.render_to(output);
         })
     }
 }
@@ -251,6 +282,16 @@ impl Renderable for str {
     fn render_to(&self, output: &mut String) {
         html_escape::encode_single_quoted_attribute_to_string(self, output);
     }
+
+    #[inline]
+    fn render(&self) -> Rendered<String> {
+        Rendered(html_escape::encode_single_quoted_attribute(self).into_owned())
+    }
+
+    #[inline]
+    fn memoize(&self) -> Raw<String> {
+        Raw(html_escape::encode_single_quoted_attribute(self).into_owned())
+    }
 }
 
 impl Renderable for String {
@@ -258,12 +299,32 @@ impl Renderable for String {
     fn render_to(&self, output: &mut String) {
         self.as_str().render_to(output);
     }
+
+    #[inline]
+    fn render(&self) -> Rendered<String> {
+        Rendered(self.clone())
+    }
+
+    #[inline]
+    fn memoize(&self) -> Raw<String> {
+        Raw(self.clone())
+    }
 }
 
 impl Renderable for bool {
     #[inline]
     fn render_to(&self, output: &mut String) {
         output.push_str(if *self { "true" } else { "false" });
+    }
+
+    #[inline]
+    fn render(&self) -> Rendered<String> {
+        Rendered(if *self { "true" } else { "false" }.to_owned())
+    }
+
+    #[inline]
+    fn memoize(&self) -> Raw<String> {
+        Raw(if *self { "true" } else { "false" }.to_owned())
     }
 }
 
@@ -274,6 +335,16 @@ macro_rules! render_via_itoa {
                 #[inline]
                 fn render_to(&self, output: &mut String) {
                     output.push_str(itoa::Buffer::new().format(*self));
+                }
+
+                #[inline]
+                fn render(&self) -> Rendered<String> {
+                    Rendered(itoa::Buffer::new().format(*self).to_owned())
+                }
+
+                #[inline]
+                fn memoize(&self) -> Raw<String> {
+                    Raw(itoa::Buffer::new().format(*self).to_owned())
                 }
             }
         )*
@@ -293,6 +364,16 @@ macro_rules! render_via_ryu {
                 fn render_to(&self, output: &mut String) {
                     output.push_str(ryu::Buffer::new().format(*self));
                 }
+
+                #[inline]
+                fn render(&self) -> Rendered<String> {
+                    Rendered(ryu::Buffer::new().format(*self).to_owned())
+                }
+
+                #[inline]
+                fn memoize(&self) -> Raw<String> {
+                    Raw(ryu::Buffer::new().format(*self).to_owned())
+                }
             }
         )*
     };
@@ -308,5 +389,83 @@ impl<T: Renderable> Renderable for Option<T> {
         if let Some(value) = self {
             value.render_to(output);
         }
+    }
+
+    #[inline]
+    fn render(&self) -> Rendered<String> {
+        self.as_ref()
+            .map_or_else(|| Rendered(String::new()), Renderable::render)
+    }
+
+    #[inline]
+    fn memoize(&self) -> Raw<String> {
+        self.as_ref()
+            .map_or_else(|| Raw(String::new()), Renderable::memoize)
+    }
+}
+
+impl<T: Renderable> Renderable for [T] {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        for item in self {
+            item.render_to(output);
+        }
+    }
+}
+
+impl<T: Renderable> Renderable for Vec<T> {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        for item in self {
+            item.render_to(output);
+        }
+    }
+}
+
+macro_rules! render_via_deref {
+    ($($Ty:ty)*) => {
+        $(
+            impl<T: Renderable + ?Sized> Renderable for $Ty {
+                #[inline]
+                fn render_to(&self, output: &mut String) {
+                    T::render_to(&**self, output);
+                }
+
+                #[inline]
+                fn render(&self) -> Rendered<String> {
+                    T::render(&**self)
+                }
+
+                #[inline]
+                fn memoize(&self) -> Raw<String> {
+                    T::memoize(&**self)
+                }
+            }
+        )*
+    };
+}
+
+render_via_deref! {
+    &T
+    &mut T
+    Box<T>
+    Rc<T>
+    Arc<T>
+}
+
+impl<'a, B: 'a + Renderable + ToOwned + ?Sized> Renderable for Cow<'a, B> {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        B::render_to(&**self, output);
+    }
+
+    #[inline]
+    fn render(&self) -> Rendered<String> {
+        B::render(&**self)
+    }
+
+    #[inline]
+    fn memoize(&self) -> Raw<String> {
+        B::memoize(&**self)
     }
 }

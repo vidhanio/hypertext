@@ -1,7 +1,5 @@
 //! Tests for the `hypertext` crate.
 
-use hypertext::{Attribute, AttributeNamespace, GlobalAttributes};
-
 #[test]
 fn readme() {
     use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
@@ -43,18 +41,18 @@ fn readme() {
     assert_eq!(shopping_list_maud, shopping_list_rsx);
 }
 
-#[allow(non_upper_case_globals)]
-#[allow(dead_code)]
-trait HtmxAttributes: GlobalAttributes {
-    const hx_post: Attribute = Attribute;
-    const hx_on: AttributeNamespace = AttributeNamespace;
-}
-
-impl<T: GlobalAttributes> HtmxAttributes for T {}
-
 #[test]
 fn htmx() {
-    use hypertext::{html_elements, Renderable};
+    use hypertext::{html_elements, Attribute, AttributeNamespace, GlobalAttributes, Renderable};
+
+    #[allow(non_upper_case_globals)]
+    #[allow(dead_code)]
+    trait HtmxAttributes: GlobalAttributes {
+        const hx_post: Attribute = Attribute;
+        const hx_on: AttributeNamespace = AttributeNamespace;
+    }
+
+    impl<T: GlobalAttributes> HtmxAttributes for T {}
 
     let htmx_maud = hypertext::maud! {
         div {
@@ -143,4 +141,21 @@ fn can_render_cow() {
     let result = hypertext::maud!(span { (value) }).render();
 
     assert_eq!(result, "<span>cow</span>");
+}
+
+#[test]
+fn can_render_vec() {
+    use hypertext::{html_elements, maud_move, Renderable};
+
+    let groceries = ["milk", "eggs", "bread"]
+        .into_iter()
+        .map(|s| maud_move! { li { (s) } })
+        .collect::<Vec<_>>();
+
+    let result = hypertext::maud! {
+        ul { (groceries) }
+    }
+    .render();
+
+    assert_eq!(result, "<ul><li>milk</li><li>eggs</li><li>bread</li></ul>");
 }

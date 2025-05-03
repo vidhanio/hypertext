@@ -224,7 +224,7 @@ impl Generator {
     pub fn push_rendered_expr(&mut self, expr: &Expr) {
         let output_ident = &self.output_ident;
         self.push_dynamic(
-            parse_quote_spanned!(expr.span()=> #expr.render_to(#output_ident);),
+            parse_quote_spanned!(expr.span()=> ::hypertext::Renderable::render_to(&#expr, #output_ident);),
             Some(expr.span()),
         );
     }
