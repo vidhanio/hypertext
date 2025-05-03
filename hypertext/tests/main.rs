@@ -254,6 +254,30 @@ fn rsx_dyn() {
 }
 
 #[test]
+fn statics() {
+    use hypertext::{GlobalAttributes, Raw, html_elements, maud_static, rsx_static};
+
+    const MAUD_RESULT: Raw<&str> = maud_static! {
+        div #profile title="Profile" {
+            h1 { "Hello, world!" }
+        }
+    };
+
+    const RSX_RESULT: Raw<&str> = rsx_static! {
+        <div id="profile" title="Profile">
+            <h1>"Hello, world!"</h1>
+        </div>
+    };
+
+    for result in [MAUD_RESULT, RSX_RESULT] {
+        assert_eq!(
+            result,
+            r#"<div id="profile" title="Profile"><h1>Hello, world!</h1></div>"#
+        );
+    }
+}
+
+#[test]
 fn keywords() {
     use hypertext::{Renderable, html_elements, maud, rsx};
 
