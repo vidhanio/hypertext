@@ -162,29 +162,31 @@ impl Generate for NodeElement<NodeKeyword> {
 
             g.push(attr);
 
-            if let KeyedAttribute {
+            let is_data = if let KeyedAttribute {
                 key: NodeName::Punctuated(punct),
                 ..
             } = attr
             {
                 let mut name_pairs = punct.pairs();
 
-                let is_data = name_pairs.next().is_some_and(|pair| {
+                name_pairs.next().is_some_and(|pair| {
                     if let Pair::Punctuated(NodeNameFragment::Ident(ident), punct) = pair {
                         ident == "data" && punct.as_char() == '-'
                     } else {
                         false
                     }
-                }) && name_pairs.next().is_some();
+                }) && name_pairs.next().is_some()
+            } else {
+                false
+            };
 
-                if !is_data {
-                    let (attr_ident, is_namespace) = node_name_ident_or_namespace(&attr.key);
+            if !is_data {
+                let (attr_ident, is_namespace) = node_name_ident_or_namespace(&attr.key);
 
-                    if is_namespace {
-                        g.record_namespace(&node_name_ident(&self.open_tag.name), &attr_ident);
-                    } else {
-                        g.record_attribute(&node_name_ident(&self.open_tag.name), &attr_ident);
-                    }
+                if is_namespace {
+                    g.record_namespace(&node_name_ident(&self.open_tag.name), &attr_ident);
+                } else {
+                    g.record_attribute(&node_name_ident(&self.open_tag.name), &attr_ident);
                 }
             }
         }
@@ -819,18 +821,7 @@ fn node_name_ident_or_namespace(node_name: &NodeName) -> (Ident, bool) {
     match node_name {
         NodeName::Path(ExprPath { path, .. }) => match path.segments.len() {
             0 => (Ident::new("_", node_name.span()), false),
-            1 => {
-                let segment = path.segments.last().unwrap();
-                let ident = syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
-                    |_| Ident::new_raw(&segment.ident.to_string(), node_name.span()),
-                    |mut ident| {
-                        ident.set_span(node_name.span());
-                        ident
-                    },
-                );
-                (ident, false)
-            }
-            _ => {
+            l => {
                 let segment = path.segments.first().unwrap();
                 let ident = syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
                     |_| Ident::new_raw(&segment.ident.to_string(), node_name.span()),
@@ -839,7 +830,8 @@ fn node_name_ident_or_namespace(node_name: &NodeName) -> (Ident, bool) {
                         ident
                     },
                 );
-                (ident, true)
+                let is_namespace = l > 1;
+                (ident, is_namespace)
             }
         },
         NodeName::Punctuated(punctuated) => {
@@ -896,7 +888,7 @@ fn node_name_lit(node_name: &NodeName) -> LitStr {
                         acc
                     });
 
-            LitStr::new(&string, path.span())
+            LitStr::new(&string, node_name.span())
         }
         NodeName::Punctuated(punctuated) => {
             let string = punctuated.pairs().map(Pair::into_tuple).fold(
@@ -910,7 +902,7 @@ fn node_name_lit(node_name: &NodeName) -> LitStr {
                 },
             );
 
-            LitStr::new(&string, punctuated.span())
+            LitStr::new(&string, node_name.span())
         }
         NodeName::Block(_) => LitStr::new("", node_name.span()),
     }
