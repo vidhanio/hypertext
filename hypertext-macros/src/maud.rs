@@ -1128,27 +1128,7 @@ impl<N: Node> Parse for Keyword<N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             at_token: input.parse()?,
-            kind: {
-                let lookahead = input.lookahead1();
-
-                if lookahead.peek(Token![if]) {
-                    KeywordKind::If(input.parse()?)
-                } else if lookahead.peek(Token![for]) {
-                    KeywordKind::For(input.parse()?)
-                } else if lookahead.peek(Token![while]) {
-                    KeywordKind::While(input.parse()?)
-                } else if lookahead.peek(Token![match]) {
-                    KeywordKind::Match(input.parse()?)
-                } else if lookahead.peek(Token![let]) {
-                    let Stmt::Local(local) = input.parse()? else {
-                        unreachable!()
-                    };
-
-                    KeywordKind::Let(local)
-                } else {
-                    return Err(lookahead.error());
-                }
-            },
+            kind: input.parse()?,
         })
     }
 }
@@ -1156,27 +1136,13 @@ impl<N: Node> Parse for Keyword<N> {
 impl<N: Node> ToTokens for Keyword<N> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.at_token.to_tokens(tokens);
-        match &self.kind {
-            KeywordKind::Let(let_) => let_.to_tokens(tokens),
-            KeywordKind::If(if_) => if_.to_tokens(tokens),
-            KeywordKind::For(for_) => for_.to_tokens(tokens),
-            KeywordKind::While(while_) => while_.to_tokens(tokens),
-            KeywordKind::Match(match_) => match_.to_tokens(tokens),
-        }
+        self.kind.to_tokens(tokens);
     }
 }
 
 impl<N: Node> Generate for Keyword<N> {
     fn generate(&self, g: &mut Generator) {
-        match &self.kind {
-            KeywordKind::Let(let_) => {
-                g.push_dynamic(Stmt::Local(let_.clone()), Some(self.span()));
-            }
-            KeywordKind::If(if_) => g.push(if_),
-            KeywordKind::For(for_) => g.push(for_),
-            KeywordKind::While(while_) => g.push(while_),
-            KeywordKind::Match(match_) => g.push(match_),
-        }
+        g.push(&self.kind);
     }
 }
 
@@ -1187,6 +1153,54 @@ enum KeywordKind<N> {
     For(ForNode<N>),
     While(WhileNode<N>),
     Match(MatchNode<N>),
+}
+
+impl<N: Node> Parse for KeywordKind<N> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(Token![let]) {
+            let Stmt::Local(local) = input.parse()? else {
+                unreachable!()
+            };
+
+            Ok(Self::Let(local))
+        } else if lookahead.peek(Token![if]) {
+            Ok(Self::If(input.parse()?))
+        } else if lookahead.peek(Token![for]) {
+            Ok(Self::For(input.parse()?))
+        } else if lookahead.peek(Token![while]) {
+            Ok(Self::While(input.parse()?))
+        } else if lookahead.peek(Token![match]) {
+            Ok(Self::Match(input.parse()?))
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl<N: Node> ToTokens for KeywordKind<N> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Let(let_) => let_.to_tokens(tokens),
+            Self::If(if_) => if_.to_tokens(tokens),
+            Self::For(for_) => for_.to_tokens(tokens),
+            Self::While(while_) => while_.to_tokens(tokens),
+            Self::Match(match_) => match_.to_tokens(tokens),
+        }
+    }
+}
+
+impl<N: Node> Generate for KeywordKind<N> {
+    fn generate(&self, g: &mut Generator) {
+        match self {
+            Self::Let(let_) => g.push_dynamic(Stmt::Local(let_.clone()), Some(self.span())),
+            Self::If(if_) => g.push(if_),
+            Self::For(for_) => g.push(for_),
+            Self::While(while_) => g.push(while_),
+            Self::Match(match_) => g.push(match_),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -1387,7 +1401,7 @@ struct MatchNode<N> {
     match_token: Match,
     expr: Expr,
     brace_token: Brace,
-    arms: Vec<MatchArm<N>>,
+    arms: Vec<MatchNodeArm<N>>,
 }
 
 impl<N: Node> Parse for MatchNode<N> {
@@ -1457,7 +1471,7 @@ impl<N: Node> Generate for MatchNode<N> {
 }
 
 #[derive(Debug, Clone)]
-struct MatchArm<N> {
+struct MatchNodeArm<N> {
     pat: Pat,
     guard: Option<(If, Expr)>,
     fat_arrow_token: FatArrow,
@@ -1465,7 +1479,7 @@ struct MatchArm<N> {
     comma_token: Option<Comma>,
 }
 
-impl<N: Node> Parse for MatchArm<N> {
+impl<N: Node> Parse for MatchNodeArm<N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             pat: Pat::parse_multi_with_leading_vert(input)?,
@@ -1487,7 +1501,7 @@ impl<N: Node> Parse for MatchArm<N> {
     }
 }
 
-impl<N: Node> ToTokens for MatchArm<N> {
+impl<N: Node> ToTokens for MatchNodeArm<N> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.pat.to_tokens(tokens);
         if let Some((if_token, guard)) = &self.guard {
