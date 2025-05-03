@@ -225,8 +225,10 @@ impl<T: Display> Renderable for Displayed<T> {
     }
 }
 
-/// A value lazily rendered via a closure. This is the type returned by
-/// [`maud!`] and [`rsx!`], as well as their `move` variants.
+/// A value lazily rendered via a closure.
+///
+/// This is the type returned by [`maud!`] and [`rsx!`], as well as their `move`
+/// variants.
 #[derive(Debug, Clone, Copy)]
 pub struct Lazy<F: Fn(&mut String)>(pub F);
 
