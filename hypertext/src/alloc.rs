@@ -8,7 +8,7 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use core::fmt::{self, Display, Write};
+use core::fmt::{self, Debug, Display, Formatter, Write};
 
 use crate::{Raw, Rendered};
 
@@ -290,13 +290,21 @@ impl<T: Display> Renderable for Displayed<T> {
 /// variants.
 ///
 /// [`maud!`]: crate::maud
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
+#[must_use = "`Lazy` does nothing unless `.render_to()` or `.render()` is called"]
 pub struct Lazy<F: Fn(&mut String)>(pub F);
 
 impl<F: Fn(&mut String)> Renderable for Lazy<F> {
     #[inline]
     fn render_to(&self, output: &mut String) {
         (self.0)(output);
+    }
+}
+
+impl<F: Fn(&mut String)> Debug for Lazy<F> {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Lazy").finish_non_exhaustive()
     }
 }
 
