@@ -1,3 +1,5 @@
+const HTML_MIME_TYPE: &str = "text/html; charset=utf-8";
+
 #[cfg(feature = "axum")]
 mod axum_support {
     extern crate alloc;
@@ -8,6 +10,7 @@ mod axum_support {
     };
     use http::{HeaderValue, header};
 
+    use super::HTML_MIME_TYPE;
     use crate::Rendered;
 
     impl<T: Into<Body>> IntoResponse for Rendered<T> {
@@ -16,7 +19,7 @@ mod axum_support {
             (
                 [(
                     header::CONTENT_TYPE,
-                    HeaderValue::from_static("text/html; charset=utf-8"),
+                    HeaderValue::from_static(HTML_MIME_TYPE),
                 )],
                 self.0.into(),
             )
@@ -27,22 +30,20 @@ mod axum_support {
 
 #[cfg(feature = "actix")]
 mod actix_support {
-    use actix_web::{HttpRequest, HttpResponse, Responder, body::EitherBody};
+    extern crate alloc;
+
+    use alloc::string::String;
+
+    use actix_web::{HttpRequest, HttpResponse, Responder, web::Html};
 
     use crate::Rendered;
 
-    impl<T> Responder for Rendered<T>
-    where
-        T: Responder,
-    {
-        type Body = EitherBody<T::Body>;
+    impl<T: Into<String>> Responder for Rendered<T> {
+        type Body = <Html as Responder>::Body;
 
         #[inline]
         fn respond_to(self, req: &HttpRequest) -> HttpResponse<Self::Body> {
-            self.0
-                .customize()
-                .insert_header(("content-type", "text/html; charset=utf-8"))
-                .respond_to(req)
+            Html::new(self.0).respond_to(req)
         }
     }
 }

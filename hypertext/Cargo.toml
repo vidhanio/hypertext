@@ -34,14 +34,15 @@ http = { version = "1", optional = true }
 poem = { version = "3", optional = true }
 
 [features]
-default = ["alloc"]
+default = ["alloc", "maud", "rsx"]
 
 alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
 
-axum = ["alloc", "dep:axum-core", "dep:http"]
+maud = ["hypertext-macros/maud"]
+rsx = ["hypertext-macros/rsx"]
 
 actix = ["alloc", "dep:actix-web"]
-
+axum = ["alloc", "dep:axum-core", "dep:http"]
 poem = ["alloc", "dep:poem"]
 
 htmx = []

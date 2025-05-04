@@ -50,6 +50,7 @@ use crate::{Raw, Rendered};
 /// [`id`]: crate::GlobalAttributes::id
 /// [`class`]: crate::GlobalAttributes::class
 #[macro_export]
+#[cfg(feature = "maud")]
 macro_rules! maud {
     ($($tokens:tt)*) => {
         {
@@ -69,6 +70,7 @@ macro_rules! maud {
 ///
 /// [`maud!`]: crate::maud
 #[macro_export]
+#[cfg(feature = "maud")]
 macro_rules! maud_move {
     ($($tokens:tt)*) => {
         {
@@ -90,6 +92,7 @@ macro_rules! maud_move {
 ///
 /// [`maud!`]: crate::maud
 #[macro_export]
+#[cfg(feature = "maud")]
 macro_rules! maud_dyn {
     ($($tokens:tt)*) => {
         {
@@ -118,6 +121,7 @@ macro_rules! maud_dyn {
 /// );
 /// ```
 #[macro_export]
+#[cfg(feature = "rsx")]
 macro_rules! rsx {
     ($($tokens:tt)*) => {
         {
@@ -137,6 +141,7 @@ macro_rules! rsx {
 ///
 /// [`rsx!`]: crate::rsx
 #[macro_export]
+#[cfg(feature = "rsx")]
 macro_rules! rsx_move {
     ($($tokens:tt)*) => {
         {
@@ -158,6 +163,7 @@ macro_rules! rsx_move {
 ///
 /// [`rsx!`]: crate::rsx
 #[macro_export]
+#[cfg(feature = "rsx")]
 macro_rules! rsx_dyn {
     ($($tokens:tt)*) => {
         {
