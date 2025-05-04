@@ -137,11 +137,11 @@ fn alpine_js() {
         // Test the shorthand syntax for `x:bind`: `:`
         // (
         //     maud! { div :class="! open ? 'hidden' : ''" { "Hello, world!" } }.render(),
-        //     r#"<div x-bind:class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        //     r#"<div :class="! open ? 'hidden' : ''">Hello, world!</div>"#,
         // ),
         // (
         //     rsx! { <div :class="! open ? 'hidden' : ''">"Hello, world!"</div> }.render(),
-        //     r#"<div x-bind:class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        //     r#"<div :class="! open ? 'hidden' : ''">Hello, world!</div>"#,
         // ),
         (
             maud! { div x-on:click="open = ! open" { "Hello, world!" } }.render(),
@@ -155,11 +155,19 @@ fn alpine_js() {
         // Test the shorthand syntax for `x:on`: `@`
         // (
         //     maud! { div @click="open = ! open" { "Hello, world!" } }.render(),
-        //     r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
+        //     r#"<div @click="open = ! open">Hello, world!</div>"#,
         // ),
         // (
         //     rsx! { <div @click="open = ! open">"Hello, world!"</div> }.render(),
-        //     r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
+        //     r#"<div @click="open = ! open">Hello, world!</div>"#,
+        // ),
+        // (
+        //     maud! { div @click.shift="open = ! open" { "Hello, world!" } }.render(),
+        //     r#"<div @click.shift="open = ! open">Hello, world!</div>"#,
+        // ),
+        // (
+        //     rsx! { <div @click.shift="open = ! open">"Hello, world!"</div> }.render(),
+        //     r#"<div @click.shift="open = ! open">Hello, world!</div>"#,
         // ),
         // (
         //     maud! { input type="text" @keyup.enter="alert('Submitted!')"; }.render(),
@@ -168,6 +176,14 @@ fn alpine_js() {
         // (
         //     rsx! { <input type="text" @keyup.enter="alert('Submitted!')" /> }.render(),
         //     r#"<input type="text" @keyup.enter="alert('Submitted!')">"#,
+        // ),
+        // (
+        //     maud! { input type="text" @keyup.shift.enter="alert('Submitted!')"; }.render(),
+        //     r#"<input type="text" @keyup.shift.enter="alert('Submitted!')">"#,
+        // ),
+        // (
+        //     rsx! { <input type="text" @keyup.shift.enter="alert('Submitted!')" /> }.render(),
+        //     r#"<input type="text" @keyup.shift.enter="alert('Submitted!')">"#,
         // ),
         (
             maud! { div x-text="new Date().getFullYear()" { "Hello, world!" } }.render(),
