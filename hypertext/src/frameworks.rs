@@ -129,6 +129,7 @@ mod htmx {
         const hx_validate: Attribute = Attribute;
         /// Adds values dynamically to the parameters to submit with the request
         /// (deprecated, please use hx-vals)
+        #[deprecated = "use `hx-vals` instead"]
         const hx_vars: Attribute = Attribute;
     }
 
