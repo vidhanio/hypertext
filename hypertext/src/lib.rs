@@ -128,6 +128,8 @@ pub mod html_elements;
 pub mod proc_macros;
 mod web;
 
+pub mod prelude;
+
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;
 pub use self::attributes::*;

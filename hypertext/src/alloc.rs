@@ -69,6 +69,8 @@ macro_rules! maud {
 /// the environment. This is useful when you want to build a [`Lazy`] using
 /// some captured variables, but you still want to be able to use the variables
 /// after the [`Lazy`] is created.
+///
+/// [`maud!`]: crate::maud
 #[macro_export]
 #[cfg(feature = "maud")]
 macro_rules! maud_borrow {
