@@ -1,8 +1,8 @@
 //! Tests for the `hypertext` crate.
 
 use hypertext::{
-    html_elements, maud, maud_dyn, maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
-    AlpineJsAttributes, GlobalAttributes, HtmxAttributes, Raw, Renderable, Rendered,
+    AlpineJsAttributes, GlobalAttributes, HtmxAttributes, Raw, Renderable, Rendered, html_elements,
+    maud, maud_dyn, maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
 };
 
 #[test]
@@ -179,7 +179,7 @@ fn alpine_js() {
             r#"<div x-show="open" x-transition>Hello, world!</div>"#,
         ),
         (
-            maud! { 
+            maud! {
                 template x-for="post in posts" {
                     h2 x-text="post.title" {}
                 }
@@ -187,7 +187,7 @@ fn alpine_js() {
             r#"<template x-for="post in posts"><h2 x-text="post.title"></h2></template>"#,
         ),
         (
-            rsx! { 
+            rsx! {
                 <template x-for="post in posts">
                     <h2 x-text="post.title"></h2>
                 </template>
@@ -195,7 +195,7 @@ fn alpine_js() {
             r#"<template x-for="post in posts"><h2 x-text="post.title"></h2></template>"#,
         ),
         (
-            maud! { 
+            maud! {
                 template x-if="open" {
                     h2 x-text="post.title" {}
                 }
@@ -203,7 +203,7 @@ fn alpine_js() {
             r#"<template x-if="open"><h2 x-text="post.title"></h2></template>"#,
         ),
         (
-            rsx! { 
+            rsx! {
                 <template x-if="open">
                     <h2 x-text="post.title"></h2>
                 </template>
