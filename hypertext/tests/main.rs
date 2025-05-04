@@ -151,7 +151,7 @@ fn alpine_js() {
             rsx! { <div x-on:click="open = ! open">"Hello, world!"</div> }.render(),
             r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
         ),
-        // WARNING: the next two tests do not compile!
+        // WARNING: the next four tests do not compile!
         // Test the shorthand syntax for `x:on`: `@`
         // (
         //     maud! { div @click="open = ! open" { "Hello, world!" } }.render(),
@@ -160,6 +160,14 @@ fn alpine_js() {
         // (
         //     rsx! { <div @click="open = ! open">"Hello, world!"</div> }.render(),
         //     r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
+        // ),
+        // (
+        //     maud! { input type="text" @keyup.enter="alert('Submitted!')"; }.render(),
+        //     r#"<input type="text" @keyup.enter="alert('Submitted!')">"#,
+        // ),
+        // (
+        //     rsx! { <input type="text" @keyup.enter="alert('Submitted!')" /> }.render(),
+        //     r#"<input type="text" @keyup.enter="alert('Submitted!')">"#,
         // ),
         (
             maud! { div x-text="new Date().getFullYear()" { "Hello, world!" } }.render(),
@@ -184,6 +192,14 @@ fn alpine_js() {
         (
             rsx! { <input type="text" x-model="search" /> }.render(),
             r#"<input type="text" x-model="search">"#,
+        ),
+        (
+            maud! { input type="text" @keyup.enter="alert('Submitted!')"; }.render(),
+            r#"<input type="text" @keyup.enter="alert('Submitted!')">"#,
+        ),
+        (
+            rsx! { <input type="text" @keyup.enter="alert('Submitted!')" /> }.render(),
+            r#"<input type="text" @keyup.enter="alert('Submitted!')">"#,
         ),
         (
             maud! { div x-show="open" { "Hello, world!" } }.render(),
