@@ -139,6 +139,7 @@ pub use self::{attributes::*, frameworks::*};
 ///
 /// [`maud`]: https://docs.rs/maud
 #[macro_export]
+#[cfg(feature = "maud")]
 macro_rules! maud_static {
     ($($tokens:tt)*) => {
         $crate::Raw($crate::proc_macros::maud_literal!($($tokens)*))
@@ -167,6 +168,7 @@ macro_rules! maud_static {
 /// );
 /// ```
 #[macro_export]
+#[cfg(feature = "rsx")]
 macro_rules! rsx_static {
     ($($tokens:tt)*) => {
         $crate::Raw($crate::proc_macros::rsx_literal!($($tokens)*))

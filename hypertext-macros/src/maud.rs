@@ -22,7 +22,6 @@ pub fn parse(tokens: TokenStream) -> syn::Result<Markup> {
     syn::parse2(tokens)
 }
 
-#[derive(Debug, Clone)]
 pub struct Markup {
     doctype: Option<Doctype>,
     nodes: Vec<ElementNode>,
@@ -67,7 +66,6 @@ impl Generate for Markup {
 
 syn::custom_keyword!(DOCTYPE);
 
-#[derive(Debug, Clone)]
 struct Doctype {
     bang_token: Token![!],
     name: DOCTYPE,
@@ -99,7 +97,6 @@ trait Node: Parse + ToTokens + Generate {
     fn is_let(&self) -> bool;
 }
 
-#[derive(Debug, Clone)]
 enum ElementNode {
     Block(Block<Self>),
     Element(Element),
@@ -164,7 +161,6 @@ impl Generate for ElementNode {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Block<N> {
     brace_token: Brace,
     nodes: Vec<N>,
@@ -206,7 +202,6 @@ impl<N: Node> Generate for Block<N> {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Splice {
     paren_token: Paren,
     expr: Expr,
@@ -236,7 +231,6 @@ impl Generate for Splice {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Element {
     name: Name,
     id: Option<IdAttribute>,
@@ -347,7 +341,6 @@ impl Generate for Element {
     }
 }
 
-#[derive(Debug, Clone)]
 enum ElementBody {
     Void(Token![;]),
     Block(Block<ElementNode>),
@@ -376,7 +369,6 @@ impl ToTokens for ElementBody {
     }
 }
 
-#[derive(Debug, Clone)]
 struct IdAttribute {
     pound_token: Token![#],
     value: IdOrClassNode,
@@ -417,7 +409,6 @@ impl Generate for IdAttribute {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Classes {
     classes: Vec<Class>,
     toggled_classes: Vec<ToggledClass>,
@@ -506,7 +497,6 @@ impl Generate for Classes {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Class {
     dot_token: Token![.],
     value: IdOrClassNode,
@@ -538,7 +528,6 @@ impl ToTokens for Class {
     }
 }
 
-#[derive(Debug, Clone)]
 struct ToggledClass {
     dot_token: Token![.],
     value: IdOrClassNode,
@@ -567,7 +556,6 @@ impl ToTokens for ToggledClass {
     }
 }
 
-#[derive(Debug, Clone)]
 enum IdOrClassNode {
     Block(Block<Self>),
     Splice(Splice),
@@ -632,7 +620,6 @@ impl Generate for IdOrClassNode {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Attribute {
     name: Name,
     kind: AttributeKind,
@@ -706,7 +693,6 @@ impl Generate for Attribute {
     }
 }
 
-#[derive(Debug, Clone)]
 enum AttributeKind {
     Normal {
         eq_token: Token![=],
@@ -778,7 +764,6 @@ impl ToTokens for AttributeKind {
     }
 }
 
-#[derive(Debug, Clone)]
 enum AttributeValueNode {
     Block(Block<Self>),
     Splice(Splice),
@@ -838,7 +823,6 @@ impl Generate for AttributeValueNode {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Name {
     name: Punctuated<NameFragment, NamePunct>,
 }
@@ -954,7 +938,6 @@ impl ToTokens for Name {
     }
 }
 
-#[derive(Debug, Clone)]
 enum NameFragment {
     Ident(Ident),
     Number(LitInt),
@@ -997,7 +980,6 @@ impl ToTokens for NameFragment {
     }
 }
 
-#[derive(Debug, Clone)]
 enum NamePunct {
     Colon(Token![:]),
     Hyphen(Token![-]),
@@ -1035,7 +1017,6 @@ impl ToTokens for NamePunct {
     }
 }
 
-#[derive(Debug, Clone)]
 enum Lit {
     Str(LitStr),
     Int(LitInt),
@@ -1084,7 +1065,6 @@ impl Generate for Lit {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Toggle {
     bracket_token: Bracket,
     cond: Expr,
@@ -1118,7 +1098,6 @@ impl ToTokens for Toggle {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Keyword<N> {
     at_token: At,
     kind: KeywordKind<N>,
@@ -1146,7 +1125,6 @@ impl<N: Node> Generate for Keyword<N> {
     }
 }
 
-#[derive(Debug, Clone)]
 enum KeywordKind<N> {
     Let(Local),
     If(IfNode<N>),
@@ -1203,7 +1181,6 @@ impl<N: Node> Generate for KeywordKind<N> {
     }
 }
 
-#[derive(Debug, Clone)]
 struct IfNode<N> {
     if_token: If,
     cond: Expr,
@@ -1274,7 +1251,6 @@ impl<N: Node> Generate for IfNode<N> {
     }
 }
 
-#[derive(Debug, Clone)]
 enum IfOrBlock<N> {
     If(IfNode<N>),
     Block(Block<N>),
@@ -1312,7 +1288,6 @@ impl<N: Node> Generate for IfOrBlock<N> {
     }
 }
 
-#[derive(Debug, Clone)]
 struct ForNode<N> {
     for_token: For,
     pat: Pat,
@@ -1358,7 +1333,6 @@ impl<N: Node> Generate for ForNode<N> {
     }
 }
 
-#[derive(Debug, Clone)]
 struct WhileNode<N> {
     while_token: While,
     cond: Expr,
@@ -1396,7 +1370,6 @@ impl<N: Node> Generate for WhileNode<N> {
     }
 }
 
-#[derive(Debug, Clone)]
 struct MatchNode<N> {
     match_token: Match,
     expr: Expr,
@@ -1470,7 +1443,6 @@ impl<N: Node> Generate for MatchNode<N> {
     }
 }
 
-#[derive(Debug, Clone)]
 struct MatchNodeArm<N> {
     pat: Pat,
     guard: Option<(If, Expr)>,
