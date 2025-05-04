@@ -1,4 +1,7 @@
 #[cfg(feature = "alpine-js")]
+pub use alpine_js::AlpineJsAttributes;
+
+#[cfg(feature = "alpine-js")]
 mod alpine_js {
     use crate::{Attribute, AttributeNamespace, GlobalAttributes};
 
@@ -42,8 +45,8 @@ mod alpine_js {
     impl<T: GlobalAttributes> AlpineJsAttributes for T {}
 }
 
-#[cfg(feature = "alpine-js")]
-pub use alpine_js::AlpineJsAttributes;
+#[cfg(feature = "htmx")]
+pub use htmx::HtmxAttributes;
 
 #[cfg(feature = "htmx")]
 mod htmx {
@@ -131,6 +134,3 @@ mod htmx {
 
     impl<T: GlobalAttributes> HtmxAttributes for T {}
 }
-
-#[cfg(feature = "htmx")]
-pub use htmx::HtmxAttributes;
