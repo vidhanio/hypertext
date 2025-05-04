@@ -1,6 +1,4 @@
-use hypertext::{
-    GlobalAttributes, Renderable, frameworks::HtmxAttributes, html_elements, rsx_move,
-};
+use hypertext::{GlobalAttributes, Renderable, frameworks::HtmxAttributes, html_elements, rsx};
 
 pub fn nav(selected: &str, oob: bool) -> impl Renderable {
     let routes = [("Home", "/"), ("About", "/about"), ("List", "/list")];
@@ -17,15 +15,15 @@ pub fn nav(selected: &str, oob: bool) -> impl Renderable {
         }
     };
 
-    rsx_move! {
+    rsx! {
         <nav id="nav" class="text-gray-100 border-b border-b-gray-700" hx-swap-oob=oob>
             <ul class="flex flex-row items-center justify-center">
                 @for (name, path) in routes {
-                  <a href={path} class={class(path)} hx-get={path} hx-target="#page" hx-swap="innerHTML" hx-push-url="true">
-                    <li>
-                        { name }
-                    </li>
-                  </a>
+                    <a href={path} class={class(path)} hx-get={path} hx-target="#page" hx-swap="innerHTML" hx-push-url="true">
+                        <li>
+                            { name }
+                        </li>
+                    </a>
                 }
             </ul>
         </nav>

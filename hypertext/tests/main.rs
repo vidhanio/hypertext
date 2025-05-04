@@ -2,14 +2,14 @@
 
 use hypertext::{
     GlobalAttributes, Raw, Renderable, Rendered, frameworks::HtmxAttributes, html_elements, maud,
-    maud_move, maud_static, rsx, rsx_move, rsx_static,
+    maud_borrow, maud_static, rsx, rsx_borrow, rsx_static,
 };
 
 #[test]
 fn readme() {
     let shopping_list = ["milk", "eggs", "bread"];
 
-    let shopping_list_maud = hypertext::maud! {
+    let shopping_list_maud = maud! {
         div {
             h1 { "Shopping List" }
             ul {
@@ -26,7 +26,7 @@ fn readme() {
 
     // or, alternatively:
 
-    let shopping_list_rsx = hypertext::rsx! {
+    let shopping_list_rsx = rsx! {
         <div>
             <h1>Shopping List</h1>
             <ul>
@@ -146,7 +146,7 @@ fn elements_macro() {
 fn can_render_vec() {
     let groceries = ["milk", "eggs", "bread"]
         .into_iter()
-        .map(|s| maud_move! { li { (s) } })
+        .map(|s| maud! { li { (s) } })
         .collect::<Vec<_>>();
 
     let result = maud! {
@@ -302,11 +302,11 @@ fn components() {
     }
 
     fn wrapping_component_maud(c: impl Renderable) -> impl Renderable {
-        maud_move! { div { (c) } }
+        maud! { div { (c) } }
     }
 
     fn wrapping_component_rsx(c: impl Renderable) -> impl Renderable {
-        rsx_move! { <div>{ c }</div> }
+        rsx! { <div>{ c }</div> }
     }
 
     let result = maud! {
@@ -324,4 +324,17 @@ fn components() {
             r"<div><span>Hello, world!</span><div><span>Hello, world!</span></div><div><span>Hello, world!</span></div></div>"
         )
     );
+}
+
+#[test]
+fn borrow() {
+    let s = "Hello, world!".to_owned();
+    let maud_result = maud_borrow! { span { (s) } };
+    let rsx_result = rsx_borrow! { <span>{ s }</span> };
+    // still able to use `s` after the borrow, as we use `maud_borrow!` and
+    // `rsx_borrow!`
+    let expected = Rendered(format!("<span>{s}</span>"));
+
+    assert_eq!(maud_result.render(), expected);
+    assert_eq!(rsx_result.render(), expected);
 }

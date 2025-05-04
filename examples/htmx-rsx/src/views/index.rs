@@ -1,9 +1,9 @@
-use hypertext::{GlobalAttributes, Renderable, html_elements, rsx_move};
+use hypertext::{GlobalAttributes, Renderable, html_elements, rsx};
 
 use crate::views::nav;
 
 pub fn index(selected: &str, page: impl Renderable) -> impl Renderable {
-    rsx_move! {
+    rsx! {
         <!doctype html>
         <html>
             <head>

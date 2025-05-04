@@ -56,29 +56,27 @@ macro_rules! maud {
         {
             extern crate alloc;
 
-            $crate::Lazy($crate::proc_macros::maud_closure!($($tokens)*))
+            $crate::Lazy(move |output: &mut alloc::string::String| {
+                $crate::proc_macros::maud_closure!($($tokens)*)(output)
+            })
         }
     };
 }
 
-/// Generate HTML which owns its environment using [`maud!`] syntax.
+/// Generate HTML using [`maud!`] syntax, borrowing the environment.
 ///
-/// This macro is identical to [`maud!`], except that it adds `move` to the
-/// generated closure, allowing it to take ownership of its environment. You
-/// will most likely need this when using [`maud!`] inside an iterator method or
-/// when returning a [`Renderable`] which wraps other [`Renderable`]s.
-///
-/// [`maud!`]: crate::maud
+/// This is identical to [`maud!`], except that it does not take ownership of
+/// the environment. This is useful when you want to build a [`Lazy`] using
+/// some captured variables, but you still want to be able to use the variables
+/// after the [`Lazy`] is created.
 #[macro_export]
 #[cfg(feature = "maud")]
-macro_rules! maud_move {
+macro_rules! maud_borrow {
     ($($tokens:tt)*) => {
         {
             extern crate alloc;
 
-            $crate::Lazy(move |output: &mut alloc::string::String| {
-                $crate::proc_macros::maud_closure!($($tokens)*)(output)
-            })
+            $crate::Lazy($crate::proc_macros::maud_closure!($($tokens)*))
         }
     };
 }
@@ -107,29 +105,27 @@ macro_rules! rsx {
         {
             extern crate alloc;
 
-            $crate::Lazy($crate::proc_macros::rsx_closure!($($tokens)*))
+            $crate::Lazy(move |output: &mut alloc::string::String| {
+                $crate::proc_macros::rsx_closure!($($tokens)*)(output)
+            })
         }
     };
 }
 
-/// Generate HTML which owns its environment using [`rsx!`] syntax.
+/// Generate HTML using [`rsx!`] syntax, borrowing the environment.
 ///
-/// This macro is identical to [`rsx!`], except that it adds `move` to the
-/// generated closure, allowing it to take ownership of its environment. You
-/// will most likely need this when using [`rsx!`] inside an iterator method or
-/// when returning a [`Renderable`] which wraps other [`Renderable`]s.
-///
-/// [`rsx!`]: crate::rsx
+/// This is identical to [`rsx!`], except that it does not take ownership of
+/// the environment. This is useful when you want to build a [`Lazy`] using
+/// some captured variables, but you still want to be able to use the variables
+/// after the [`Lazy`] is created.
 #[macro_export]
 #[cfg(feature = "rsx")]
-macro_rules! rsx_move {
+macro_rules! rsx_borrow {
     ($($tokens:tt)*) => {
         {
             extern crate alloc;
 
-            $crate::Lazy(move |output: &mut alloc::string::String| {
-                $crate::proc_macros::rsx_closure!($($tokens)*)(output)
-            })
+            $crate::Lazy($crate::proc_macros::rsx_closure!($($tokens)*))
         }
     };
 }
@@ -235,7 +231,7 @@ pub trait Renderable {
     /// # Example
     ///
     /// ```rust
-    /// use hypertext::{Renderable, html_elements, maud, maud_move};
+    /// use hypertext::{Renderable, html_elements, maud};
     ///
     /// fn cake_status_dyn(likes_cake: bool) -> impl Renderable {
     ///     if likes_cake {
@@ -248,7 +244,7 @@ pub trait Renderable {
     /// // instead, could be written as:
     ///
     /// fn cake_status(likes_cake: bool) -> impl Renderable {
-    ///     maud_move! {
+    ///     maud! {
     ///         div {
     ///             @if likes_cake {
     ///                 "I like cake!"
@@ -258,7 +254,6 @@ pub trait Renderable {
     ///         }
     ///     }
     /// }
-    ///
     /// # assert_eq!(cake_status_dyn(true).render(), cake_status(true).render());
     /// # assert_eq!(cake_status_dyn(false).render(), cake_status(false).render());
     /// ```

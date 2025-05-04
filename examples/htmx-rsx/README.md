@@ -34,10 +34,10 @@ reference that function to call your component.
 
 ```rust
 use crate::views::nav;
-use hypertext::{Renderable, html_elements, rsx, rsx_move};
+use hypertext::{Renderable, html_elements, rsx};
 
 pub fn about(nav_oob: bool) -> impl Renderable {
-    rsx_move! {
+    rsx! {
         @if nav_oob {
             { nav("/", true) }
         } 
