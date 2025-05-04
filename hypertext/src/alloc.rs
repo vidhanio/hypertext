@@ -12,7 +12,7 @@ use core::fmt::{self, Debug, Display, Formatter, Write};
 
 use crate::{Raw, Rendered};
 
-/// Generate HTML using [`maud`] syntax.
+/// Generate HTML using [`maud`] syntax, returning a [`Lazy`].
 ///
 /// Note that this is not a complete 1:1 port of [`maud`]'s syntax as it is
 /// stricter in some places to prevent anti-patterns.
@@ -81,7 +81,7 @@ macro_rules! maud_borrow {
     };
 }
 
-/// Generate HTML using rsx syntax.
+/// Generate HTML using rsx syntax, returning a [`Lazy`].
 ///
 /// # Example
 ///
