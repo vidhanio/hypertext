@@ -102,20 +102,15 @@
 #[cfg(feature = "alloc")]
 mod alloc;
 mod attributes;
+mod frameworks;
 pub mod html_elements;
-/// HTMX attributes for use with [`maud!`] and [`rsx!`].
-#[cfg(feature = "htmx")]
-mod htmx;
 #[doc(hidden)]
 pub mod proc_macros;
 mod web;
 
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;
-pub use self::attributes::{Attribute, AttributeNamespace, GlobalAttributes};
-/// Use HTMX attributes in your HTML elements.
-#[cfg(feature = "htmx")]
-pub use self::htmx::HtmxAttributes;
+pub use self::{attributes::*, frameworks::*};
 
 /// Render static HTML using [`maud`] syntax.
 ///
