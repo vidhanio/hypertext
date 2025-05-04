@@ -1,8 +1,8 @@
 //! Tests for the `hypertext` crate.
 
 use hypertext::{
-    html_elements, maud, maud_dyn, maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
-    AlpineJsAttributes, GlobalAttributes, HtmxAttributes, Raw, Renderable, Rendered,
+    AlpineJsAttributes, GlobalAttributes, HtmxAttributes, Raw, Renderable, Rendered, html_elements,
+    maud, maud_dyn, maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
 };
 
 #[test]
@@ -44,7 +44,9 @@ fn readme() {
     for result in [shopping_list_maud, shopping_list_rsx] {
         assert_eq!(
             result,
-            "<div><h1>Shopping List</h1><ul><li class=\"item\"><input id=\"item-1\" type=\"checkbox\"><label for=\"item-1\">milk</label></li><li class=\"item\"><input id=\"item-2\" type=\"checkbox\"><label for=\"item-2\">eggs</label></li><li class=\"item\"><input id=\"item-3\" type=\"checkbox\"><label for=\"item-3\">bread</label></li></ul></div>"
+            Rendered(
+                r#"<div><h1>Shopping List</h1><ul><li class="item"><input id="item-1" type="checkbox"><label for="item-1">milk</label></li><li class="item"><input id="item-2" type="checkbox"><label for="item-2">eggs</label></li><li class="item"><input id="item-3" type="checkbox"><label for="item-3">bread</label></li></ul></div>"#
+            )
         );
     }
 }
@@ -105,13 +107,14 @@ fn htmx() {
         ),
     ];
 
-    for (test, expected) in tests {
-        assert_eq!(test, Rendered(expected.to_string()));
+    for (result, expected) in tests {
+        assert_eq!(result, Rendered(expected));
     }
 }
 
 #[test]
-fn alpinejs() {
+#[allow(clippy::too_many_lines)]
+fn alpine_js() {
     let tests = [
         (
             maud! { div x-data="{ open: false }" { "Hello, world!" } }.render(),
@@ -173,10 +176,9 @@ fn alpinejs() {
             rsx! { <div x-html="(await axios.get('/some/html/partial')).data">"Hello, world!"</div> }.render(),
             r#"<div x-html="(await axios.get('/some/html/partial')).data">Hello, world!</div>"#,
         ),
-        // WARNING: It seems the input element doesn't render consistently and doesn't auto-close
         (
-            maud! { input type="text" x-model="search" {} }.render(),
-            r#"<input type="text" x-model="search"></input>"#,
+            maud! { input type="text" x-model="search"; }.render(),
+            r#"<input type="text" x-model="search">"#,
         ),
         (
             rsx! { <input type="text" x-model="search" /> }.render(),
@@ -199,7 +201,7 @@ fn alpinejs() {
             r#"<div x-show="open" x-transition>Hello, world!</div>"#,
         ),
         (
-            maud! { 
+            maud! {
                 template x-for="post in posts" {
                     h2 x-text="post.title" {}
                 }
@@ -207,7 +209,7 @@ fn alpinejs() {
             r#"<template x-for="post in posts"><h2 x-text="post.title"></h2></template>"#,
         ),
         (
-            rsx! { 
+            rsx! {
                 <template x-for="post in posts">
                     <h2 x-text="post.title"></h2>
                 </template>
@@ -215,7 +217,7 @@ fn alpinejs() {
             r#"<template x-for="post in posts"><h2 x-text="post.title"></h2></template>"#,
         ),
         (
-            maud! { 
+            maud! {
                 template x-if="open" {
                     h2 x-text="post.title" {}
                 }
@@ -223,7 +225,7 @@ fn alpinejs() {
             r#"<template x-if="open"><h2 x-text="post.title"></h2></template>"#,
         ),
         (
-            rsx! { 
+            rsx! {
                 <template x-if="open">
                     <h2 x-text="post.title"></h2>
                 </template>
@@ -246,10 +248,9 @@ fn alpinejs() {
             rsx! { <div x-effect="console.log('Count is '+count)"></div> }.render(),
             r#"<div x-effect="console.log('Count is '+count)"></div>"#,
         ),
-        // WARNING: It seems the input element doesn't render consistently and doesn't auto-close
         (
-            maud! { input type="text" x-ref="content" {} }.render(),
-            r#"<input type="text" x-ref="content"></input>"#,
+            maud! { input type="text" x-ref="content"; }.render(),
+            r#"<input type="text" x-ref="content">"#,
         ),
         (
             rsx! { <input type="text" x-ref="content" /> }.render(),
@@ -257,19 +258,19 @@ fn alpinejs() {
         ),
         (
             maud! { div x-cloak {} }.render(),
-            r#"<div x-cloak></div>"#,
+            r"<div x-cloak></div>",
         ),
         (
             rsx! { <div x-cloak></div> }.render(),
-            r#"<div x-cloak></div>"#,
+            r"<div x-cloak></div>",
         ),
         (
             maud! { div x-ignore {} }.render(),
-            r#"<div x-ignore></div>"#,
+            r"<div x-ignore></div>",
         ),
         (
             rsx! { <div x-ignore></div> }.render(),
-            r#"<div x-ignore></div>"#,
+            r"<div x-ignore></div>",
         ),
     ];
 
@@ -304,40 +305,8 @@ fn elements_macro() {
 
     assert_eq!(
         custom_maud,
-        r#"<div><my_element my_attribute="test">Hello, world!</my_element></div>"#
+        Rendered(r#"<div><my_element my_attribute="test">Hello, world!</my_element></div>"#)
     );
-}
-
-#[test]
-fn can_render_arc() {
-    let value = std::sync::Arc::new("arc");
-    let result = maud!(span { (value) }).render();
-
-    assert_eq!(result, "<span>arc</span>");
-}
-
-#[test]
-fn can_render_box() {
-    let value = Box::new("box");
-    let result = maud!(span { (value) }).render();
-
-    assert_eq!(result, "<span>box</span>");
-}
-
-#[test]
-fn can_render_rc() {
-    let value = std::rc::Rc::new("rc");
-    let result = maud!(span { (value) }).render();
-
-    assert_eq!(result, "<span>rc</span>");
-}
-
-#[test]
-fn can_render_cow() {
-    let value = std::borrow::Cow::from("cow");
-    let result = maud!(span { (value) }).render();
-
-    assert_eq!(result, "<span>cow</span>");
 }
 
 #[test]
@@ -352,7 +321,10 @@ fn can_render_vec() {
     }
     .render();
 
-    assert_eq!(result, "<ul><li>milk</li><li>eggs</li><li>bread</li></ul>");
+    assert_eq!(
+        result,
+        Rendered("<ul><li>milk</li><li>eggs</li><li>bread</li></ul>")
+    );
 }
 
 #[test]
@@ -364,7 +336,10 @@ fn correct_attr_escape() {
     }
     .render();
 
-    assert_eq!(result, r#"<div data-code="&quot;alert('XSS')"></div>"#);
+    assert_eq!(
+        result,
+        Rendered(r#"<div data-code="&quot;alert('XSS')"></div>"#)
+    );
 }
 
 #[test]
@@ -381,7 +356,7 @@ fn maud_dyn() {
     }
     .render();
 
-    assert_eq!(result, "<div><span>closure 1</span></div>");
+    assert_eq!(result, Rendered("<div><span>closure 1</span></div>"));
 }
 
 #[test]
@@ -400,28 +375,33 @@ fn rsx_dyn() {
     }
     .render();
 
-    assert_eq!(result, "<div><span>closure 1</span></div>");
+    assert_eq!(result, Rendered("<div><span>closure 1</span></div>"));
 }
 
 #[test]
 fn statics() {
-    const MAUD_RESULT: Raw<&str> = maud_static! {
+    const MAUD_RAW_RESULT: Raw<&str> = maud_static! {
         div #profile title="Profile" {
             h1 { "Hello, world!" }
         }
     };
-
-    const RSX_RESULT: Raw<&str> = rsx_static! {
+    const RSX_RAW_RESULT: Raw<&str> = rsx_static! {
         <div id="profile" title="Profile">
             <h1>"Hello, world!"</h1>
         </div>
     };
 
-    for result in [MAUD_RESULT, RSX_RESULT] {
-        assert_eq!(
-            result,
-            r#"<div id="profile" title="Profile"><h1>Hello, world!</h1></div>"#
-        );
+    const MAUD_RENDERED_RESULT: Rendered<&str> = MAUD_RAW_RESULT.rendered();
+    const RSX_RENDERED_RESULT: Rendered<&str> = RSX_RAW_RESULT.rendered();
+
+    const EXPECTED: &str = r#"<div id="profile" title="Profile"><h1>Hello, world!</h1></div>"#;
+
+    for result in [MAUD_RAW_RESULT, RSX_RAW_RESULT] {
+        assert_eq!(result, Raw(EXPECTED));
+    }
+
+    for result in [MAUD_RENDERED_RESULT, RSX_RENDERED_RESULT] {
+        assert_eq!(result, Rendered(EXPECTED));
     }
 }
 
@@ -489,7 +469,9 @@ fn keywords() {
     for result in [maud_result, rsx_result] {
         assert_eq!(
             result,
-            "<div><span>branch 1</span><span>branch 2</span><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>"
+            Rendered(
+                r"<div><span>branch 1</span><span>branch 2</span><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>"
+            )
         );
     }
 }
@@ -519,6 +501,8 @@ fn components() {
 
     assert_eq!(
         result,
-        "<div><span>Hello, world!</span><div><span>Hello, world!</span></div><div><span>Hello, world!</span></div></div>"
+        Rendered(
+            r"<div><span>Hello, world!</span><div><span>Hello, world!</span></div><div><span>Hello, world!</span></div></div>"
+        )
     );
 }

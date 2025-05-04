@@ -6,6 +6,10 @@ pub struct Attribute;
 #[derive(Debug, Clone, Copy)]
 pub struct AttributeNamespace;
 
+/// An HTML attribute character prefix.
+#[derive(Debug, Clone, Copy)]
+pub struct AttributeCharacterPrefix;
+
 /// Global HTML attributes.
 ///
 /// This trait must be in scope to use well-known attributes such as
@@ -15,7 +19,8 @@ pub struct AttributeNamespace;
 /// # Usage With Custom Elements
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, maud}; // `GlobalAttributes` must be in scope!
+/// use hypertext::{GlobalAttributes, Renderable, Rendered, maud};
+/// //              ^^^^^^^^^^^^^^^^ `GlobalAttributes` must be in scope!
 ///
 /// mod html_elements {
 ///     #![allow(non_camel_case_types)]
@@ -30,7 +35,7 @@ pub struct AttributeNamespace;
 ///
 /// assert_eq!(
 ///     maud! { custom-element title="abc" { "Hello, world!" } }.render(),
-///     r#"<custom-element title="abc">Hello, world!</custom-element>"#,
+///     Rendered(r#"<custom-element title="abc">Hello, world!</custom-element>"#),
 /// );
 /// ```
 #[allow(non_upper_case_globals, clippy::module_name_repetitions)]

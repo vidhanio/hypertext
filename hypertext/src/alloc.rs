@@ -33,7 +33,7 @@ use crate::{Raw, Rendered};
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, html_elements, maud};
+/// use hypertext::{GlobalAttributes, Renderable, Rendered, html_elements, maud};
 ///
 /// assert_eq!(
 ///     maud! {
@@ -42,7 +42,7 @@ use crate::{Raw, Rendered};
 ///        }
 ///     }
 ///     .render(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
+///     Rendered(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
 /// );
 /// ```
 ///
@@ -50,6 +50,7 @@ use crate::{Raw, Rendered};
 /// [`id`]: crate::GlobalAttributes::id
 /// [`class`]: crate::GlobalAttributes::class
 #[macro_export]
+#[cfg(feature = "maud")]
 macro_rules! maud {
     ($($tokens:tt)*) => {
         {
@@ -69,6 +70,7 @@ macro_rules! maud {
 ///
 /// [`maud!`]: crate::maud
 #[macro_export]
+#[cfg(feature = "maud")]
 macro_rules! maud_move {
     ($($tokens:tt)*) => {
         {
@@ -90,6 +92,7 @@ macro_rules! maud_move {
 ///
 /// [`maud!`]: crate::maud
 #[macro_export]
+#[cfg(feature = "maud")]
 macro_rules! maud_dyn {
     ($($tokens:tt)*) => {
         {
@@ -105,7 +108,7 @@ macro_rules! maud_dyn {
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, html_elements, rsx};
+/// use hypertext::{GlobalAttributes, Renderable, Rendered, html_elements, rsx};
 ///
 /// assert_eq!(
 ///     rsx! {
@@ -114,10 +117,11 @@ macro_rules! maud_dyn {
 ///         </div>
 ///     }
 ///     .render(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
+///     Rendered(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
 /// );
 /// ```
 #[macro_export]
+#[cfg(feature = "rsx")]
 macro_rules! rsx {
     ($($tokens:tt)*) => {
         {
@@ -137,6 +141,7 @@ macro_rules! rsx {
 ///
 /// [`rsx!`]: crate::rsx
 #[macro_export]
+#[cfg(feature = "rsx")]
 macro_rules! rsx_move {
     ($($tokens:tt)*) => {
         {
@@ -158,6 +163,7 @@ macro_rules! rsx_move {
 ///
 /// [`rsx!`]: crate::rsx
 #[macro_export]
+#[cfg(feature = "rsx")]
 macro_rules! rsx_dyn {
     ($($tokens:tt)*) => {
         {
@@ -180,7 +186,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// # Example
 ///
 /// ```
-/// use hypertext::{Renderable, html_elements, maud};
+/// use hypertext::{Renderable, Rendered, html_elements, maud};
 ///
 /// pub struct Person {
 ///     name: String,
@@ -206,7 +212,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 ///
 /// assert_eq!(
 ///     maud! { main { (person) } }.render(),
-///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
+///     Rendered(r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#),
 /// );
 /// ```
 pub trait Renderable {

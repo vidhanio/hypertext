@@ -79,7 +79,7 @@
 //! Here's an example of how you could define your own attributes for use with
 //! the wonderful frontend library [htmx](https://htmx.org):
 //! ```rust
-//! use hypertext::{Attribute, GlobalAttributes, Renderable, html_elements, maud};
+//! use hypertext::{Attribute, GlobalAttributes, Renderable, Rendered, html_elements, maud};
 //!
 //! trait HtmxAttributes: GlobalAttributes {
 //!     const hx_get: Attribute = Attribute;
@@ -92,7 +92,7 @@
 //! assert_eq!(
 //!     //          vvvvvv note that it converts `-` to `_` for you during checking!
 //!     maud! { div hx-get="/api/endpoint" { "Hello, world!" } }.render(),
-//!     r#"<div hx-get="/api/endpoint">Hello, world!</div>"#,
+//!     Rendered(r#"<div hx-get="/api/endpoint">Hello, world!</div>"#),
 //! );
 //! ```
 #![no_std]
@@ -101,32 +101,22 @@
 
 #[cfg(feature = "alloc")]
 mod alloc;
-#[cfg(feature = "alpine-js")]
-mod alpine_js;
 mod attributes;
+mod frameworks;
 pub mod html_elements;
-/// HTMX attributes for use with [`maud!`] and [`rsx!`].
-#[cfg(feature = "htmx")]
-mod htmx;
 #[doc(hidden)]
 pub mod proc_macros;
 mod web;
 
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;
-/// Use AlpineJs attributes in your HTML elements.
-#[cfg(feature = "alpine-js")]
-pub use self::alpine_js::AlpineJsAttributes;
-pub use self::attributes::{Attribute, AttributeNamespace, GlobalAttributes};
-/// Use HTMX attributes in your HTML elements.
-#[cfg(feature = "htmx")]
-pub use self::htmx::HtmxAttributes;
+pub use self::{attributes::*, frameworks::*};
 
 /// Render static HTML using [`maud`] syntax.
 ///
 /// For details about the syntax, see [`maud!`].
 ///
-/// This will return a [`Rendered<&str>`], which can be used in `const`
+/// This will return a [`Raw<&str>`], which can be used in `const`
 /// contexts.
 ///
 /// Note that the macro cannot process any dynamic content, so you cannot use
@@ -135,7 +125,7 @@ pub use self::htmx::HtmxAttributes;
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, html_elements, maud_static};
+/// use hypertext::{GlobalAttributes, Raw, html_elements, maud_static};
 ///
 /// assert_eq!(
 ///     maud_static! {
@@ -143,12 +133,13 @@ pub use self::htmx::HtmxAttributes;
 ///             h1 { "Alice" }
 ///        }
 ///     },
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
+///     Raw(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
 /// );
 /// ```
 ///
 /// [`maud`]: https://docs.rs/maud
 #[macro_export]
+#[cfg(feature = "maud")]
 macro_rules! maud_static {
     ($($tokens:tt)*) => {
         $crate::Raw($crate::proc_macros::maud_literal!($($tokens)*))
@@ -156,7 +147,7 @@ macro_rules! maud_static {
 }
 /// Render static HTML using rsx syntax.
 ///
-/// This will return a [`Rendered<&str>`], which can be used in `const`
+/// This will return a [`Raw<&str>`], which can be used in `const`
 /// contexts.
 ///
 /// Note that the macro cannot process any dynamic content, so you cannot use
@@ -165,7 +156,7 @@ macro_rules! maud_static {
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, html_elements, rsx_static};
+/// use hypertext::{GlobalAttributes, Raw, html_elements, rsx_static};
 ///
 /// assert_eq!(
 ///     rsx_static! {
@@ -173,10 +164,11 @@ macro_rules! maud_static {
 ///             <h1>Alice</h1>
 ///         </div>
 ///     },
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
+///     Raw(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
 /// );
 /// ```
 #[macro_export]
+#[cfg(feature = "rsx")]
 macro_rules! rsx_static {
     ($($tokens:tt)*) => {
         $crate::Raw($crate::proc_macros::rsx_literal!($($tokens)*))
@@ -195,10 +187,10 @@ pub trait VoidElement {}
 /// as it can lead to XSS vulnerabilities if used incorrectly. If you are
 /// unsure, render the string itself, as its [`Renderable`] implementation will
 /// escape any dangerous characters.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Raw<T: AsRef<str>>(pub T);
+#[derive(Debug, Clone, Copy, Eq, Hash)]
+pub struct Raw<T>(pub T);
 
-impl<T: AsRef<str>> Raw<T> {
+impl<T> Raw<T> {
     /// Extracts the inner value.
     #[inline]
     pub fn into_inner(self) -> T {
@@ -210,25 +202,21 @@ impl<T: AsRef<str>> Raw<T> {
     pub const fn as_inner(&self) -> &T {
         &self.0
     }
+}
 
-    /// Directly render the raw value.
+impl<'a> Raw<&'a str> {
+    /// Converts the [`Raw<&str>`] into a [`Rendered<&str>`].
     #[inline]
-    pub fn rendered(self) -> Rendered<T> {
+    #[must_use]
+    pub const fn rendered(self) -> Rendered<&'a str> {
         Rendered(self.0)
     }
 }
 
-impl<T: AsRef<str>> PartialEq<&str> for Raw<T> {
+impl<T: PartialEq<U>, U> PartialEq<Raw<U>> for Raw<T> {
     #[inline]
-    fn eq(&self, &other: &&str) -> bool {
-        self.0.as_ref() == other
-    }
-}
-
-impl<T: AsRef<str>> PartialEq<Raw<T>> for &str {
-    #[inline]
-    fn eq(&self, other: &Raw<T>) -> bool {
-        *self == other.0.as_ref()
+    fn eq(&self, other: &Raw<U>) -> bool {
+        self.0 == other.0
     }
 }
 
@@ -240,7 +228,7 @@ impl<T: AsRef<str>> PartialEq<Raw<T>> for &str {
 /// This type intentionally does **not** implement [`Renderable`] to prevent
 /// anti-patterns such as rendering to a string then embedding that HTML string
 /// into another page.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, Eq, Hash)]
 pub struct Rendered<T>(pub T);
 
 impl<T> Rendered<T> {
@@ -265,23 +253,16 @@ impl<T: AsRef<str>> Rendered<T> {
     }
 }
 
-impl<T: AsRef<str>> AsRef<str> for Rendered<T> {
+impl<T: AsRef<U>, U: ?Sized> AsRef<U> for Rendered<T> {
     #[inline]
-    fn as_ref(&self) -> &str {
+    fn as_ref(&self) -> &U {
         self.0.as_ref()
     }
 }
 
-impl<T: AsRef<str>> PartialEq<&str> for Rendered<T> {
+impl<T: PartialEq<U>, U> PartialEq<Rendered<U>> for Rendered<T> {
     #[inline]
-    fn eq(&self, &other: &&str) -> bool {
-        self.0.as_ref() == other
-    }
-}
-
-impl<T: AsRef<str>> PartialEq<Rendered<T>> for &str {
-    #[inline]
-    fn eq(&self, other: &Rendered<T>) -> bool {
-        *self == other.0.as_ref()
+    fn eq(&self, other: &Rendered<U>) -> bool {
+        self.0 == other.0
     }
 }
