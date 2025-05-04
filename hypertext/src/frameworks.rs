@@ -1,3 +1,27 @@
+//! Attribute traits for various frameworks.
+//!
+//! To use these attributes, you need to enable the corresponding feature in
+//! your `Cargo.toml` file. For example, to use [`HtmxAttributes`], you would
+//! enable the `htmx` feature:
+//!
+//! ```toml
+//! [dependencies]
+//! hypertext = { version = "*", features = ["htmx"] }
+//! ```
+//!
+//! Then you can use the attributes in your code after bringing the trait into
+//! scope:
+//!
+//! ```rust
+//! use hypertext::{Attribute, GlobalAttributes, frameworks::HtmxAttributes, html_elements, maud};
+//!
+//! # assert_eq!(hypertext::Renderable::render(&
+//! maud! {
+//!     a hx-get="/about" { "About" }
+//! }
+//! # ), hypertext::Rendered(r#"<a hx-get="/about">About</a>"#));
+//! ```
+
 #[cfg(feature = "htmx")]
 pub use htmx::HtmxAttributes;
 

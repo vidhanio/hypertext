@@ -1,4 +1,6 @@
-use hypertext::{GlobalAttributes, HtmxAttributes, Renderable, html_elements, rsx_move};
+use hypertext::{
+    GlobalAttributes, Renderable, frameworks::HtmxAttributes, html_elements, rsx_move,
+};
 
 pub fn nav(selected: &str, oob: bool) -> impl Renderable {
     let routes = [("Home", "/"), ("About", "/about"), ("List", "/list")];

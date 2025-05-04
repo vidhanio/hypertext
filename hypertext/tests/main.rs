@@ -1,8 +1,8 @@
 //! Tests for the `hypertext` crate.
 
 use hypertext::{
-    GlobalAttributes, HtmxAttributes, Raw, Renderable, Rendered, html_elements, maud, maud_dyn,
-    maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
+    GlobalAttributes, Raw, Renderable, Rendered, frameworks::HtmxAttributes, html_elements, maud,
+    maud_dyn, maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
 };
 
 #[test]

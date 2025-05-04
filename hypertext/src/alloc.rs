@@ -288,6 +288,8 @@ impl<T: Display> Renderable for Displayed<T> {
 ///
 /// This is the type returned by [`maud!`] and [`rsx!`], as well as their `move`
 /// variants.
+///
+/// [`maud!`]: crate::maud
 #[derive(Debug, Clone, Copy)]
 pub struct Lazy<F: Fn(&mut String)>(pub F);
 

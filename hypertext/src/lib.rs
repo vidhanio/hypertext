@@ -32,10 +32,10 @@
 //! struct, and then proceeds to attempt to access the corresponding associated
 //! type for each attribute you use.
 //!
-//! # Examples
+//! # Example
 //!
 //! ```rust
-//! use hypertext::{html_elements, maud, GlobalAttributes, Renderable};
+//! use hypertext::{GlobalAttributes, Renderable, html_elements, maud};
 //!
 //! # assert_eq!(
 //! maud! {
@@ -43,10 +43,15 @@
 //!         h1.important {
 //!             "Hello, world!"
 //!         }
+//!
+//!         @for i in 1..=3 {
+//!             p.{ "p-" (i) } {
+//!                 "This is paragraph number " (i)
+//!             }
+//!         }
 //!     }
 //! }
-//! .render()
-//! # ,
+//! # .render(),
 //!
 //! // expands to (roughly):
 //!
@@ -61,12 +66,26 @@
 //!
 //!     hypertext::Lazy(|hypertext_output: &mut String| {
 //!         hypertext_output.push_str(
-//!             r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1></div>"#
+//!             r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1>"#,
 //!         );
+//!
+//!         for i in 1..=3 {
+//!             const _: () = {
+//!                 html_elements::p;
+//!                 let _: hypertext::Attribute = html_elements::p::class;
+//!             };
+//!
+//!             hypertext_output.push_str(r#"<p class="p-"#);
+//!             i.render_to(hypertext_output);
+//!             hypertext_output.push_str(r#"">This is paragraph number "#);
+//!             i.render_to(hypertext_output);
+//!             hypertext_output.push_str("</p>");
+//!         }
+//!
+//!         hypertext_output.push_str("</div>");
 //!     })
 //! }
-//! .render()
-//! # );
+//! # .render());
 //! ```
 //!
 //! This approach is also extremely extensible, as you can define your own
@@ -102,7 +121,7 @@
 #[cfg(feature = "alloc")]
 mod alloc;
 mod attributes;
-mod frameworks;
+pub mod frameworks;
 pub mod html_elements;
 #[doc(hidden)]
 pub mod proc_macros;
@@ -110,7 +129,7 @@ mod web;
 
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;
-pub use self::{attributes::*, frameworks::*};
+pub use self::attributes::*;
 
 /// Render static HTML using [`maud`] syntax.
 ///
