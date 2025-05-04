@@ -1,35 +1,35 @@
 # Hypertext HTMX RSX Example
 
-# Setup
+## Setup
 
-First, install npm packages (tailwindcss CLI)
+First, install `npm` packages (Tailwind CSS CLI)
 
-```bash
+```sh
 npm i
 ```
 
 Next, install [air](https://github.com/air-verse/air) for automatic reload (make sure you have [Go installed](https://go.dev/doc/install)):
 
-```
+```sh
 go install github.com/air-verse/air@latest
 ```
 
 Start the server:
 
-```bash
+```sh
 air
 ```
 
 Open `localhost:3001` in your browser!
 
-# Design
+## Design
 
 The `views` folder contains any HTML templates.
-The `handlers` folder contains any Axum handlers used for routing.
+The `handlers` folder contains any `axum` handlers used for routing.
 
-## Components
+### Components
 
-With Hypertext you can use Rust functions as re-usable HTML components!  Simply set the return type to `impl Renderable` and you can
+With `hypertext` you can use Rust functions as re-usable HTML components!  Simply set the return type to `impl Renderable` and you can
 reference that function to call your component.
 
 ```rust
