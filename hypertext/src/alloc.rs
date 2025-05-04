@@ -83,26 +83,6 @@ macro_rules! maud_move {
     };
 }
 
-/// Generate a [`Box<dyn Renderable>`] using [`maud!`] syntax.
-///
-/// This macro is identical to [`maud!`], except that it returns a
-/// [`Box<dyn Renderable>`] instead of a [`Lazy`] closure. This is useful for
-/// dynamically generated HTML that needs to be passed around as a trait object
-/// without being pre-rendered.
-///
-/// [`maud!`]: crate::maud
-#[macro_export]
-#[cfg(feature = "maud")]
-macro_rules! maud_dyn {
-    ($($tokens:tt)*) => {
-        {
-            extern crate alloc;
-
-            alloc::boxed::Box::new($crate::maud!($($tokens)*)) as alloc::boxed::Box<dyn $crate::Renderable>
-        }
-    };
-}
-
 /// Generate HTML using rsx syntax.
 ///
 /// # Example
@@ -150,26 +130,6 @@ macro_rules! rsx_move {
             $crate::Lazy(move |output: &mut alloc::string::String| {
                 $crate::proc_macros::rsx_closure!($($tokens)*)(output)
             })
-        }
-    };
-}
-
-/// Generate a [`Box<dyn Renderable>`] using [`rsx!`] syntax.
-///
-/// This macro is identical to [`rsx!`], except that it returns a
-/// [`Box<dyn Renderable>`] instead of a [`Lazy`] closure. This is useful for
-/// dynamically generated HTML that needs to be passed around as a trait object
-/// without being pre-rendered.
-///
-/// [`rsx!`]: crate::rsx
-#[macro_export]
-#[cfg(feature = "rsx")]
-macro_rules! rsx_dyn {
-    ($($tokens:tt)*) => {
-        {
-            extern crate alloc;
-
-            alloc::boxed::Box::new($crate::rsx!($($tokens)*)) as alloc::boxed::Box<dyn $crate::Renderable>
         }
     };
 }
@@ -257,6 +217,60 @@ pub trait Renderable {
         let mut output = String::new();
         self.render_to(&mut output);
         Raw(output)
+    }
+
+    /// Converts this value into a [`Box<dyn Renderable>`].
+    ///
+    /// This is useful for dynamically generated HTML that needs to be passed
+    /// around as a trait object without being pre-rendered. A common use case
+    /// is when returning [`Lazy`] closures from branched code, where the
+    /// different concrete [`Fn(&mut String)`] implementations stored in the
+    /// [`Lazy`] closures need to be converted to the same type.
+    ///
+    /// Note that this is usually not necessary when using [`maud!`] or
+    /// [`rsx!`], as they provide branching syntax within the macro that allows
+    /// you to generate the same type without needing to convert to a trait
+    /// object.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use hypertext::{Renderable, html_elements, maud, maud_move};
+    ///
+    /// fn cake_status_dyn(likes_cake: bool) -> impl Renderable {
+    ///     if likes_cake {
+    ///         maud! { div { "I like cake!" } }.dyn_renderable()
+    ///     } else {
+    ///         maud! { div { "I don't like cake!" } }.dyn_renderable()
+    ///     }
+    /// }
+    ///
+    /// // instead, could be written as:
+    ///
+    /// fn cake_status(likes_cake: bool) -> impl Renderable {
+    ///     maud_move! {
+    ///         div {
+    ///             @if likes_cake {
+    ///                 "I like cake!"
+    ///             } @else {
+    ///                 "I don't like cake!"
+    ///             }
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// # assert_eq!(cake_status_dyn(true).render(), cake_status(true).render());
+    /// # assert_eq!(cake_status_dyn(false).render(), cake_status(false).render());
+    /// ```
+    ///
+    /// [`maud!`]: crate::maud
+    /// [`Fn(&mut String)`]: core::ops::Fn
+    #[inline]
+    fn dyn_renderable<'a>(self) -> Box<dyn Renderable + 'a>
+    where
+        Self: Sized + 'a,
+    {
+        Box::new(self)
     }
 }
 

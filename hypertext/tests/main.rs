@@ -2,7 +2,7 @@
 
 use hypertext::{
     GlobalAttributes, Raw, Renderable, Rendered, frameworks::HtmxAttributes, html_elements, maud,
-    maud_dyn, maud_move, maud_static, rsx, rsx_dyn, rsx_move, rsx_static,
+    maud_move, maud_static, rsx, rsx_move, rsx_static,
 };
 
 #[test]
@@ -176,39 +176,25 @@ fn correct_attr_escape() {
 }
 
 #[test]
-fn maud_dyn() {
+fn dynamic() {
     let cond = true;
-    let result = maud! {
-        div {
-            (if cond {
-                maud_dyn! { span { "closure 1" } }
-            } else {
-                maud_dyn! { span { "closure 2" } }
-            })
-        }
+
+    let maud_result = if cond {
+        maud! { span { "closure 1" } }.dyn_renderable()
+    } else {
+        maud! { span { "closure 2" } }.dyn_renderable()
     }
     .render();
 
-    assert_eq!(result, Rendered("<div><span>closure 1</span></div>"));
-}
-
-#[test]
-fn rsx_dyn() {
-    let cond = true;
-    let result = rsx! {
-        <div>
-            {
-                if cond {
-                    rsx_dyn! { <span>"closure 1"</span> }
-                } else {
-                    rsx_dyn! { <span>"closure 2"</span> }
-                }
-            }
-        </div>
+    let rsx_result = if cond {
+        rsx! { <span>closure 1</span> }.dyn_renderable()
+    } else {
+        rsx! { <span>closure 2</span> }.dyn_renderable()
     }
     .render();
 
-    assert_eq!(result, Rendered("<div><span>closure 1</span></div>"));
+    assert_eq!(maud_result, Rendered("<span>closure 1</span>"));
+    assert_eq!(rsx_result, Rendered("<span>closure 1</span>"));
 }
 
 #[test]

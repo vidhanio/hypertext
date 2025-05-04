@@ -115,8 +115,9 @@
 //! );
 //! ```
 #![no_std]
+#![forbid(unsafe_code)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
-#![warn(clippy::missing_inline_in_public_items)]
+#![deny(clippy::missing_inline_in_public_items)]
 
 #[cfg(feature = "alloc")]
 mod alloc;
@@ -242,11 +243,12 @@ impl<T: PartialEq<U>, U> PartialEq<Raw<U>> for Raw<T> {
 /// A rendered HTML string.
 ///
 /// This type is returned by [`Renderable::render`] ([`Rendered<String>`]), as
-/// well as [`Raw::rendered`].
+/// well as [`Raw::rendered`] ([`Rendered<&str>`]).
 ///
-/// This type intentionally does **not** implement [`Renderable`] to prevent
+/// This type intentionally does **not** implement [`Renderable`] to discourage
 /// anti-patterns such as rendering to a string then embedding that HTML string
-/// into another page.
+/// into another page. To do this, you should use [`Raw`], or use
+/// [`Renderable::memoize`].
 #[derive(Debug, Clone, Copy, Eq, Hash)]
 pub struct Rendered<T>(pub T);
 
