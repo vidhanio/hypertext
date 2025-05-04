@@ -24,7 +24,7 @@ proc-macro2 = "1"
 proc-macro2-diagnostics = { version = "0.10", default-features = false }
 quote = "1"
 rstml = { version = "0.12", default-features = false, optional = true }
-syn = { version = "2", features = ["clone-impls", "extra-traits", "full"] }
+syn = "2"
 
 [features]
 default = []

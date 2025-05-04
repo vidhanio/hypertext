@@ -28,10 +28,15 @@ html-escape = { workspace = true, optional = true }
 itoa = { version = "1", optional = true }
 ryu = { version = "1", optional = true }
 
-actix-web = { version = "4", optional = true }
-axum-core = { version = "0.5", optional = true }
-http = { version = "1", optional = true }
-poem = { version = "3", optional = true }
+actix-web = { version = "4", default-features = false, optional = true }
+axum-core = { version = "0.5", default-features = false, optional = true }
+http = { version = "1", default-features = false, optional = true }
+hyper = { version = "0.14", default-features = false, optional = true }
+poem = { version = "3", default-features = false, optional = true }
+rocket = { version = "0.5", default-features = false, optional = true }
+salvo_core = { version = "0.78", default-features = false, optional = true }
+tide = { version = "0.16", default-features = false, optional = true }
+warp = { version = "0.3", default-features = false, optional = true }
 
 [features]
 default = ["alloc", "maud", "rsx"]
@@ -41,8 +46,13 @@ alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
 maud = ["hypertext-macros/maud"]
 rsx = ["hypertext-macros/rsx"]
 
-actix = ["alloc", "dep:actix-web"]
+actix-web = ["alloc", "dep:actix-web"]
 axum = ["alloc", "dep:axum-core", "dep:http"]
 poem = ["alloc", "dep:poem"]
+rocket = ["alloc", "dep:rocket"]
+salvo = ["alloc", "dep:salvo_core"]
+tide = ["alloc", "dep:tide"]
+warp = ["alloc", "dep:hyper", "dep:warp"]
+
 
 htmx = []
