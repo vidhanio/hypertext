@@ -5,26 +5,39 @@ A blazing fast type-checked HTML macro crate.
 ## Features
 
 - Type checking for element names/attributes
-  - Completely extensible for use with non-standard elements/attributes
+  - Completely extensible for use with non-standard elements/attributes, such as
+    those used by [htmx](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/)
 - `#![no_std]` support
 - Automatic escaping
 - Lazy rendering by default to avoid multiple allocations
-  - Results in outstanding performance in cases of nested documents, which other libraries may falter in
+  - Results in outstanding performance in cases of nested documents, a common
+    case in web applications
+- Support for two well-known HTML macro syntaxes, `maud` and `rsx`
+  - Both syntaxes are enabled by default, but can be disabled by setting
+    `default-features = false` in your `Cargo.toml`, then enabling only the desired syntax
+- Integration with all major web frameworks, enabled by their respective feature flags
+  - [`actix-web`](https://actix.rs/)
+  - [`axum`](https://github.com/tokio-rs/axum)
+  - [`poem`](https://github.com/poem-web/poem)
+  - [`rocket`](https://rocket.rs/)
+  - [`salvo`](https://github.com/salvo-rs/salvo)
+  - [`tide`](https://github.com/http-rs/tide)
+  - [`warp`](https://github.com/seanmonstar/warp)
 
 ## Projects Using `hypertext`
 
-- [vidhan.io](https://github.com/vidhanio/site), my website
+- [vidhan.io](https://github.com/vidhanio/site) (my website!)
 
 Make a pull request to list your project here!
 
 ## Example
 
 ```rust
-use hypertext::{html_elements, GlobalAttributes, RenderIterator, Renderable};
+use hypertext::{GlobalAttributes, Renderable, html_elements, maud, rsx};
 
 let shopping_list = ["milk", "eggs", "bread"];
 
-let shopping_list_maud = hypertext::maud! {
+let shopping_list_maud = maud! {
     div {
         h1 { "Shopping List" }
         ul {
@@ -41,7 +54,7 @@ let shopping_list_maud = hypertext::maud! {
 
 // or, alternatively:
 
-let shopping_list_rsx = hypertext::rsx! {
+let shopping_list_rsx = rsx! {
     <div>
         <h1>Shopping List</h1>
         <ul>

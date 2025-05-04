@@ -27,7 +27,5 @@ rstml = { version = "0.12", default-features = false, optional = true }
 syn = "2"
 
 [features]
-default = []
-
 maud = []
 rsx = ["dep:rstml"]
