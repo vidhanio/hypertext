@@ -33,7 +33,7 @@ use crate::{Raw, Rendered};
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, html_elements, maud};
+/// use hypertext::{GlobalAttributes, Renderable, Rendered, html_elements, maud};
 ///
 /// assert_eq!(
 ///     maud! {
@@ -42,7 +42,7 @@ use crate::{Raw, Rendered};
 ///        }
 ///     }
 ///     .render(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
+///     Rendered(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
 /// );
 /// ```
 ///
@@ -108,7 +108,7 @@ macro_rules! maud_dyn {
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, html_elements, rsx};
+/// use hypertext::{GlobalAttributes, Renderable, Rendered, html_elements, rsx};
 ///
 /// assert_eq!(
 ///     rsx! {
@@ -117,7 +117,7 @@ macro_rules! maud_dyn {
 ///         </div>
 ///     }
 ///     .render(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
+///     Rendered(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
 /// );
 /// ```
 #[macro_export]
@@ -186,7 +186,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// # Example
 ///
 /// ```
-/// use hypertext::{Renderable, html_elements, maud};
+/// use hypertext::{Renderable, Rendered, html_elements, maud};
 ///
 /// pub struct Person {
 ///     name: String,
@@ -212,7 +212,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 ///
 /// assert_eq!(
 ///     maud! { main { (person) } }.render(),
-///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
+///     Rendered(r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#),
 /// );
 /// ```
 pub trait Renderable {
