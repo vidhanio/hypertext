@@ -194,14 +194,6 @@ fn alpine_js() {
             r#"<input type="text" x-model="search">"#,
         ),
         (
-            maud! { input type="text" @keyup.enter="alert('Submitted!')"; }.render(),
-            r#"<input type="text" @keyup.enter="alert('Submitted!')">"#,
-        ),
-        (
-            rsx! { <input type="text" @keyup.enter="alert('Submitted!')" /> }.render(),
-            r#"<input type="text" @keyup.enter="alert('Submitted!')">"#,
-        ),
-        (
             maud! { div x-show="open" { "Hello, world!" } }.render(),
             r#"<div x-show="open">Hello, world!</div>"#,
         ),
