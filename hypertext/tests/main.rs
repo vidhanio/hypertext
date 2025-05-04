@@ -111,7 +111,8 @@ fn htmx() {
 }
 
 #[test]
-fn alpinejs() {
+#[allow(clippy::too_many_lines)]
+fn alpine_js() {
     let tests = [
         (
             maud! { div x-data="{ open: false }" { "Hello, world!" } }.render(),
@@ -153,10 +154,9 @@ fn alpinejs() {
             rsx! { <div x-html="(await axios.get('/some/html/partial')).data">"Hello, world!"</div> }.render(),
             r#"<div x-html="(await axios.get('/some/html/partial')).data">Hello, world!</div>"#,
         ),
-        // WARNING: It seems the input element doesn't render consistently and doesn't auto-close
         (
-            maud! { input type="text" x-model="search" {} }.render(),
-            r#"<input type="text" x-model="search"></input>"#,
+            maud! { input type="text" x-model="search"; }.render(),
+            r#"<input type="text" x-model="search">"#,
         ),
         (
             rsx! { <input type="text" x-model="search" /> }.render(),
@@ -226,10 +226,9 @@ fn alpinejs() {
             rsx! { <div x-effect="console.log('Count is '+count)"></div> }.render(),
             r#"<div x-effect="console.log('Count is '+count)"></div>"#,
         ),
-        // WARNING: It seems the input element doesn't render consistently and doesn't auto-close
         (
-            maud! { input type="text" x-ref="content" {} }.render(),
-            r#"<input type="text" x-ref="content"></input>"#,
+            maud! { input type="text" x-ref="content"; }.render(),
+            r#"<input type="text" x-ref="content">"#,
         ),
         (
             rsx! { <input type="text" x-ref="content" /> }.render(),
@@ -237,19 +236,19 @@ fn alpinejs() {
         ),
         (
             maud! { div x-cloak {} }.render(),
-            r#"<div x-cloak></div>"#,
+            r"<div x-cloak></div>",
         ),
         (
             rsx! { <div x-cloak></div> }.render(),
-            r#"<div x-cloak></div>"#,
+            r"<div x-cloak></div>",
         ),
         (
             maud! { div x-ignore {} }.render(),
-            r#"<div x-ignore></div>"#,
+            r"<div x-ignore></div>",
         ),
         (
             rsx! { <div x-ignore></div> }.render(),
-            r#"<div x-ignore></div>"#,
+            r"<div x-ignore></div>",
         ),
     ];
 
