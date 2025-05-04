@@ -129,6 +129,16 @@ fn alpinejs() {
             rsx! { <div x-bind:class="! open ? 'hidden' : ''">"Hello, world!"</div> }.render(),
             r#"<div x-bind:class="! open ? 'hidden' : ''">Hello, world!</div>"#,
         ),
+        // WARNING: the next two tests do not compile!
+        // Test the shorthand syntax for `x:bind`: `:`
+        // (
+        //     maud! { div :class="! open ? 'hidden' : ''" { "Hello, world!" } }.render(),
+        //     r#"<div x-bind:class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        // ),
+        // (
+        //     rsx! { <div :class="! open ? 'hidden' : ''">"Hello, world!"</div> }.render(),
+        //     r#"<div x-bind:class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        // ),
         (
             maud! { div x-on:click="open = ! open" { "Hello, world!" } }.render(),
             r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
@@ -137,6 +147,16 @@ fn alpinejs() {
             rsx! { <div x-on:click="open = ! open">"Hello, world!"</div> }.render(),
             r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
         ),
+        // WARNING: the next two tests do not compile!
+        // Test the shorthand syntax for `x:on`: `@`
+        // (
+        //     maud! { div @click="open = ! open" { "Hello, world!" } }.render(),
+        //     r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
+        // ),
+        // (
+        //     rsx! { <div @click="open = ! open">"Hello, world!"</div> }.render(),
+        //     r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
+        // ),
         (
             maud! { div x-text="new Date().getFullYear()" { "Hello, world!" } }.render(),
             r#"<div x-text="new Date().getFullYear()">Hello, world!</div>"#,
