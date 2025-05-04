@@ -35,7 +35,7 @@
 //! # Example
 //!
 //! ```rust
-//! use hypertext::{GlobalAttributes, Renderable, html_elements, maud};
+//! use hypertext::prelude::*;
 //!
 //! # assert_eq!(
 //! maud! {
@@ -98,20 +98,25 @@
 //! Here's an example of how you could define your own attributes for use with
 //! the wonderful frontend library [htmx](https://htmx.org):
 //! ```rust
-//! use hypertext::{Attribute, GlobalAttributes, Renderable, Rendered, html_elements, maud};
+//! use hypertext::{Attribute, AttributeNamespace, prelude::*, Rendered};
 //!
 //! trait HtmxAttributes: GlobalAttributes {
 //!     const hx_get: Attribute = Attribute;
-//!     const hx_post: Attribute = Attribute;
+//!     const hx_on: AttributeNamespace = AttributeNamespace;
 //!     // ...
 //! }
 //!
 //! impl<T: GlobalAttributes> HtmxAttributes for T {}
 //!
 //! assert_eq!(
-//!     //          vvvvvv note that it converts `-` to `_` for you during checking!
-//!     maud! { div hx-get="/api/endpoint" { "Hello, world!" } }.render(),
-//!     Rendered(r#"<div hx-get="/api/endpoint">Hello, world!</div>"#),
+//!     maud! {
+//!         div hx-get="/api/endpoint" hx-on:click="alert('Hello, world!')" {
+//!         //  ^^^^^^ note that it converts `-` to `_` for you during checking!
+//!             "Hello, world!"
+//!         }
+//!     }
+//!     .render(),
+//!     Rendered(r#"<div hx-get="/api/endpoint" hx-on:click="alert('Hello, world!')">Hello, world!</div>"#),
 //! );
 //! ```
 #![no_std]
@@ -147,7 +152,7 @@ pub use self::attributes::*;
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Raw, html_elements, maud_static};
+/// use hypertext::{Raw, maud_static, prelude::*};
 ///
 /// assert_eq!(
 ///     maud_static! {
@@ -178,7 +183,7 @@ macro_rules! maud_static {
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Raw, html_elements, rsx_static};
+/// use hypertext::{Raw, prelude::*, rsx_static};
 ///
 /// assert_eq!(
 ///     rsx_static! {

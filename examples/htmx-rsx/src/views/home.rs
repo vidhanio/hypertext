@@ -1,4 +1,4 @@
-use hypertext::{GlobalAttributes, Renderable, html_elements, rsx};
+use hypertext::prelude::*;
 
 use crate::views::nav;
 

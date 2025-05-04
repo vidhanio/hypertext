@@ -33,7 +33,7 @@ Make a pull request to list your project here!
 ## Example
 
 ```rust
-use hypertext::{GlobalAttributes, Renderable, html_elements, maud, rsx};
+use hypertext::prelude::*;
 
 let shopping_list = ["milk", "eggs", "bread"];
 

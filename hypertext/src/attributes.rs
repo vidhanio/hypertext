@@ -15,8 +15,7 @@ pub struct AttributeNamespace;
 /// # Usage With Custom Elements
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, Rendered, maud};
-/// //              ^^^^^^^^^^^^^^^^ `GlobalAttributes` must be in scope!
+/// use hypertext::{Rendered, prelude::*};
 ///
 /// mod html_elements {
 ///     #![allow(non_camel_case_types)]

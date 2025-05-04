@@ -1,9 +1,6 @@
 //! Tests for the `hypertext` crate.
 
-use hypertext::{
-    GlobalAttributes, Raw, Renderable, Rendered, frameworks::HtmxAttributes, html_elements, maud,
-    maud_borrow, maud_static, rsx, rsx_borrow, rsx_static,
-};
+use hypertext::{Raw, Rendered, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
 
 #[test]
 fn readme() {

@@ -33,7 +33,7 @@ use crate::{Raw, Rendered};
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, Rendered, html_elements, maud};
+/// use hypertext::{Rendered, prelude::*};
 ///
 /// assert_eq!(
 ///     maud! {
@@ -88,7 +88,7 @@ macro_rules! maud_borrow {
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, Rendered, html_elements, rsx};
+/// use hypertext::{Rendered, prelude::*};
 ///
 /// assert_eq!(
 ///     rsx! {
@@ -144,7 +144,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// # Example
 ///
 /// ```
-/// use hypertext::{Renderable, Rendered, html_elements, maud};
+/// use hypertext::{Rendered, prelude::*};
 ///
 /// pub struct Person {
 ///     name: String,
@@ -233,7 +233,7 @@ pub trait Renderable {
     /// # Example
     ///
     /// ```rust
-    /// use hypertext::{Renderable, html_elements, maud};
+    /// use hypertext::prelude::*;
     ///
     /// fn cake_status_dyn(likes_cake: bool) -> impl Renderable {
     ///     if likes_cake {

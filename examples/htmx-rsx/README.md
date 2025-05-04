@@ -33,8 +33,9 @@ With `hypertext` you can use Rust functions as re-usable HTML components!  Simpl
 reference that function to call your component.
 
 ```rust
+use hypertext::prelude::*;
+
 use crate::views::nav;
-use hypertext::{Renderable, html_elements, rsx};
 
 pub fn about(nav_oob: bool) -> impl Renderable {
     rsx! {
