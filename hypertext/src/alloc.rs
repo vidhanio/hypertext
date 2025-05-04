@@ -327,12 +327,12 @@ impl<T: AsRef<str>> Renderable for Raw<T> {
 
     #[inline]
     fn render(&self) -> Rendered<String> {
-        Rendered(self.0.as_ref().to_owned())
+        Rendered(self.0.as_ref().into())
     }
 
     #[inline]
     fn memoize(&self) -> Raw<String> {
-        Raw(self.0.as_ref().to_owned())
+        Raw(self.0.as_ref().into())
     }
 }
 
@@ -366,10 +366,10 @@ impl Renderable for char {
     #[inline]
     fn render(&self) -> Rendered<String> {
         Rendered(match *self {
-            '&' => "&amp;".to_owned(),
-            '<' => "&lt;".to_owned(),
-            '>' => "&gt;".to_owned(),
-            '"' => "&quot;".to_owned(),
+            '&' => "&amp;".into(),
+            '<' => "&lt;".into(),
+            '>' => "&gt;".into(),
+            '"' => "&quot;".into(),
             c => c.into(),
         })
     }
@@ -377,10 +377,10 @@ impl Renderable for char {
     #[inline]
     fn memoize(&self) -> Raw<String> {
         Raw(match *self {
-            '&' => "&amp;".to_owned(),
-            '<' => "&lt;".to_owned(),
-            '>' => "&gt;".to_owned(),
-            '"' => "&quot;".to_owned(),
+            '&' => "&amp;".into(),
+            '<' => "&lt;".into(),
+            '>' => "&gt;".into(),
+            '"' => "&quot;".into(),
             c => c.into(),
         })
     }
@@ -428,12 +428,12 @@ impl Renderable for bool {
 
     #[inline]
     fn render(&self) -> Rendered<String> {
-        Rendered(if *self { "true" } else { "false" }.to_owned())
+        Rendered(if *self { "true" } else { "false" }.into())
     }
 
     #[inline]
     fn memoize(&self) -> Raw<String> {
-        Raw(if *self { "true" } else { "false" }.to_owned())
+        Raw(if *self { "true" } else { "false" }.into())
     }
 }
 
@@ -448,12 +448,12 @@ macro_rules! render_via_itoa {
 
                 #[inline]
                 fn render(&self) -> Rendered<String> {
-                    Rendered(itoa::Buffer::new().format(*self).to_owned())
+                    Rendered(itoa::Buffer::new().format(*self).into())
                 }
 
                 #[inline]
                 fn memoize(&self) -> Raw<String> {
-                    Raw(itoa::Buffer::new().format(*self).to_owned())
+                    Raw(itoa::Buffer::new().format(*self).into())
                 }
             }
         )*
@@ -476,12 +476,12 @@ macro_rules! render_via_ryu {
 
                 #[inline]
                 fn render(&self) -> Rendered<String> {
-                    Rendered(ryu::Buffer::new().format(*self).to_owned())
+                    Rendered(ryu::Buffer::new().format(*self).into())
                 }
 
                 #[inline]
                 fn memoize(&self) -> Raw<String> {
-                    Raw(ryu::Buffer::new().format(*self).to_owned())
+                    Raw(ryu::Buffer::new().format(*self).into())
                 }
             }
         )*
