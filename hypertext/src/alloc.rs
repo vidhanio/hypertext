@@ -12,7 +12,7 @@ use core::fmt::{self, Debug, Display, Formatter, Write};
 
 use crate::{Raw, Rendered};
 
-/// Generate HTML using [`maud`] syntax.
+/// Generate HTML using [`maud`] syntax, returning a [`Lazy`].
 ///
 /// Note that this is not a complete 1:1 port of [`maud`]'s syntax as it is
 /// stricter in some places to prevent anti-patterns.
@@ -33,7 +33,7 @@ use crate::{Raw, Rendered};
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, Rendered, html_elements, maud};
+/// use hypertext::{Rendered, prelude::*};
 ///
 /// assert_eq!(
 ///     maud! {
@@ -56,26 +56,6 @@ macro_rules! maud {
         {
             extern crate alloc;
 
-            $crate::Lazy($crate::proc_macros::maud_closure!($($tokens)*))
-        }
-    };
-}
-
-/// Generate HTML which owns its environment using [`maud!`] syntax.
-///
-/// This macro is identical to [`maud!`], except that it adds `move` to the
-/// generated closure, allowing it to take ownership of its environment. You
-/// will most likely need this when using [`maud!`] inside an iterator method or
-/// when returning a [`Renderable`] which wraps other [`Renderable`]s.
-///
-/// [`maud!`]: crate::maud
-#[macro_export]
-#[cfg(feature = "maud")]
-macro_rules! maud_move {
-    ($($tokens:tt)*) => {
-        {
-            extern crate alloc;
-
             $crate::Lazy(move |output: &mut alloc::string::String| {
                 $crate::proc_macros::maud_closure!($($tokens)*)(output)
             })
@@ -83,32 +63,32 @@ macro_rules! maud_move {
     };
 }
 
-/// Generate a [`Box<dyn Renderable>`] using [`maud!`] syntax.
+/// Generate HTML using [`maud!`] syntax, borrowing the environment.
 ///
-/// This macro is identical to [`maud!`], except that it returns a
-/// [`Box<dyn Renderable>`] instead of a [`Lazy`] closure. This is useful for
-/// dynamically generated HTML that needs to be passed around as a trait object
-/// without being pre-rendered.
+/// This is identical to [`maud!`], except that it does not take ownership of
+/// the environment. This is useful when you want to build a [`Lazy`] using
+/// some captured variables, but you still want to be able to use the variables
+/// after the [`Lazy`] is created.
 ///
 /// [`maud!`]: crate::maud
 #[macro_export]
 #[cfg(feature = "maud")]
-macro_rules! maud_dyn {
+macro_rules! maud_borrow {
     ($($tokens:tt)*) => {
         {
             extern crate alloc;
 
-            alloc::boxed::Box::new($crate::maud!($($tokens)*)) as alloc::boxed::Box<dyn $crate::Renderable>
+            $crate::Lazy($crate::proc_macros::maud_closure!($($tokens)*))
         }
     };
 }
 
-/// Generate HTML using rsx syntax.
+/// Generate HTML using rsx syntax, returning a [`Lazy`].
 ///
 /// # Example
 ///
 /// ```
-/// use hypertext::{GlobalAttributes, Renderable, Rendered, html_elements, rsx};
+/// use hypertext::{Rendered, prelude::*};
 ///
 /// assert_eq!(
 ///     rsx! {
@@ -127,26 +107,6 @@ macro_rules! rsx {
         {
             extern crate alloc;
 
-            $crate::Lazy($crate::proc_macros::rsx_closure!($($tokens)*))
-        }
-    };
-}
-
-/// Generate HTML which owns its environment using [`rsx!`] syntax.
-///
-/// This macro is identical to [`rsx!`], except that it adds `move` to the
-/// generated closure, allowing it to take ownership of its environment. You
-/// will most likely need this when using [`rsx!`] inside an iterator method or
-/// when returning a [`Renderable`] which wraps other [`Renderable`]s.
-///
-/// [`rsx!`]: crate::rsx
-#[macro_export]
-#[cfg(feature = "rsx")]
-macro_rules! rsx_move {
-    ($($tokens:tt)*) => {
-        {
-            extern crate alloc;
-
             $crate::Lazy(move |output: &mut alloc::string::String| {
                 $crate::proc_macros::rsx_closure!($($tokens)*)(output)
             })
@@ -154,22 +114,20 @@ macro_rules! rsx_move {
     };
 }
 
-/// Generate a [`Box<dyn Renderable>`] using [`rsx!`] syntax.
+/// Generate HTML using [`rsx!`] syntax, borrowing the environment.
 ///
-/// This macro is identical to [`rsx!`], except that it returns a
-/// [`Box<dyn Renderable>`] instead of a [`Lazy`] closure. This is useful for
-/// dynamically generated HTML that needs to be passed around as a trait object
-/// without being pre-rendered.
-///
-/// [`rsx!`]: crate::rsx
+/// This is identical to [`rsx!`], except that it does not take ownership of
+/// the environment. This is useful when you want to build a [`Lazy`] using
+/// some captured variables, but you still want to be able to use the variables
+/// after the [`Lazy`] is created.
 #[macro_export]
 #[cfg(feature = "rsx")]
-macro_rules! rsx_dyn {
+macro_rules! rsx_borrow {
     ($($tokens:tt)*) => {
         {
             extern crate alloc;
 
-            alloc::boxed::Box::new($crate::rsx!($($tokens)*)) as alloc::boxed::Box<dyn $crate::Renderable>
+            $crate::Lazy($crate::proc_macros::rsx_closure!($($tokens)*))
         }
     };
 }
@@ -186,7 +144,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// # Example
 ///
 /// ```
-/// use hypertext::{Renderable, Rendered, html_elements, maud};
+/// use hypertext::{Rendered, prelude::*};
 ///
 /// pub struct Person {
 ///     name: String,
@@ -257,6 +215,59 @@ pub trait Renderable {
         let mut output = String::new();
         self.render_to(&mut output);
         Raw(output)
+    }
+
+    /// Converts this value into a [`Box<dyn Renderable>`].
+    ///
+    /// This is useful for dynamically generated HTML that needs to be passed
+    /// around as a trait object without being pre-rendered. A common use case
+    /// is when returning [`Lazy`] closures from branched code, where the
+    /// different concrete [`Fn(&mut String)`] implementations stored in the
+    /// [`Lazy`] closures need to be converted to the same type.
+    ///
+    /// Note that this is usually not necessary when using [`maud!`] or
+    /// [`rsx!`], as they provide branching syntax within the macro that allows
+    /// you to generate the same type without needing to convert to a trait
+    /// object.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use hypertext::prelude::*;
+    ///
+    /// fn cake_status_dyn(likes_cake: bool) -> impl Renderable {
+    ///     if likes_cake {
+    ///         maud! { div { "I like cake!" } }.dyn_renderable()
+    ///     } else {
+    ///         maud! { div { "I don't like cake!" } }.dyn_renderable()
+    ///     }
+    /// }
+    ///
+    /// // instead, could be written as:
+    ///
+    /// fn cake_status(likes_cake: bool) -> impl Renderable {
+    ///     maud! {
+    ///         div {
+    ///             @if likes_cake {
+    ///                 "I like cake!"
+    ///             } @else {
+    ///                 "I don't like cake!"
+    ///             }
+    ///         }
+    ///     }
+    /// }
+    /// # assert_eq!(cake_status_dyn(true).render(), cake_status(true).render());
+    /// # assert_eq!(cake_status_dyn(false).render(), cake_status(false).render());
+    /// ```
+    ///
+    /// [`maud!`]: crate::maud
+    /// [`Fn(&mut String)`]: core::ops::Fn
+    #[inline]
+    fn dyn_renderable<'a>(self) -> Box<dyn Renderable + 'a>
+    where
+        Self: Sized + 'a,
+    {
+        Box::new(self)
     }
 }
 

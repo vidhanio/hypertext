@@ -1,9 +1,9 @@
-use hypertext::{GlobalAttributes, Renderable, html_elements, rsx_move};
+use hypertext::prelude::*;
 
 use crate::views::nav;
 
 pub fn home(nav_oob: bool) -> impl Renderable {
-    rsx_move! {
+    rsx! {
         @if nav_oob {
             { nav("/", true) }
         }

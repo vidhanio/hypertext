@@ -1,29 +1,29 @@
 use axum::response::IntoResponse;
 use axum_htmx::HxRequest;
-use hypertext::Renderable;
+use hypertext::prelude::*;
 
 use crate::views::{about, home, index, list};
 
 pub async fn handle_home(HxRequest(is_hx_request): HxRequest) -> impl IntoResponse {
     if is_hx_request {
-        home(true).render().into_response()
+        home(true).render()
     } else {
-        index("/", home(false)).render().into_response()
+        index("/", home(false)).render()
     }
 }
 
 pub async fn handle_about(HxRequest(is_hx_request): HxRequest) -> impl IntoResponse {
     if is_hx_request {
-        about(true).render().into_response()
+        about(true).render()
     } else {
-        index("/about", about(false)).render().into_response()
+        index("/about", about(false)).render()
     }
 }
 
 pub async fn handle_list(HxRequest(is_hx_request): HxRequest) -> impl IntoResponse {
     if is_hx_request {
-        list(true).render().into_response()
+        list(true).render()
     } else {
-        index("/list", list(false)).render().into_response()
+        index("/list", list(false)).render()
     }
 }

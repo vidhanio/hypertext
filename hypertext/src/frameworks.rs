@@ -13,7 +13,7 @@
 //! scope:
 //!
 //! ```rust
-//! use hypertext::{Attribute, GlobalAttributes, frameworks::HtmxAttributes, html_elements, maud};
+//! use hypertext::prelude::*;
 //!
 //! # assert_eq!(hypertext::Renderable::render(&
 //! maud! {
