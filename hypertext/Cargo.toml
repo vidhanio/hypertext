@@ -31,7 +31,7 @@ ryu = { version = "1", optional = true }
 actix-web = { version = "4", default-features = false, optional = true }
 axum-core = { version = "0.5", default-features = false, optional = true }
 http = { version = "1", default-features = false, optional = true }
-hyper = { version = "0.14", default-features = false, optional = true }
+hyper = { version = "1.6", default-features = false, optional = true }
 poem = { version = "3", default-features = false, optional = true }
 rocket = { version = "0.5", default-features = false, optional = true }
 salvo_core = { version = "0.78", default-features = false, optional = true }
