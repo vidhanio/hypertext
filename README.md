@@ -9,9 +9,8 @@ A blazing fast type-checked HTML macro crate.
     those used by [htmx](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/)
 - `#![no_std]` support
 - Automatic escaping
-- Lazy rendering by default to avoid multiple allocations
-  - Results in outstanding performance in cases of nested documents, a common
-    case in web applications
+- [Extremely fast](https://github.com/askama-rs/template-benchmark#benchmark-results),
+  using lazy rendering by default to avoid unnecessary allocations
 - Support for two well-known HTML macro syntaxes, `maud` and `rsx`
   - Both syntaxes are enabled by default, but can be disabled by setting
     `default-features = false` in your `Cargo.toml`, then enabling only the desired syntax
