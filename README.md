@@ -14,6 +14,7 @@ A blazing fast type-checked HTML macro crate.
 - Support for two well-known HTML macro syntaxes, `maud` and `rsx`
   - Both syntaxes are enabled by default, but can be disabled by setting
     `default-features = false` in your `Cargo.toml`, then enabling only the desired syntax
+- `#![forbid(unsafe_code)]` across the entire codebase
 - Integration with all major web frameworks, enabled by their respective feature flags
   - [`actix-web`](https://actix.rs/)
   - [`axum`](https://github.com/tokio-rs/axum)
