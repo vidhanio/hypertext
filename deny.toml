@@ -4,8 +4,8 @@ allow = ["Apache-2.0", "BSD-3-Clause", "MIT", "Unicode-3.0", "Zlib"]
 [advisories]
 ignore = [
     "RUSTSEC-2020-0056",
-    "RUSTSEC-2024-0384",
-    "RUSTSEC-2021-0064",
     "RUSTSEC-2021-0059",
     "RUSTSEC-2021-0060",
+    "RUSTSEC-2021-0064",
+    "RUSTSEC-2024-0384",
 ]
