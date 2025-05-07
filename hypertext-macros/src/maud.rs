@@ -5,8 +5,7 @@ use std::ops::ControlFlow;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 use syn::{
-    Arm, Expr, ExprBlock, ExprForLoop, ExprIf, ExprMatch, ExprParen, ExprWhile, Ident, LitBool,
-    LitInt, LitStr, Local, Pat, Stmt, Token, braced, bracketed,
+    braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -14,6 +13,8 @@ use syn::{
     punctuated::{Pair, Punctuated},
     spanned::Spanned,
     token::{At, Brace, Bracket, Comma, Else, FatArrow, For, If, In, Match, Paren, While},
+    Arm, Expr, ExprBlock, ExprForLoop, ExprIf, ExprMatch, ExprParen, ExprWhile, Ident, LitBool,
+    LitInt, LitStr, Local, Pat, Stmt, Token,
 };
 
 use crate::generate::{Generate, Generator};
@@ -89,7 +90,7 @@ impl ToTokens for Doctype {
 
 impl Generate for Doctype {
     fn generate(&self, g: &mut Generator) {
-        g.push_spanned_str("<!DOCTYPE html>", self.span());
+        g.push_spanned_str("<!DOCTYPE html>", self.name.span());
     }
 }
 

@@ -302,7 +302,7 @@ impl<T: Display> Renderable for Displayed<T> {
 ///
 /// [`maud!`]: crate::maud
 #[derive(Clone, Copy)]
-#[must_use = "`Lazy` does nothing unless `.render_to()` or `.render()` is called"]
+#[must_use = "`Lazy` does nothing unless `.render()` or `.render_to()` is called"]
 pub struct Lazy<F: Fn(&mut String)>(pub F);
 
 impl<F: Fn(&mut String)> Renderable for Lazy<F> {
