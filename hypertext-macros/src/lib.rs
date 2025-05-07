@@ -1,4 +1,3 @@
-#![forbid(unsafe_code)]
 #![allow(missing_docs, clippy::large_enum_variant)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
