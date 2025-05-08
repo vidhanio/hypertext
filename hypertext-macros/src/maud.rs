@@ -219,6 +219,8 @@ impl Generate for Element {
 
         if let Some(class) = self.classes.first() {
             g.record_attribute(&self.name.ident(), &class.attr_name_ident());
+
+            g.push_str(" ");
             g.push_escaped_lit(class.attr_name_lit());
             g.push_str("=\"");
 
