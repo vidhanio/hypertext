@@ -44,6 +44,7 @@ pub struct Generator {
     elements: Vec<Ident>,
     attributes: Vec<(Ident, Ident)>,
     namespaces: Vec<(Ident, Ident)>,
+    character_prefixes: Vec<(Ident, Ident)>,
     void_elements: Vec<Ident>,
 }
 
@@ -55,6 +56,7 @@ impl Generator {
             elements: Vec::new(),
             attributes: Vec::new(),
             namespaces: Vec::new(),
+            character_prefixes: Vec::new(),
             void_elements: Vec::new(),
         }
     }
@@ -72,6 +74,10 @@ impl Generator {
             .void_elements
             .iter()
             .map(|el| quote_spanned!(el.span()=> void_check::<html_elements::#el>();));
+        let character_prefixes = self
+            .character_prefixes
+            .iter()
+            .map(|(el, cp)| quote!(let _: ::hypertext::AttributeCharacterPrefix = html_elements::#el::#cp;));
 
         parse_quote! {
             const _: () = {
@@ -79,6 +85,7 @@ impl Generator {
                 #(#elements)*
                 #(#attributes)*
                 #(#namespaces)*
+                #(#character_prefixes)*
                 #(#void_elements)*
             };
         }
@@ -246,6 +253,11 @@ impl Generator {
 
     pub fn record_namespace(&mut self, el_name: &Ident, namespace: &Ident) {
         self.namespaces.push((el_name.clone(), namespace.clone()));
+    }
+
+    pub fn record_character_prefix(&mut self, el_name: &Ident, cp_name: &Ident) {
+        self.character_prefixes
+            .push((el_name.clone(), cp_name.clone()));
     }
 }
 

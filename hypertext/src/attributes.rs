@@ -6,6 +6,10 @@ pub struct Attribute;
 #[derive(Debug, Clone, Copy)]
 pub struct AttributeNamespace;
 
+/// An HTML attribute character prefix.
+#[derive(Debug, Clone, Copy)]
+pub struct AttributeCharacterPrefix;
+
 /// Global HTML attributes.
 ///
 /// This trait must be in scope to use well-known attributes such as
