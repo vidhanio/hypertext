@@ -2,7 +2,7 @@ use std::ops::ControlFlow;
 
 use proc_macro2::TokenStream;
 use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
-use quote::ToTokens;
+use quote::{ToTokens, TokenStreamExt};
 use rstml::{
     Parser, ParserConfig,
     node::{
@@ -14,12 +14,10 @@ use rstml::{
 };
 use syn::{
     Arm, Expr, ExprBlock, ExprForLoop, ExprIf, ExprLit, ExprMatch, ExprPath, ExprWhile, Ident, Lit,
-    LitStr, Local, Pat, Stmt, Token, braced,
-    parse::ParseStream,
-    punctuated::Pair,
-    spanned::Spanned,
-    token::{At, Brace, Comma, Else, FatArrow, For, If, In, Match, While},
+    LitStr, Local, Pat, Stmt, Token, braced, parse::ParseStream, punctuated::Pair,
+    spanned::Spanned, token::Brace,
 };
+use syn_derive::ToTokens;
 
 use crate::generate::{Generate, Generator};
 
@@ -280,9 +278,9 @@ impl Generate for RawText<NodeKeyword> {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToTokens)]
 pub struct NodeKeyword {
-    at_token: At,
+    at_token: Token![@],
     kind: KeywordKind,
 }
 
@@ -307,20 +305,13 @@ impl ParseRecoverable for NodeKeyword {
     }
 }
 
-impl ToTokens for NodeKeyword {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.at_token.to_tokens(tokens);
-        self.kind.to_tokens(tokens);
-    }
-}
-
 impl Generate for NodeKeyword {
     fn generate(&self, g: &mut Generator) {
         g.push(&self.kind);
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToTokens)]
 enum KeywordKind {
     Let(Local),
     If(NodeIf),
@@ -347,18 +338,6 @@ impl ParseRecoverable for KeywordKind {
             Some(Self::Match(parser.parse_recoverable(input)?))
         } else {
             None
-        }
-    }
-}
-
-impl ToTokens for KeywordKind {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Let(let_) => let_.to_tokens(tokens),
-            Self::If(if_) => if_.to_tokens(tokens),
-            Self::For(for_) => for_.to_tokens(tokens),
-            Self::While(while_) => while_.to_tokens(tokens),
-            Self::Match(match_) => match_.to_tokens(tokens),
         }
     }
 }
@@ -401,9 +380,7 @@ impl ParseRecoverable for KeywordBlock {
 impl ToTokens for KeywordBlock {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         self.brace_token.surround(tokens, |tokens| {
-            for node in &self.nodes {
-                node.to_tokens(tokens);
-            }
+            tokens.append_all(&self.nodes);
         });
     }
 }
@@ -426,12 +403,18 @@ impl Generate for KeywordBlock {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToTokens)]
 struct NodeIf {
-    if_token: If,
+    if_token: Token![if],
     cond: Expr,
     then_branch: KeywordBlock,
-    else_branch: Option<(At, Else, Box<NodeIfOrBlock>)>,
+    #[to_tokens(|tokens, val: &Option<(Token![@], Token![else], Box<NodeIfOrBlock>)>| {
+        if let Some((_, else_token, if_or_block)) = val {
+            else_token.to_tokens(tokens);
+            if_or_block.to_tokens(tokens);
+        }
+    })]
+    else_branch: Option<(Token![@], Token![else], Box<NodeIfOrBlock>)>,
 }
 
 impl ParseRecoverable for NodeIf {
@@ -452,19 +435,6 @@ impl ParseRecoverable for NodeIf {
                 None
             },
         })
-    }
-}
-
-impl ToTokens for NodeIf {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.if_token.to_tokens(tokens);
-        self.cond.to_tokens(tokens);
-        self.then_branch.to_tokens(tokens);
-        if let Some((at_token, else_token, else_branch)) = &self.else_branch {
-            at_token.to_tokens(tokens);
-            else_token.to_tokens(tokens);
-            else_branch.to_tokens(tokens);
-        }
     }
 }
 
@@ -501,7 +471,7 @@ impl Generate for NodeIf {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToTokens)]
 enum NodeIfOrBlock {
     If(NodeIf),
     Block(KeywordBlock),
@@ -519,15 +489,6 @@ impl ParseRecoverable for NodeIfOrBlock {
     }
 }
 
-impl ToTokens for NodeIfOrBlock {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::If(if_) => if_.to_tokens(tokens),
-            Self::Block(block) => block.to_tokens(tokens),
-        }
-    }
-}
-
 impl Generate for NodeIfOrBlock {
     fn generate(&self, g: &mut Generator) {
         match self {
@@ -537,11 +498,11 @@ impl Generate for NodeIfOrBlock {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToTokens)]
 struct NodeFor {
-    for_token: For,
+    for_token: Token![for],
     pat: Pat,
-    in_token: In,
+    in_token: Token![in],
     expr: Expr,
     body: KeywordBlock,
 }
@@ -562,15 +523,6 @@ impl ParseRecoverable for NodeFor {
     }
 }
 
-impl ToTokens for NodeFor {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.for_token.to_tokens(tokens);
-        self.pat.to_tokens(tokens);
-        self.in_token.to_tokens(tokens);
-        self.expr.to_tokens(tokens);
-        self.body.to_tokens(tokens);
-    }
-}
 impl Generate for NodeFor {
     fn generate(&self, g: &mut Generator) {
         let body = g.block(&self.body);
@@ -586,9 +538,9 @@ impl Generate for NodeFor {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToTokens)]
 struct NodeWhile {
-    while_token: While,
+    while_token: Token![while],
     cond: Expr,
     body: KeywordBlock,
 }
@@ -602,14 +554,6 @@ impl ParseRecoverable for NodeWhile {
             })?,
             body: parser.parse_recoverable(input)?,
         })
-    }
-}
-
-impl ToTokens for NodeWhile {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.while_token.to_tokens(tokens);
-        self.cond.to_tokens(tokens);
-        self.body.to_tokens(tokens);
     }
 }
 
@@ -628,7 +572,7 @@ impl Generate for NodeWhile {
 
 #[derive(Debug, Clone)]
 struct NodeMatch {
-    match_token: Match,
+    match_token: Token![match],
     expr: Expr,
     brace_token: Brace,
     arms: Vec<NodeMatchArm>,
@@ -666,9 +610,7 @@ impl ToTokens for NodeMatch {
         self.match_token.to_tokens(tokens);
         self.expr.to_tokens(tokens);
         self.brace_token.surround(tokens, |tokens| {
-            for arm in &self.arms {
-                arm.to_tokens(tokens);
-            }
+            tokens.append_all(&self.arms);
         });
     }
 }
@@ -705,13 +647,19 @@ impl Generate for NodeMatch {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToTokens)]
 struct NodeMatchArm {
     pat: Pat,
-    guard: Option<(If, Expr)>,
-    fat_arrow_token: FatArrow,
+    #[to_tokens(|tokens, val: &Option<(Token![if], Expr)>| {
+        if let Some((if_token, guard)) = val {
+            if_token.to_tokens(tokens);
+            guard.to_tokens(tokens);
+        }
+    })]
+    guard: Option<(Token![if], Expr)>,
+    fat_arrow_token: Token![=>],
     body: NodeMatchArmBody,
-    comma_token: Option<Comma>,
+    comma_token: Option<Token![,]>,
 }
 
 impl ParseRecoverable for NodeMatchArm {
@@ -736,22 +684,7 @@ impl ParseRecoverable for NodeMatchArm {
     }
 }
 
-impl ToTokens for NodeMatchArm {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.pat.to_tokens(tokens);
-        if let Some((if_token, guard)) = &self.guard {
-            if_token.to_tokens(tokens);
-            guard.to_tokens(tokens);
-        }
-        self.fat_arrow_token.to_tokens(tokens);
-        self.body.to_tokens(tokens);
-        if let Some(comma_token) = &self.comma_token {
-            comma_token.to_tokens(tokens);
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToTokens)]
 enum NodeMatchArmBody {
     Block(KeywordBlock),
     Node(Node),
@@ -763,15 +696,6 @@ impl ParseRecoverable for NodeMatchArmBody {
             parser.parse_recoverable(input).map(Self::Block)
         } else {
             parser.parse_recoverable(input).map(Self::Node)
-        }
-    }
-}
-
-impl ToTokens for NodeMatchArmBody {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Block(block) => block.to_tokens(tokens),
-            Self::Node(node) => node.to_tokens(tokens),
         }
     }
 }

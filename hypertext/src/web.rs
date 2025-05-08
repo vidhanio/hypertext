@@ -1,5 +1,3 @@
-const HTML_MIME_TYPE: &str = "text/html; charset=utf-8";
-
 #[cfg(feature = "actix-web")]
 mod actix_web {
     extern crate alloc;
@@ -26,22 +24,19 @@ mod axum {
         body::Body,
         response::{IntoResponse, Response},
     };
-    use http::{HeaderValue, header};
+    use http::{HeaderName, HeaderValue, header};
 
-    use super::HTML_MIME_TYPE;
     use crate::Rendered;
+
+    const HEADER: (HeaderName, HeaderValue) = (
+        header::CONTENT_TYPE,
+        HeaderValue::from_static("text/html; charset=utf-8"),
+    );
 
     impl<T: Into<Body>> IntoResponse for Rendered<T> {
         #[inline]
         fn into_response(self) -> Response {
-            (
-                [(
-                    header::CONTENT_TYPE,
-                    HeaderValue::from_static(HTML_MIME_TYPE),
-                )],
-                self.0.into(),
-            )
-                .into_response()
+            ([HEADER], self.0.into()).into_response()
         }
     }
 }

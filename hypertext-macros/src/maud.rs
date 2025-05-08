@@ -3,18 +3,17 @@
 use std::ops::ControlFlow;
 
 use proc_macro2::TokenStream;
-use quote::ToTokens;
 use syn::{
     Arm, Expr, ExprBlock, ExprForLoop, ExprIf, ExprMatch, ExprParen, ExprWhile, Ident, LitBool,
-    LitInt, LitStr, Local, Pat, Stmt, Token, braced, bracketed,
+    LitInt, LitStr, Local, Pat, Stmt, Token,
     ext::IdentExt,
-    parenthesized,
     parse::{Parse, ParseStream},
     parse_quote,
     punctuated::{Pair, Punctuated},
     spanned::Spanned,
-    token::{At, Brace, Bracket, Comma, Else, FatArrow, For, If, In, Match, Paren, While},
+    token::{Brace, Bracket, Paren},
 };
+use syn_derive::{Parse, ToTokens};
 
 use crate::generate::{Generate, Generator};
 
@@ -22,36 +21,34 @@ pub fn parse(tokens: TokenStream) -> syn::Result<Markup> {
     syn::parse2(tokens)
 }
 
+fn parse_option<T: Parse>(
+    input: ParseStream,
+    peek: fn(ParseStream) -> bool,
+) -> syn::Result<Option<T>> {
+    if peek(input) {
+        Ok(Some(input.parse()?))
+    } else {
+        Ok(None)
+    }
+}
+
+fn parse_until_empty<T: Parse>(input: ParseStream) -> syn::Result<Vec<T>> {
+    let mut vec = Vec::new();
+    while !input.is_empty() {
+        vec.push(input.parse()?);
+    }
+    Ok(vec)
+}
+
+#[derive(Parse)]
 pub struct Markup {
+    #[parse(|input| {
+        parse_option(input, |input| input.peek(Token![!]) && input.peek2(DOCTYPE))
+    })]
     doctype: Option<Doctype>,
+
+    #[parse(|input| parse_until_empty(input))]
     nodes: Vec<ElementNode>,
-}
-
-impl Parse for Markup {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            doctype: if input.peek(Token![!]) && input.peek2(DOCTYPE) {
-                Some(input.parse()?)
-            } else {
-                None
-            },
-            nodes: {
-                let mut nodes = Vec::new();
-                while !input.is_empty() {
-                    nodes.push(input.parse()?);
-                }
-                nodes
-            },
-        })
-    }
-}
-
-impl ToTokens for Markup {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        for node in &self.nodes {
-            node.to_tokens(tokens);
-        }
-    }
 }
 
 impl Generate for Markup {
@@ -66,25 +63,11 @@ impl Generate for Markup {
 
 syn::custom_keyword!(DOCTYPE);
 
+#[derive(Parse)]
 struct Doctype {
+    #[allow(dead_code)]
     bang_token: Token![!],
     name: DOCTYPE,
-}
-
-impl Parse for Doctype {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            bang_token: input.parse()?,
-            name: input.parse()?,
-        })
-    }
-}
-
-impl ToTokens for Doctype {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.bang_token.to_tokens(tokens);
-        self.name.to_tokens(tokens);
-    }
 }
 
 impl Generate for Doctype {
@@ -93,7 +76,7 @@ impl Generate for Doctype {
     }
 }
 
-trait Node: Parse + ToTokens + Generate {
+trait Node: Parse + Generate {
     fn is_let(&self) -> bool;
 }
 
@@ -105,6 +88,28 @@ enum ElementNode {
     Keyword(Keyword<Self>),
 }
 
+// not derivable because `syn_derive` doesn't support multiple lookaheads, like
+// used in `Literal`
+impl Parse for ElementNode {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(Brace) {
+            input.parse().map(Self::Block)
+        } else if lookahead.peek(Ident::peek_any) {
+            input.parse().map(Self::Element)
+        } else if lookahead.peek(Paren) {
+            input.parse().map(Self::Splice)
+        } else if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
+            input.parse().map(Self::Literal)
+        } else if lookahead.peek(Token![@]) {
+            input.parse().map(Self::Keyword)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
 impl Node for ElementNode {
     fn is_let(&self) -> bool {
         matches!(
@@ -114,38 +119,6 @@ impl Node for ElementNode {
                 ..
             })
         )
-    }
-}
-
-impl Parse for ElementNode {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(Brace) {
-            input.parse().map(Self::Block)
-        } else if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
-            input.parse().map(Self::Literal)
-        } else if lookahead.peek(Paren) {
-            input.parse().map(Self::Splice)
-        } else if lookahead.peek(Ident::peek_any) {
-            input.parse().map(Self::Element)
-        } else if lookahead.peek(Token![@]) {
-            input.parse().map(Self::Keyword)
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-impl ToTokens for ElementNode {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Block(block) => block.to_tokens(tokens),
-            Self::Element(element) => element.to_tokens(tokens),
-            Self::Splice(splice) => splice.to_tokens(tokens),
-            Self::Literal(lit) => lit.to_tokens(tokens),
-            Self::Keyword(kw) => kw.to_tokens(tokens),
-        }
     }
 }
 
@@ -161,35 +134,15 @@ impl Generate for ElementNode {
     }
 }
 
-struct Block<N> {
+#[derive(Parse)]
+struct Block<N: Node> {
+    #[syn(braced)]
+    #[allow(dead_code)]
     brace_token: Brace,
+
+    #[syn(in = brace_token)]
+    #[parse(parse_until_empty)]
     nodes: Vec<N>,
-}
-
-impl<N: Node> Parse for Block<N> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        Ok(Self {
-            brace_token: braced!(content in input),
-            nodes: {
-                let mut nodes = Vec::new();
-                while !content.is_empty() {
-                    nodes.push(content.parse()?);
-                }
-                nodes
-            },
-        })
-    }
-}
-
-impl<N: Node> ToTokens for Block<N> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.brace_token.surround(tokens, |tokens| {
-            for node in &self.nodes {
-                node.to_tokens(tokens);
-            }
-        });
-    }
 }
 
 impl<N: Node> Generate for Block<N> {
@@ -202,27 +155,14 @@ impl<N: Node> Generate for Block<N> {
     }
 }
 
+#[derive(Parse)]
 struct Splice {
+    #[syn(parenthesized)]
+    #[allow(dead_code)]
     paren_token: Paren,
+
+    #[syn(in = paren_token)]
     expr: Expr,
-}
-
-impl Parse for Splice {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        Ok(Self {
-            paren_token: parenthesized!(content in input),
-            expr: content.parse()?,
-        })
-    }
-}
-
-impl ToTokens for Splice {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.paren_token.surround(tokens, |tokens| {
-            self.expr.to_tokens(tokens);
-        });
-    }
 }
 
 impl Generate for Splice {
@@ -231,56 +171,36 @@ impl Generate for Splice {
     }
 }
 
+#[derive(Parse)]
 struct Element {
     name: Name,
+
+    #[parse(|input| parse_option(input, |input| input.peek(Token![#])))]
     id: Option<IdAttribute>,
-    classes: Option<Classes>,
+
+    #[parse(|input| {
+        let mut classes = Vec::new();
+
+        while input.peek(Token![.]) {
+            classes.push(input.parse()?);
+        }
+
+        Ok(classes)
+    })]
+    classes: Vec<Class>,
+
+    #[parse(|input| {
+        let mut attrs = Vec::new();
+
+        while !(input.peek(Token![;]) || input.peek(Brace)) {
+            attrs.push(input.parse()?);
+        }
+
+        Ok(attrs)
+    })]
     attrs: Vec<Attribute>,
+
     body: ElementBody,
-}
-
-impl Parse for Element {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            name: input.parse()?,
-            id: if input.peek(Token![#]) {
-                Some(input.parse()?)
-            } else {
-                None
-            },
-            classes: if input.peek(Token![.]) {
-                Some(input.parse()?)
-            } else {
-                None
-            },
-            attrs: {
-                let mut attrs = Vec::new();
-
-                while input.peek(Ident::peek_any) || input.peek(LitStr) || input.peek(LitInt) {
-                    attrs.push(input.parse()?);
-                }
-
-                attrs
-            },
-            body: input.parse()?,
-        })
-    }
-}
-
-impl ToTokens for Element {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.name.to_tokens(tokens);
-        if let Some(id) = &self.id {
-            id.to_tokens(tokens);
-        }
-        if let Some(classes) = &self.classes {
-            classes.to_tokens(tokens);
-        }
-        for attr in &self.attrs {
-            attr.to_tokens(tokens);
-        }
-        self.body.to_tokens(tokens);
-    }
 }
 
 impl Generate for Element {
@@ -297,11 +217,30 @@ impl Generate for Element {
             g.push(id);
         }
 
-        if let Some(classes) = &self.classes {
-            g.record_attribute(&self.name.ident(), &classes.attr_name_ident());
+        if let Some(class) = self.classes.first() {
+            g.record_attribute(&self.name.ident(), &class.attr_name_ident());
+            g.push_escaped_lit(class.attr_name_lit());
+            g.push_str("=\"");
 
-            g.push_str(" ");
-            g.push(classes);
+            for (i, class) in self.classes.iter().enumerate() {
+                if let Some(toggle) = &class.toggle {
+                    g.push_conditional(&toggle.cond_expr(), |g| {
+                        if i > 0 {
+                            g.push_str(" ");
+                        }
+
+                        g.push(&class.value);
+                    });
+                } else {
+                    if i > 0 {
+                        g.push_str(" ");
+                    }
+
+                    g.push(&class.value);
+                }
+            }
+
+            g.push_str("\"");
         }
 
         for attr in &self.attrs {
@@ -309,12 +248,8 @@ impl Generate for Element {
 
             let mut name_pairs = attr.name.name.pairs();
             let is_data = name_pairs.next().is_some_and(|pair| {
-                if let Pair::Punctuated(NameFragment::Ident(ident), NamePunct::Hyphen(_)) = pair {
-                    ident == "data"
-                } else {
-                    false
-                }
-            }) && name_pairs.next().is_some();
+                matches!(pair, Pair::Punctuated(NameFragment::Ident(ident), NamePunct::Hyphen(_)) if ident == "data")
+            });
 
             if !is_data {
                 let (attr_ident, is_namespace) = attr.name.ident_or_namespace();
@@ -341,34 +276,16 @@ impl Generate for Element {
     }
 }
 
+#[derive(Parse)]
 enum ElementBody {
-    Void(Token![;]),
+    #[parse(peek = Token![;])]
+    Void(#[allow(dead_code)] Token![;]),
+
+    #[parse(peek = Brace)]
     Block(Block<ElementNode>),
 }
 
-impl Parse for ElementBody {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(Token![;]) {
-            input.parse().map(Self::Void)
-        } else if lookahead.peek(Brace) {
-            input.parse().map(Self::Block)
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-impl ToTokens for ElementBody {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Void(semi) => semi.to_tokens(tokens),
-            Self::Block(block) => block.to_tokens(tokens),
-        }
-    }
-}
-
+#[derive(Parse)]
 struct IdAttribute {
     pound_token: Token![#],
     value: IdOrClassNode,
@@ -376,27 +293,11 @@ struct IdAttribute {
 
 impl IdAttribute {
     fn attr_name_ident(&self) -> Ident {
-        Ident::new("id", self.span())
+        Ident::new("id", self.pound_token.span())
     }
 
     fn attr_name_lit(&self) -> LitStr {
-        LitStr::new("id", self.span())
-    }
-}
-
-impl Parse for IdAttribute {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            pound_token: input.parse()?,
-            value: input.parse()?,
-        })
-    }
-}
-
-impl ToTokens for IdAttribute {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.pound_token.to_tokens(tokens);
-        self.value.to_tokens(tokens);
+        LitStr::new("id", self.pound_token.span())
     }
 }
 
@@ -409,150 +310,21 @@ impl Generate for IdAttribute {
     }
 }
 
-struct Classes {
-    classes: Vec<Class>,
-    toggled_classes: Vec<ToggledClass>,
-}
-
-impl Classes {
-    fn attr_name_ident(&self) -> Ident {
-        Ident::new("class", self.span())
-    }
-
-    fn attr_name_lit(&self) -> LitStr {
-        LitStr::new("class", self.span())
-    }
-}
-
-impl Parse for Classes {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let mut classes = Vec::new();
-        let mut toggled_classes = Vec::new();
-
-        loop {
-            if !input.peek(Token![.]) {
-                break;
-            }
-
-            let class = input.parse::<Class>()?;
-
-            if input.peek(Bracket) {
-                toggled_classes.push(class.into_toggled(input.parse()?));
-                break;
-            }
-
-            classes.push(class);
-        }
-
-        loop {
-            if !input.peek(Token![.]) {
-                break;
-            }
-
-            toggled_classes.push(input.parse()?);
-        }
-
-        Ok(Self {
-            classes,
-            toggled_classes,
-        })
-    }
-}
-
-impl ToTokens for Classes {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        for class in &self.classes {
-            class.to_tokens(tokens);
-        }
-        for toggled_class in &self.toggled_classes {
-            toggled_class.to_tokens(tokens);
-        }
-    }
-}
-
-impl Generate for Classes {
-    fn generate(&self, g: &mut Generator) {
-        g.push_escaped_lit(self.attr_name_lit());
-        g.push_str("=\"");
-
-        for (i, class) in self.classes.iter().enumerate() {
-            if i > 0 {
-                g.push_str(" ");
-            }
-
-            g.push(&class.value);
-        }
-
-        for (i, class) in self.toggled_classes.iter().enumerate() {
-            g.push_conditional(&class.toggle.parenthesized_cond(), |g| {
-                if !self.classes.is_empty() || i > 0 {
-                    g.push_str(" ");
-                }
-
-                g.push(&class.value);
-            });
-        }
-
-        g.push_str("\"");
-    }
-}
-
+#[derive(Parse)]
 struct Class {
     dot_token: Token![.],
     value: IdOrClassNode,
+    #[parse(|input| parse_option(input, |tokens| tokens.peek(Bracket)))]
+    toggle: Option<Toggle>,
 }
 
 impl Class {
-    fn into_toggled(self, toggle: Toggle) -> ToggledClass {
-        ToggledClass {
-            dot_token: self.dot_token,
-            value: self.value,
-            toggle,
-        }
+    fn attr_name_ident(&self) -> Ident {
+        Ident::new("class", self.dot_token.span())
     }
-}
 
-impl Parse for Class {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            dot_token: input.parse()?,
-            value: input.parse()?,
-        })
-    }
-}
-
-impl ToTokens for Class {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.dot_token.to_tokens(tokens);
-        self.value.to_tokens(tokens);
-    }
-}
-
-struct ToggledClass {
-    dot_token: Token![.],
-    value: IdOrClassNode,
-    toggle: Toggle,
-}
-
-impl Parse for ToggledClass {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let class = input.parse::<Class>()?;
-        if !input.peek(Bracket) {
-            return Err(syn::Error::new_spanned(
-                class,
-                "normal classes must come before toggled classes",
-            ));
-        }
-
-        Ok(class.into_toggled(input.parse()?))
-    }
-}
-
-impl ToTokens for ToggledClass {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.dot_token.to_tokens(tokens);
-        self.value.to_tokens(tokens);
-        self.toggle.to_tokens(tokens);
+    fn attr_name_lit(&self) -> LitStr {
+        LitStr::new("class", self.dot_token.span())
     }
 }
 
@@ -576,6 +348,8 @@ impl Node for IdOrClassNode {
     }
 }
 
+// not derivable because `syn_derive` doesn't support multiple lookaheads, like
+// used in `Name`
 impl Parse for IdOrClassNode {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
@@ -596,18 +370,6 @@ impl Parse for IdOrClassNode {
     }
 }
 
-impl ToTokens for IdOrClassNode {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Block(block) => block.to_tokens(tokens),
-            Self::Splice(splice) => splice.to_tokens(tokens),
-            Self::Literal(lit) => lit.to_tokens(tokens),
-            Self::Keyword(kw) => kw.to_tokens(tokens),
-            Self::Name(name) => name.to_tokens(tokens),
-        }
-    }
-}
-
 impl Generate for IdOrClassNode {
     fn generate(&self, g: &mut Generator) {
         match self {
@@ -620,25 +382,10 @@ impl Generate for IdOrClassNode {
     }
 }
 
+#[derive(Parse)]
 struct Attribute {
     name: Name,
     kind: AttributeKind,
-}
-
-impl Parse for Attribute {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            name: input.parse()?,
-            kind: input.parse()?,
-        })
-    }
-}
-
-impl ToTokens for Attribute {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.name.to_tokens(tokens);
-        self.kind.to_tokens(tokens);
-    }
 }
 
 impl Generate for Attribute {
@@ -648,7 +395,7 @@ impl Generate for Attribute {
                 value,
                 toggle: Some(toggle),
                 ..
-            } => g.push_conditional(&toggle.parenthesized_cond(), |g| {
+            } => g.push_conditional(&toggle.cond_expr(), |g| {
                 g.push_str(" ");
                 g.push_escaped_lit(self.name.lit());
                 g.push_str("=\"");
@@ -680,7 +427,7 @@ impl Generate for Attribute {
                 },
             ),
             AttributeKind::Empty(Some(toggle)) => {
-                g.push_conditional(&toggle.parenthesized_cond(), |g| {
+                g.push_conditional(&toggle.cond_expr(), |g| {
                     g.push_str(" ");
                     g.push_escaped_lit(self.name.lit());
                 });
@@ -695,11 +442,13 @@ impl Generate for Attribute {
 
 enum AttributeKind {
     Normal {
+        #[allow(dead_code)]
         eq_token: Token![=],
         value: AttributeValueNode,
         toggle: Option<Toggle>,
     },
     Optional {
+        #[allow(dead_code)]
         eq_token: Token![=],
         toggle: Toggle,
     },
@@ -722,44 +471,13 @@ impl Parse for AttributeKind {
                 Ok(Self::Normal {
                     eq_token,
                     value: input.parse()?,
-                    toggle: if input.peek(Bracket) {
-                        Some(input.parse()?)
-                    } else {
-                        None
-                    },
+                    toggle: parse_option(input, |input| input.peek(Bracket))?,
                 })
             }
-        } else if lookahead.peek(Bracket) {
-            Ok(Self::Empty(Some(input.parse()?)))
         } else {
-            Ok(Self::Empty(None))
-        }
-    }
-}
-
-impl ToTokens for AttributeKind {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Normal {
-                eq_token,
-                value,
-                toggle,
-            } => {
-                eq_token.to_tokens(tokens);
-                value.to_tokens(tokens);
-                if let Some(toggle) = toggle {
-                    toggle.to_tokens(tokens);
-                }
-            }
-            Self::Optional { eq_token, toggle } => {
-                eq_token.to_tokens(tokens);
-                toggle.to_tokens(tokens);
-            }
-            Self::Empty(toggle) => {
-                if let Some(toggle) = toggle {
-                    toggle.to_tokens(tokens);
-                }
-            }
+            Ok(Self::Empty(parse_option(input, |input| {
+                input.peek(Bracket)
+            })?))
         }
     }
 }
@@ -783,6 +501,8 @@ impl Node for AttributeValueNode {
     }
 }
 
+// not derivable because `syn_derive` doesn't support multiple lookaheads, like
+// used in `Literal`
 impl Parse for AttributeValueNode {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
@@ -801,17 +521,6 @@ impl Parse for AttributeValueNode {
     }
 }
 
-impl ToTokens for AttributeValueNode {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Block(block) => block.to_tokens(tokens),
-            Self::Splice(splice) => splice.to_tokens(tokens),
-            Self::Literal(lit) => lit.to_tokens(tokens),
-            Self::Keyword(kw) => kw.to_tokens(tokens),
-        }
-    }
-}
-
 impl Generate for AttributeValueNode {
     fn generate(&self, g: &mut Generator) {
         match self {
@@ -823,6 +532,7 @@ impl Generate for AttributeValueNode {
     }
 }
 
+#[derive(ToTokens)]
 struct Name {
     name: Punctuated<NameFragment, NamePunct>,
 }
@@ -932,12 +642,7 @@ impl Parse for Name {
     }
 }
 
-impl ToTokens for Name {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.name.to_tokens(tokens);
-    }
-}
-
+#[derive(ToTokens)]
 enum NameFragment {
     Ident(Ident),
     Number(LitInt),
@@ -970,18 +675,12 @@ impl Parse for NameFragment {
     }
 }
 
-impl ToTokens for NameFragment {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Ident(ident) => ident.to_tokens(tokens),
-            Self::Number(lit) => lit.to_tokens(tokens),
-            Self::Empty => {}
-        }
-    }
-}
-
+#[derive(Parse, ToTokens)]
 enum NamePunct {
+    #[parse(peek = Token![:])]
     Colon(Token![:]),
+
+    #[parse(peek = Token![-])]
     Hyphen(Token![-]),
 }
 
@@ -994,32 +693,15 @@ impl NamePunct {
     }
 }
 
-impl Parse for NamePunct {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(Token![:]) {
-            input.parse().map(Self::Colon)
-        } else if lookahead.peek(Token![-]) {
-            input.parse().map(Self::Hyphen)
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-impl ToTokens for NamePunct {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Colon(token) => token.to_tokens(tokens),
-            Self::Hyphen(token) => token.to_tokens(tokens),
-        }
-    }
-}
-
+#[derive(Parse)]
 enum Lit {
+    #[parse(peek = LitStr)]
     Str(LitStr),
+
+    #[parse(peek = LitInt)]
     Int(LitInt),
+
+    #[parse(peek = LitBool)]
     Bool(LitBool),
 }
 
@@ -1033,45 +715,24 @@ impl Lit {
     }
 }
 
-impl Parse for Lit {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(LitStr) {
-            input.parse().map(Self::Str)
-        } else if lookahead.peek(LitInt) {
-            input.parse().map(Self::Int)
-        } else if lookahead.peek(LitBool) {
-            input.parse().map(Self::Bool)
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-impl ToTokens for Lit {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Str(lit) => lit.to_tokens(tokens),
-            Self::Int(lit) => lit.to_tokens(tokens),
-            Self::Bool(lit) => lit.to_tokens(tokens),
-        }
-    }
-}
-
 impl Generate for Lit {
     fn generate(&self, g: &mut Generator) {
         g.push_escaped_lit(self.lit_str());
     }
 }
 
+#[derive(Parse)]
 struct Toggle {
+    #[syn(bracketed)]
+    #[allow(dead_code)]
     bracket_token: Bracket,
+
+    #[syn(in = bracket_token)]
     cond: Expr,
 }
 
 impl Toggle {
-    fn parenthesized_cond(&self) -> Expr {
+    fn cond_expr(&self) -> Expr {
         Expr::Paren(ExprParen {
             attrs: Vec::new(),
             paren_token: Paren::default(),
@@ -1080,43 +741,11 @@ impl Toggle {
     }
 }
 
-impl Parse for Toggle {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        Ok(Self {
-            bracket_token: bracketed!(content in input),
-            cond: content.parse()?,
-        })
-    }
-}
-
-impl ToTokens for Toggle {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.bracket_token.surround(tokens, |tokens| {
-            self.cond.to_tokens(tokens);
-        });
-    }
-}
-
-struct Keyword<N> {
-    at_token: At,
+#[derive(Parse)]
+struct Keyword<N: Node> {
+    #[allow(dead_code)]
+    at_token: Token![@],
     kind: KeywordKind<N>,
-}
-
-impl<N: Node> Parse for Keyword<N> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            at_token: input.parse()?,
-            kind: input.parse()?,
-        })
-    }
-}
-
-impl<N: Node> ToTokens for Keyword<N> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.at_token.to_tokens(tokens);
-        self.kind.to_tokens(tokens);
-    }
 }
 
 impl<N: Node> Generate for Keyword<N> {
@@ -1125,7 +754,7 @@ impl<N: Node> Generate for Keyword<N> {
     }
 }
 
-enum KeywordKind<N> {
+enum KeywordKind<N: Node> {
     Let(Local),
     If(IfNode<N>),
     For(ForNode<N>),
@@ -1133,6 +762,8 @@ enum KeywordKind<N> {
     Match(MatchNode<N>),
 }
 
+// not derivable because `syn_derive` doesn't support custom parsing in enum
+// variants
 impl<N: Node> Parse for KeywordKind<N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
@@ -1157,22 +788,10 @@ impl<N: Node> Parse for KeywordKind<N> {
     }
 }
 
-impl<N: Node> ToTokens for KeywordKind<N> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Let(let_) => let_.to_tokens(tokens),
-            Self::If(if_) => if_.to_tokens(tokens),
-            Self::For(for_) => for_.to_tokens(tokens),
-            Self::While(while_) => while_.to_tokens(tokens),
-            Self::Match(match_) => match_.to_tokens(tokens),
-        }
-    }
-}
-
 impl<N: Node> Generate for KeywordKind<N> {
     fn generate(&self, g: &mut Generator) {
         match self {
-            Self::Let(let_) => g.push_dynamic(Stmt::Local(let_.clone()), Some(self.span())),
+            Self::Let(let_) => g.push_dynamic(Stmt::Local(let_.clone()), Some(let_.span())),
             Self::If(if_) => g.push(if_),
             Self::For(for_) => g.push(for_),
             Self::While(while_) => g.push(while_),
@@ -1181,41 +800,23 @@ impl<N: Node> Generate for KeywordKind<N> {
     }
 }
 
-struct IfNode<N> {
-    if_token: If,
+#[derive(Parse)]
+struct IfNode<N: Node> {
+    if_token: Token![if],
+
+    #[parse(Expr::parse_without_eager_brace)]
     cond: Expr,
+
     then_branch: Block<N>,
-    else_branch: Option<(At, Else, Box<IfOrBlock<N>>)>,
-}
 
-impl<N: Node> Parse for IfNode<N> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            if_token: input.parse()?,
-            cond: input.call(Expr::parse_without_eager_brace)?,
-            then_branch: input.parse()?,
-            else_branch: {
-                if input.peek(Token![@]) && input.peek2(Token![else]) {
-                    Some((input.parse()?, input.parse()?, input.parse()?))
-                } else {
-                    None
-                }
-            },
-        })
-    }
-}
-
-impl<N: Node> ToTokens for IfNode<N> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.if_token.to_tokens(tokens);
-        self.cond.to_tokens(tokens);
-        self.then_branch.to_tokens(tokens);
-        if let Some((at_token, else_token, else_branch)) = &self.else_branch {
-            at_token.to_tokens(tokens);
-            else_token.to_tokens(tokens);
-            else_branch.to_tokens(tokens);
+    #[parse(|input| {
+        if input.peek(Token![@]) && input.peek2(Token![else]) {
+            Ok(Some((input.parse()?, input.parse()?, input.parse()?)))
+        } else {
+            Ok(None)
         }
-    }
+    })]
+    else_branch: Option<(Token![@], Token![else], Box<IfOrBlock<N>>)>,
 }
 
 impl<N: Node> Generate for IfNode<N> {
@@ -1251,32 +852,13 @@ impl<N: Node> Generate for IfNode<N> {
     }
 }
 
-enum IfOrBlock<N> {
+#[derive(Parse)]
+enum IfOrBlock<N: Node> {
+    #[parse(peek = Token![if])]
     If(IfNode<N>),
+
+    #[parse(peek = Brace)]
     Block(Block<N>),
-}
-
-impl<N: Node> Parse for IfOrBlock<N> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(Token![if]) {
-            input.parse().map(Self::If)
-        } else if lookahead.peek(Brace) {
-            input.parse().map(Self::Block)
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-impl<N: Node> ToTokens for IfOrBlock<N> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::If(if_) => if_.to_tokens(tokens),
-            Self::Block(block) => block.to_tokens(tokens),
-        }
-    }
 }
 
 impl<N: Node> Generate for IfOrBlock<N> {
@@ -1288,34 +870,19 @@ impl<N: Node> Generate for IfOrBlock<N> {
     }
 }
 
-struct ForNode<N> {
-    for_token: For,
+#[derive(Parse)]
+struct ForNode<N: Node> {
+    for_token: Token![for],
+
+    #[parse(Pat::parse_multi_with_leading_vert)]
     pat: Pat,
-    in_token: In,
+
+    in_token: Token![in],
+
+    #[parse(Expr::parse_without_eager_brace)]
     expr: Expr,
+
     body: Block<N>,
-}
-
-impl<N: Node> Parse for ForNode<N> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            for_token: input.parse()?,
-            pat: input.call(Pat::parse_multi_with_leading_vert)?,
-            in_token: input.parse()?,
-            expr: input.call(Expr::parse_without_eager_brace)?,
-            body: input.parse()?,
-        })
-    }
-}
-
-impl<N: Node> ToTokens for ForNode<N> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.for_token.to_tokens(tokens);
-        self.pat.to_tokens(tokens);
-        self.in_token.to_tokens(tokens);
-        self.expr.to_tokens(tokens);
-        self.body.to_tokens(tokens);
-    }
 }
 
 impl<N: Node> Generate for ForNode<N> {
@@ -1333,28 +900,14 @@ impl<N: Node> Generate for ForNode<N> {
     }
 }
 
-struct WhileNode<N> {
-    while_token: While,
+#[derive(Parse)]
+struct WhileNode<N: Node> {
+    while_token: Token![while],
+
+    #[parse(Expr::parse_without_eager_brace)]
     cond: Expr,
+
     body: Block<N>,
-}
-
-impl<N: Node> Parse for WhileNode<N> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            while_token: input.parse()?,
-            cond: input.call(Expr::parse_without_eager_brace)?,
-            body: input.parse()?,
-        })
-    }
-}
-
-impl<N: Node> ToTokens for WhileNode<N> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.while_token.to_tokens(tokens);
-        self.cond.to_tokens(tokens);
-        self.body.to_tokens(tokens);
-    }
 }
 
 impl<N: Node> Generate for WhileNode<N> {
@@ -1370,45 +923,19 @@ impl<N: Node> Generate for WhileNode<N> {
     }
 }
 
-struct MatchNode<N> {
-    match_token: Match,
+#[derive(Parse)]
+struct MatchNode<N: Node> {
+    match_token: Token![match],
+
+    #[parse(Expr::parse_without_eager_brace)]
     expr: Expr,
+
+    #[syn(braced)]
     brace_token: Brace,
+
+    #[syn(in = brace_token)]
+    #[parse(parse_until_empty)]
     arms: Vec<MatchNodeArm<N>>,
-}
-
-impl<N: Node> Parse for MatchNode<N> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let match_token = input.parse()?;
-        let expr = input.call(Expr::parse_without_eager_brace)?;
-
-        let content;
-        let brace_token = braced!(content in input);
-
-        let mut arms = Vec::new();
-        while !content.is_empty() {
-            arms.push(content.parse()?);
-        }
-
-        Ok(Self {
-            match_token,
-            expr,
-            brace_token,
-            arms,
-        })
-    }
-}
-
-impl<N: Node> ToTokens for MatchNode<N> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.match_token.to_tokens(tokens);
-        self.expr.to_tokens(tokens);
-        self.brace_token.surround(tokens, |tokens| {
-            for arm in &self.arms {
-                arm.to_tokens(tokens);
-            }
-        });
-    }
 }
 
 impl<N: Node> Generate for MatchNode<N> {
@@ -1443,47 +970,24 @@ impl<N: Node> Generate for MatchNode<N> {
     }
 }
 
-struct MatchNodeArm<N> {
+#[derive(Parse)]
+struct MatchNodeArm<N: Node> {
+    #[parse(Pat::parse_multi_with_leading_vert)]
     pat: Pat,
-    guard: Option<(If, Expr)>,
-    fat_arrow_token: FatArrow,
+
+    #[parse(|input| {
+        if input.peek(Token![if]) {
+            Ok(Some((input.parse()?, input.parse()?)))
+        } else {
+            Ok(None)
+        }
+    })]
+    guard: Option<(Token![if], Expr)>,
+
+    fat_arrow_token: Token![=>],
+
     body: N,
-    comma_token: Option<Comma>,
-}
 
-impl<N: Node> Parse for MatchNodeArm<N> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            pat: Pat::parse_multi_with_leading_vert(input)?,
-            guard: {
-                if input.peek(Token![if]) {
-                    Some((input.parse()?, input.parse()?))
-                } else {
-                    None
-                }
-            },
-            fat_arrow_token: input.parse()?,
-            body: input.parse()?,
-            comma_token: if input.peek(Token![,]) {
-                Some(input.parse()?)
-            } else {
-                None
-            },
-        })
-    }
-}
-
-impl<N: Node> ToTokens for MatchNodeArm<N> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.pat.to_tokens(tokens);
-        if let Some((if_token, guard)) = &self.guard {
-            if_token.to_tokens(tokens);
-            guard.to_tokens(tokens);
-        }
-        self.fat_arrow_token.to_tokens(tokens);
-        self.body.to_tokens(tokens);
-        if let Some(comma_token) = &self.comma_token {
-            comma_token.to_tokens(tokens);
-        }
-    }
+    #[parse(|input| parse_option(input, |input| input.peek(Token![,])))]
+    comma_token: Option<Token![,]>,
 }

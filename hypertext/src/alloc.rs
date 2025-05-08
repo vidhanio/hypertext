@@ -22,8 +22,6 @@ use crate::{Raw, Rendered};
 /// - [`id`]'s shorthand (`#`), if specified, must be the first attribute.
 /// - [`class`]'s shorthand (`.`), if specified must be the second group of
 ///   attributes.
-/// - Optional [`class`]es (`.some-class[condition]`) must come after all
-///   required [`class`]es.
 ///
 /// Additionally, adding `!DOCTYPE` at the beginning of the invocation will
 /// render `"<!DOCTYPE html>"`.
