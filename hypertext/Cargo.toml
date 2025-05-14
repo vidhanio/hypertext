@@ -39,15 +39,14 @@ tide = { version = "0.16", default-features = false, optional = true }
 warp = { version = "0.3", default-features = false, optional = true }
 
 [features]
-default = ["alloc", "maud", "rsx"]
+default = ["alloc"]
 
 alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
 
-maud = ["hypertext-macros/maud"]
-rsx = ["hypertext-macros/rsx"]
+http = ["alloc", "dep:http"]
 
 actix-web = ["alloc", "dep:actix-web"]
-axum = ["alloc", "dep:axum-core", "dep:http"]
+axum = ["alloc", "dep:axum-core", "http"]
 poem = ["alloc", "dep:poem"]
 rocket = ["alloc", "dep:rocket"]
 salvo = ["alloc", "dep:salvo_core"]
@@ -55,3 +54,4 @@ tide = ["alloc", "dep:tide"]
 warp = ["alloc", "dep:hyper", "dep:warp"]
 
 htmx = []
+hyperscript = []

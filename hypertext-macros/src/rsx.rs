@@ -1,839 +1,376 @@
-use std::ops::ControlFlow;
+use std::{iter, marker::PhantomData};
 
-use proc_macro2::TokenStream;
-use proc_macro2_diagnostics::{Diagnostic, SpanDiagnosticExt};
-use quote::{ToTokens, TokenStreamExt};
-use rstml::{
-    Parser, ParserConfig,
-    node::{
-        AttributeValueExpr, CustomNode, KVAttributeValue, KeyedAttribute, KeyedAttributeValue,
-        NodeAttribute, NodeBlock, NodeComment, NodeDoctype, NodeElement, NodeFragment, NodeName,
-        NodeNameFragment, NodeText, RawText,
-    },
-    recoverable::{ParseRecoverable, RecoverableContext},
-};
+use quote::ToTokens;
 use syn::{
-    Arm, Expr, ExprBlock, ExprForLoop, ExprIf, ExprLit, ExprMatch, ExprPath, ExprWhile, Ident, Lit,
-    LitStr, Local, Pat, Stmt, Token, braced, parse::ParseStream, punctuated::Pair,
-    spanned::Spanned, token::Brace,
+    Ident, LitBool, LitInt, LitStr, Token,
+    ext::IdentExt,
+    parse::{Nothing, Parse, ParseStream, discouraged::Speculative},
+    punctuated::Pair,
+    spanned::Spanned,
+    token::Brace,
 };
-use syn_derive::ToTokens;
 
-use crate::generate::{Generate, Generator};
+use crate::{
+    generate::AnyBlock,
+    node::{
+        AnyExpr, Attribute, AttributeKind, Component, ComponentAttribute, ComponentAttributeValue,
+        ControlSyntax, Element, ElementBody, ElementNode, Group, Literal, Markup, NameFragment,
+        Nodes, QuotedValueNode, Syntax, UnquotedName, UnquotedValueNode,
+    },
+};
 
-type Node = rstml::node::Node<NodeKeyword>;
+pub struct Rsx;
 
-pub fn parse(tokens: TokenStream) -> (Vec<Node>, Vec<Diagnostic>) {
-    let void_elements = [
-        "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source",
-        "track", "wbr",
-    ]
-    .into_iter()
-    .collect();
-
-    let config = ParserConfig::new()
-        .always_self_closed_elements(void_elements)
-        .custom_node::<NodeKeyword>();
-
-    let parser = Parser::new(config);
-    let (parsed_nodes, mut diagnostics) = parser.parse_recoverable(tokens).split_vec();
-    for el in parsed_nodes
-        .clone()
-        .into_iter()
-        .flat_map(Node::flatten)
-        .filter_map(|node| {
-            if let Node::Element(el) = node {
-                Some(el)
-            } else {
-                None
-            }
-        })
-    {
-        if let NodeName::Block(block) = el.open_tag.name {
-            diagnostics.push(block.span().error("block names are unsupported"));
-        }
-
-        for attr in el.open_tag.attributes {
-            match attr {
-                NodeAttribute::Block(block) => {
-                    diagnostics.push(block.span().error("block attributes are unsupported"));
-                }
-                NodeAttribute::Attribute(attr) => {
-                    match attr.key {
-                        NodeName::Block(block) => {
-                            diagnostics
-                                .push(block.span().error("block attribute keys are unsupported"));
-                        }
-                        NodeName::Path(path) => {
-                            if let Some(qself) = path.qself {
-                                diagnostics
-                                    .push(qself.span().error("qualified self is unsupported"));
-                            }
-
-                            if let Some(leading_colon) = path.path.leading_colon {
-                                diagnostics.push(
-                                    leading_colon.span().error("leading colons are unsupported"),
-                                );
-                            }
-                        }
-                        NodeName::Punctuated(punctuated) => {
-                            if !punctuated.pairs().all(|pair| {
-                                pair.punct().is_none_or(|punct| {
-                                    punct.as_char() == '-' || punct.as_char() == ':'
-                                })
-                            }) {
-                                diagnostics.push(
-                                    punctuated
-                                        .span()
-                                        .error("only dashes and colons are supported"),
-                                );
-                            }
-                        }
-                    }
-
-                    if let KeyedAttributeValue::Binding(b) = attr.possible_value {
-                        diagnostics.push(b.span().error("function bindings are unsupported"));
-                    }
-                }
-            }
-        }
-    }
-
-    (parsed_nodes, diagnostics)
+impl Syntax for Rsx {
+    type NodeSeparator = Nothing;
 }
 
-impl Generate for Vec<Node> {
-    fn generate(&self, g: &mut Generator) {
-        g.push_all(self);
-    }
+impl ControlSyntax for Rsx {
+    type ControlToken = Token![@];
 }
 
-impl Generate for Node {
-    fn generate(&self, g: &mut Generator) {
-        match self {
-            Self::Comment(comment) => g.push(comment),
-            Self::Doctype(doctype) => g.push(doctype),
-            Self::Fragment(fragment) => g.push(fragment),
-            Self::Element(element) => g.push(element),
-            Self::Block(block) => g.push(block),
-            Self::Text(text) => g.push(text),
-            Self::RawText(raw_text) => g.push(raw_text),
-            Self::Custom(keyword) => g.push(keyword),
-        }
-    }
-}
+impl Parse for Markup<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            doctype: {
+                syn::custom_keyword!(DOCTYPE);
+                syn::custom_keyword!(html);
 
-impl Generate for NodeComment {
-    fn generate(&self, g: &mut Generator) {
-        g.push_str("<!--");
-        g.push_escaped_lit(self.value.clone());
-        g.push_str("-->");
-    }
-}
+                if input.peek(Token![<]) && input.peek2(Token![!]) {
+                    input.parse::<Token![<]>()?;
+                    input.parse::<Token![!]>()?;
+                    let doctype = input.parse::<DOCTYPE>()?;
+                    input.parse::<html>()?;
+                    input.parse::<Token![>]>()?;
 
-impl Generate for NodeDoctype {
-    fn generate(&self, g: &mut Generator) {
-        g.push_str("<!");
-        g.push_spanned_str("DOCTYPE", self.token_doctype.span());
-        g.push_str(" ");
-        g.push(&self.value);
-        g.push_str(">");
-    }
-}
-
-impl Generate for NodeFragment<NodeKeyword> {
-    fn generate(&self, g: &mut Generator) {
-        g.push_all(&self.children);
-    }
-}
-
-impl Generate for NodeElement<NodeKeyword> {
-    fn generate(&self, g: &mut Generator) {
-        g.record_element(&node_name_ident(&self.open_tag.name));
-
-        g.push_str("<");
-        g.push_escaped_lit(node_name_lit(&self.open_tag.name));
-        for attr in &self.open_tag.attributes {
-            let NodeAttribute::Attribute(attr) = attr else {
-                continue;
-            };
-
-            g.push(attr);
-
-            let is_data = if let KeyedAttribute {
-                key: NodeName::Punctuated(punct),
-                ..
-            } = attr
-            {
-                let mut name_pairs = punct.pairs();
-
-                name_pairs.next().is_some_and(|pair| {
-                    if let Pair::Punctuated(NodeNameFragment::Ident(ident), punct) = pair {
-                        ident == "data" && punct.as_char() == '-'
-                    } else {
-                        false
-                    }
-                }) && name_pairs.next().is_some()
-            } else {
-                false
-            };
-
-            if !is_data {
-                let (attr_ident, is_namespace) = node_name_ident_or_namespace(&attr.key);
-
-                if is_namespace {
-                    g.record_namespace(&node_name_ident(&self.open_tag.name), &attr_ident);
+                    Some(doctype.span())
                 } else {
-                    g.record_attribute(&node_name_ident(&self.open_tag.name), &attr_ident);
+                    None
                 }
-            }
-        }
-        g.push_str(">");
-
-        if let Some(tag) = &self.close_tag {
-            g.record_element(&node_name_ident(&tag.name));
-            g.push_all(&self.children);
-
-            g.push_str("</");
-            g.push_escaped_lit(node_name_lit(&tag.name));
-            g.push_str(">");
-        } else {
-            g.record_void_element(&node_name_ident(&self.open_tag.name));
-        }
-    }
-}
-
-impl Generate for KeyedAttribute {
-    fn generate(&self, g: &mut Generator) {
-        g.push_str(" ");
-
-        g.push_escaped_lit(node_name_lit(&self.key));
-
-        if let KeyedAttributeValue::Value(AttributeValueExpr {
-            value: KVAttributeValue::Expr(value),
-            ..
-        }) = &self.possible_value
-        {
-            g.push_str("=\"");
-            match value {
-                Expr::Lit(ExprLit { lit, .. }) => match lit {
-                    Lit::Str(lit_str) => {
-                        g.push_escaped_lit(lit_str.clone());
-                    }
-                    Lit::Int(lit_int) => {
-                        g.push_escaped_lit(LitStr::new(&lit_int.to_string(), lit_int.span()));
-                    }
-                    Lit::Bool(lit_bool) => {
-                        g.push_escaped_lit(LitStr::new(
-                            &lit_bool.value.to_string(),
-                            lit_bool.span(),
-                        ));
-                    }
-                    _ => {
-                        g.push_rendered_expr(value);
-                    }
-                },
-                _ => {
-                    g.push_rendered_expr(value);
-                }
-            }
-            g.push_str("\"");
-        }
-    }
-}
-
-impl Generate for NodeBlock {
-    fn generate(&self, g: &mut Generator) {
-        if let Self::ValidBlock(block) = self {
-            // if the block is a single expression, unwrap it for better
-            // interaction with borrowing
-            if let [Stmt::Expr(expr, None)] = &*block.stmts {
-                g.push_rendered_expr(expr);
-            } else {
-                g.push_rendered_expr(&Expr::Block(ExprBlock {
-                    attrs: vec![],
-                    label: None,
-                    block: block.clone(),
-                }));
-            }
-        }
-    }
-}
-
-impl Generate for NodeText {
-    fn generate(&self, g: &mut Generator) {
-        g.push_escaped_lit(self.value.clone());
-    }
-}
-
-impl Generate for RawText {
-    fn generate(&self, g: &mut Generator) {
-        g.push_escaped_lit(LitStr::new(&self.to_string_best(), self.span()));
-    }
-}
-
-impl Generate for RawText<NodeKeyword> {
-    fn generate(&self, g: &mut Generator) {
-        g.push_escaped_lit(LitStr::new(&self.to_string_best(), self.span()));
-    }
-}
-
-#[derive(Debug, Clone, ToTokens)]
-pub struct NodeKeyword {
-    at_token: Token![@],
-    kind: KeywordKind,
-}
-
-impl CustomNode for NodeKeyword {
-    fn peek_element(input: syn::parse::ParseStream) -> bool {
-        input.peek(Token![@])
-            && (input.peek2(Token![let])
-                || input.peek2(Token![while])
-                || input.peek2(Token![loop])
-                || input.peek2(Token![if])
-                || input.peek2(Token![for])
-                || input.peek2(Token![match]))
-    }
-}
-
-impl ParseRecoverable for NodeKeyword {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        Some(Self {
-            at_token: parser.parse_simple(input)?,
-            kind: parser.parse_recoverable(input)?,
-        })
-    }
-}
-
-impl Generate for NodeKeyword {
-    fn generate(&self, g: &mut Generator) {
-        g.push(&self.kind);
-    }
-}
-
-#[derive(Debug, Clone, ToTokens)]
-enum KeywordKind {
-    Let(Local),
-    If(NodeIf),
-    For(NodeFor),
-    While(NodeWhile),
-    Match(NodeMatch),
-}
-
-impl ParseRecoverable for KeywordKind {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        if input.peek(Token![let]) {
-            let Stmt::Local(local) = parser.parse_simple(input)? else {
-                return None;
-            };
-
-            Some(Self::Let(local))
-        } else if input.peek(Token![if]) {
-            Some(Self::If(parser.parse_recoverable(input)?))
-        } else if input.peek(Token![for]) {
-            Some(Self::For(parser.parse_recoverable(input)?))
-        } else if input.peek(Token![while]) {
-            Some(Self::While(parser.parse_recoverable(input)?))
-        } else if input.peek(Token![match]) {
-            Some(Self::Match(parser.parse_recoverable(input)?))
-        } else {
-            None
-        }
-    }
-}
-
-impl Generate for KeywordKind {
-    fn generate(&self, g: &mut Generator) {
-        match self {
-            Self::Let(let_) => g.push_dynamic(Stmt::Local(let_.clone()), Some(self.span())),
-            Self::If(if_) => g.push(if_),
-            Self::For(for_) => g.push(for_),
-            Self::While(while_) => g.push(while_),
-            Self::Match(match_) => g.push(match_),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-struct KeywordBlock {
-    brace_token: Brace,
-    nodes: Vec<Node>,
-}
-
-impl ParseRecoverable for KeywordBlock {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        parser.parse_mixed_fn(input, |parser, input| {
-            let content;
-            let brace_token = braced!(content in input);
-            let mut nodes = vec![];
-            while !content.is_empty() {
-                let Some(node) = parser.parse_recoverable(&content) else {
-                    return Ok(None);
-                };
-                nodes.push(node);
-            }
-            Ok(Some(Self { brace_token, nodes }))
-        })?
-    }
-}
-
-impl ToTokens for KeywordBlock {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.brace_token.surround(tokens, |tokens| {
-            tokens.append_all(&self.nodes);
-        });
-    }
-}
-
-impl Generate for KeywordBlock {
-    fn generate(&self, g: &mut Generator) {
-        if self.nodes.iter().any(|node| {
-            matches!(
-                node,
-                Node::Custom(NodeKeyword {
-                    kind: KeywordKind::Let(_),
-                    ..
-                })
-            )
-        }) {
-            g.in_block(|g| g.push_all(&self.nodes));
-        } else {
-            g.push_all(&self.nodes);
-        }
-    }
-}
-
-#[derive(Debug, Clone, ToTokens)]
-struct NodeIf {
-    if_token: Token![if],
-    cond: Expr,
-    then_branch: KeywordBlock,
-    #[to_tokens(|tokens, val: &Option<(Token![@], Token![else], Box<NodeIfOrBlock>)>| {
-        if let Some((_, else_token, if_or_block)) = val {
-            else_token.to_tokens(tokens);
-            if_or_block.to_tokens(tokens);
-        }
-    })]
-    else_branch: Option<(Token![@], Token![else], Box<NodeIfOrBlock>)>,
-}
-
-impl ParseRecoverable for NodeIf {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        Some(Self {
-            if_token: parser.parse_simple(input)?,
-            cond: parser.parse_mixed_fn(input, |_, input| {
-                input.call(Expr::parse_without_eager_brace)
-            })?,
-            then_branch: parser.parse_recoverable(input)?,
-            else_branch: if input.peek(Token![@]) && input.peek2(Token![else]) {
-                Some((
-                    parser.parse_simple(input)?,
-                    parser.parse_simple(input)?,
-                    Box::new(parser.parse_recoverable(input)?),
-                ))
-            } else {
-                None
             },
+            nodes: input.parse()?,
         })
     }
 }
 
-impl Generate for NodeIf {
-    fn generate(&self, g: &mut Generator) {
-        fn to_expr(if_: &NodeIf, g: &mut Generator) -> ExprIf {
-            ExprIf {
-                attrs: Vec::new(),
-                if_token: if_.if_token,
-                cond: Box::new(if_.cond.clone()),
-                then_branch: g.block(&if_.then_branch),
-                else_branch: if_
-                    .else_branch
-                    .as_ref()
-                    .map(|(_, else_token, if_or_block)| {
-                        (
-                            *else_token,
-                            Box::new(match &**if_or_block {
-                                NodeIfOrBlock::If(if_) => Expr::If(to_expr(if_, g)),
-                                NodeIfOrBlock::Block(block) => Expr::Block(ExprBlock {
-                                    attrs: Vec::new(),
-                                    label: None,
-                                    block: g.block(block),
-                                }),
-                            }),
-                        )
-                    }),
-            }
+impl ElementNode<Rsx> {
+    fn parse_fragment(input: ParseStream) -> syn::Result<Self> {
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![>]>()?;
+
+        let mut nodes = Vec::new();
+
+        while !(input.peek(Token![<]) && input.peek2(Token![/]) && input.peek3(Token![>])) {
+            nodes.push(input.parse()?);
         }
 
-        let expr = to_expr(self, g);
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![/]>()?;
+        input.parse::<Token![>]>()?;
 
-        g.push_expr(expr);
+        Ok(Self::Group(Group(Nodes {
+            nodes,
+            phantom: PhantomData,
+        })))
     }
-}
 
-#[derive(Debug, Clone, ToTokens)]
-enum NodeIfOrBlock {
-    If(NodeIf),
-    Block(KeywordBlock),
-}
+    fn parse_component(input: ParseStream) -> syn::Result<Self> {
+        input.parse::<Token![<]>()?;
 
-impl ParseRecoverable for NodeIfOrBlock {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        if input.peek(Token![if]) {
-            parser.parse_recoverable(input).map(Self::If)
-        } else if input.peek(Brace) {
-            parser.parse_recoverable(input).map(Self::Block)
-        } else {
-            None
+        let name = input.parse::<Ident>()?;
+
+        let mut attrs = Vec::new();
+
+        while !(input.peek(Token![>]) || (input.peek(Token![/]) && input.peek2(Token![>]))) {
+            attrs.push(input.parse()?);
         }
-    }
-}
 
-impl Generate for NodeIfOrBlock {
-    fn generate(&self, g: &mut Generator) {
-        match self {
-            Self::If(if_) => g.push(if_),
-            Self::Block(block) => g.push(block),
-        }
-    }
-}
+        let solidus = input.parse::<Option<Token![/]>>()?;
+        input.parse::<Token![>]>()?;
 
-#[derive(Debug, Clone, ToTokens)]
-struct NodeFor {
-    for_token: Token![for],
-    pat: Pat,
-    in_token: Token![in],
-    expr: Expr,
-    body: KeywordBlock,
-}
-
-impl ParseRecoverable for NodeFor {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        Some(Self {
-            for_token: parser.parse_simple(input)?,
-            pat: parser.parse_mixed_fn(input, |_, input| {
-                input.call(Pat::parse_multi_with_leading_vert)
-            })?,
-            in_token: parser.parse_simple(input)?,
-            expr: parser.parse_mixed_fn(input, |_, input| {
-                input.call(Expr::parse_without_eager_brace)
-            })?,
-            body: parser.parse_recoverable(input)?,
-        })
-    }
-}
-
-impl Generate for NodeFor {
-    fn generate(&self, g: &mut Generator) {
-        let body = g.block(&self.body);
-        g.push_expr(ExprForLoop {
-            attrs: Vec::new(),
-            label: None,
-            for_token: self.for_token,
-            pat: Box::new(self.pat.clone()),
-            in_token: self.in_token,
-            expr: Box::new(self.expr.clone()),
-            body,
-        });
-    }
-}
-
-#[derive(Debug, Clone, ToTokens)]
-struct NodeWhile {
-    while_token: Token![while],
-    cond: Expr,
-    body: KeywordBlock,
-}
-
-impl ParseRecoverable for NodeWhile {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        Some(Self {
-            while_token: parser.parse_simple(input)?,
-            cond: parser.parse_mixed_fn(input, |_, input| {
-                input.call(Expr::parse_without_eager_brace)
-            })?,
-            body: parser.parse_recoverable(input)?,
-        })
-    }
-}
-
-impl Generate for NodeWhile {
-    fn generate(&self, g: &mut Generator) {
-        let body = g.block(&self.body);
-        g.push_expr(ExprWhile {
-            attrs: Vec::new(),
-            label: None,
-            while_token: self.while_token,
-            cond: Box::new(self.cond.clone()),
-            body,
-        });
-    }
-}
-
-#[derive(Debug, Clone)]
-struct NodeMatch {
-    match_token: Token![match],
-    expr: Expr,
-    brace_token: Brace,
-    arms: Vec<NodeMatchArm>,
-}
-
-impl ParseRecoverable for NodeMatch {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        parser.parse_mixed_fn(input, |parser, input| {
-            let Some(match_token) = parser.parse_simple(input) else {
-                return Ok(None);
-            };
-            let expr = Expr::parse_without_eager_brace(input)?;
-            let content;
-            let brace_token = braced!(content in input);
-            let mut arms = vec![];
-            while !content.is_empty() {
-                let Some(arm) = parser.parse_recoverable(&content) else {
-                    return Ok(None);
-                };
-                arms.push(arm);
-            }
-
-            Ok(Some(Self {
-                match_token,
-                expr,
-                brace_token,
-                arms,
+        if solidus.is_some() {
+            Ok(Self::Component(Component {
+                name,
+                attrs,
+                body: ElementBody::Void,
             }))
-        })?
-    }
-}
+        } else {
+            let mut children = Vec::new();
 
-impl ToTokens for NodeMatch {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.match_token.to_tokens(tokens);
-        self.expr.to_tokens(tokens);
-        self.brace_token.surround(tokens, |tokens| {
-            tokens.append_all(&self.arms);
-        });
-    }
-}
+            while !(input.peek(Token![<]) && input.peek2(Token![/])) {
+                if input.is_empty() {
+                    children.insert(
+                        0,
+                        Self::Component(Component {
+                            name,
+                            attrs,
+                            body: ElementBody::Void,
+                        }),
+                    );
 
-impl Generate for NodeMatch {
-    fn generate(&self, g: &mut Generator) {
-        let arms = self
-            .arms
-            .iter()
-            .map(|arm| Arm {
-                attrs: Vec::new(),
-                pat: arm.pat.clone(),
-                guard: arm
-                    .guard
-                    .as_ref()
-                    .map(|(if_token, guard)| (*if_token, Box::new(guard.clone()))),
-                fat_arrow_token: arm.fat_arrow_token,
-                body: Box::new(Expr::Block(ExprBlock {
-                    attrs: Vec::new(),
-                    label: None,
-                    block: g.block(&arm.body),
-                })),
-                comma: arm.comma_token,
-            })
-            .collect();
+                    return Ok(Self::Group(Group(Nodes {
+                        nodes: children,
+                        phantom: PhantomData,
+                    })));
+                }
 
-        g.push_expr(ExprMatch {
-            attrs: Vec::new(),
-            match_token: self.match_token,
-            expr: Box::new(self.expr.clone()),
-            brace_token: self.brace_token,
-            arms,
-        });
-    }
-}
+                children.push(input.parse()?);
+            }
 
-#[derive(Debug, Clone, ToTokens)]
-struct NodeMatchArm {
-    pat: Pat,
-    #[to_tokens(|tokens, val: &Option<(Token![if], Expr)>| {
-        if let Some((if_token, guard)) = val {
-            if_token.to_tokens(tokens);
-            guard.to_tokens(tokens);
+            let fork = input.fork();
+            fork.parse::<Token![<]>()?;
+            fork.parse::<Token![/]>()?;
+            let closing_name = fork.parse::<Ident>()?;
+            if closing_name == name {
+                input.advance_to(&fork);
+            } else {
+                children.insert(
+                    0,
+                    Self::Component(Component {
+                        name,
+                        attrs,
+                        body: ElementBody::Void,
+                    }),
+                );
+
+                return Ok(Self::Group(Group(Nodes {
+                    nodes: children,
+                    phantom: PhantomData,
+                })));
+            }
+            input.parse::<Token![>]>()?;
+
+            Ok(Self::Component(Component {
+                name,
+                attrs,
+                body: ElementBody::Normal {
+                    children: Nodes {
+                        nodes: children,
+                        phantom: PhantomData,
+                    },
+                    closing_name: Some(UnquotedName(
+                        iter::once(Pair::End(NameFragment::Ident(closing_name))).collect(),
+                    )),
+                },
+            }))
         }
-    })]
-    guard: Option<(Token![if], Expr)>,
-    fat_arrow_token: Token![=>],
-    body: NodeMatchArmBody,
-    comma_token: Option<Token![,]>,
+    }
+
+    fn parse_element(input: ParseStream) -> syn::Result<Self> {
+        input.parse::<Token![<]>()?;
+        
+        let name = input.parse::<UnquotedName>()?;
+
+        let mut attrs = Vec::new();
+
+        while !(input.peek(Token![>]) || (input.peek(Token![/]) && input.peek2(Token![>]))) {
+            attrs.push(input.parse()?);
+        }
+
+        let solidus = input.parse::<Option<Token![/]>>()?;
+        input.parse::<Token![>]>()?;
+
+        if solidus.is_some() {
+            Ok(Self::Element(Element {
+                name,
+                attrs,
+                body: ElementBody::Void,
+            }))
+        } else {
+            let mut children = Vec::new();
+
+            while !(input.peek(Token![<]) && input.peek2(Token![/])) {
+                if input.is_empty() {
+                    children.insert(
+                        0,
+                        Self::Element(Element {
+                            name,
+                            attrs,
+                            body: ElementBody::Void,
+                        }),
+                    );
+
+                    return Ok(Self::Group(Group(Nodes {
+                        nodes: children,
+                        phantom: PhantomData,
+                    })));
+                }
+                children.push(input.parse()?);
+            }
+
+            let fork = input.fork();
+            fork.parse::<Token![<]>()?;
+            fork.parse::<Token![/]>()?;
+            let closing_name = fork.parse::<UnquotedName>()?;
+            if closing_name == name {
+                input.advance_to(&fork);
+            } else {
+                children.insert(
+                    0,
+                    Self::Element(Element {
+                        name,
+                        attrs,
+                        body: ElementBody::Void,
+                    }),
+                );
+
+                return Ok(Self::Group(Group(Nodes {
+                    nodes: children,
+                    phantom: PhantomData,
+                })));
+            }
+            input.parse::<Token![>]>()?;
+
+            Ok(Self::Element(Element {
+                name,
+                attrs,
+                body: ElementBody::Normal {
+                    children: Nodes {
+                        nodes: children,
+                        phantom: PhantomData,
+                    },
+                    closing_name: Some(closing_name),
+                },
+            }))
+        }
+    }
 }
 
-impl ParseRecoverable for NodeMatchArm {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        Some(Self {
-            pat: parser.parse_mixed_fn(input, |_, input| {
-                input.call(Pat::parse_multi_with_leading_vert)
-            })?,
-            guard: if input.peek(Token![if]) {
-                Some((parser.parse_simple(input)?, parser.parse_simple(input)?))
+impl Parse for ElementNode<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(Token![<]) {
+            let fork = input.fork();
+            fork.parse::<Token![<]>()?;
+            let lookahead = fork.lookahead1();
+            if lookahead.peek(Token![>]) {
+                input.call(Self::parse_fragment)
+            } else if lookahead.peek(Ident::peek_any) {
+                if fork.parse::<UnquotedName>()?.is_component() {
+                    input.call(Self::parse_component)
+                } else {
+                    input.call(Self::parse_element)
+                }
             } else {
-                None
-            },
-            fat_arrow_token: parser.parse_simple(input)?,
-            body: parser.parse_recoverable(input)?,
-            comma_token: if input.peek(Token![,]) {
-                Some(parser.parse_simple(input)?)
+                Err(lookahead.error())
+            }
+        } else if lookahead.peek(Token![@]) {
+            input.parse().map(Self::Control)
+        } else if lookahead.peek(Brace) {
+            input.parse().map(Self::Expr)
+        } else if lookahead.peek(Ident::peek_any) {
+            let ident = input.call(Ident::parse_any)?;
+
+            let ident_string = if input.peek(Token![<]) || input.is_empty() {
+                ident.to_string()
             } else {
-                None
+                format!("{ident} ")
+            };
+
+            Ok(Self::Literal(Literal::Str(LitStr::new(
+                &ident_string,
+                ident.span(),
+            ))))
+        } else if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
+            input.parse().map(Self::Literal)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for AnyExpr<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            expr: input.parse::<AnyBlock>()?.to_token_stream(),
+            phantom: PhantomData,
+        })
+    }
+}
+
+impl Parse for Attribute<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let name = input.parse::<UnquotedName>()?;
+
+        if input.peek(Token![=]) {
+            input.parse::<Token![=]>()?;
+
+            Ok(Self {
+                name,
+                kind: AttributeKind::Value {
+                    value: input.parse()?,
+                    toggle: None,
+                },
+            })
+        } else {
+            Ok(Self {
+                name,
+                kind: AttributeKind::Empty(None),
+            })
+        }
+    }
+}
+
+impl Parse for UnquotedValueNode<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(Ident::peek_any) || lookahead.peek(LitInt) {
+            input.parse().map(Self::UnquotedName)
+        } else if lookahead.peek(LitStr) {
+            input.parse().map(Self::Literal)
+        } else if lookahead.peek(Token![@]) {
+            input.parse().map(Self::Control)
+        } else if lookahead.peek(Brace) {
+            input.parse().map(Self::Expr)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for QuotedValueNode<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(LitStr) {
+            input.parse().map(Self::Literal)
+        } else if lookahead.peek(Token![@]) {
+            input.parse().map(Self::Control)
+        } else if lookahead.peek(Brace) {
+            input.parse().map(Self::Expr)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Parse for ComponentAttribute<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            name: input.parse()?,
+            value: {
+                input.parse::<Token![=]>()?;
+
+                input.parse()?
             },
         })
     }
 }
 
-#[derive(Debug, Clone, ToTokens)]
-enum NodeMatchArmBody {
-    Block(KeywordBlock),
-    Node(Node),
-}
+impl Parse for ComponentAttributeValue<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
 
-impl ParseRecoverable for NodeMatchArmBody {
-    fn parse_recoverable(parser: &mut RecoverableContext, input: ParseStream) -> Option<Self> {
-        if input.peek(Brace) {
-            parser.parse_recoverable(input).map(Self::Block)
+        if lookahead.peek(Ident::peek_any) {
+            input.parse().map(Self::UnquotedName)
+        } else if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
+            input.parse().map(Self::Literal)
+        } else if lookahead.peek(Brace) {
+            input.parse().map(Self::Expr)
         } else {
-            parser.parse_recoverable(input).map(Self::Node)
+            Err(lookahead.error())
         }
-    }
-}
-
-impl Generate for NodeMatchArmBody {
-    fn generate(&self, g: &mut Generator) {
-        match self {
-            Self::Block(block) => g.push(block),
-            Self::Node(node) => g.push(node),
-        }
-    }
-}
-
-fn node_name_ident(node_name: &NodeName) -> Ident {
-    match node_name {
-        NodeName::Path(ExprPath { path, .. }) => path.segments.last().map_or_else(
-            || Ident::new("_", path.span()),
-            |segment| {
-                syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
-                    |_| Ident::new_raw(&segment.ident.to_string(), segment.ident.span()),
-                    |mut ident| {
-                        ident.set_span(segment.ident.span());
-                        ident
-                    },
-                )
-            },
-        ),
-        NodeName::Punctuated(punctuated) => {
-            let string = punctuated.pairs().map(Pair::into_tuple).fold(
-                String::new(),
-                |mut acc, (ident, punct)| {
-                    acc.push_str(&ident.to_string());
-                    if punct.is_some() {
-                        acc.push('_');
-                    }
-                    acc
-                },
-            );
-
-            syn::parse_str::<Ident>(&string).map_or_else(
-                |_| Ident::new_raw(&string, punctuated.span()),
-                |mut ident| {
-                    ident.set_span(punctuated.span());
-                    ident
-                },
-            )
-        }
-        NodeName::Block(_) => Ident::new("_", node_name.span()),
-    }
-}
-
-fn node_name_ident_or_namespace(node_name: &NodeName) -> (Ident, bool) {
-    match node_name {
-        NodeName::Path(ExprPath { path, .. }) => match path.segments.len() {
-            0 => (Ident::new("_", node_name.span()), false),
-            l => {
-                let segment = path.segments.first().unwrap();
-                let ident = syn::parse2::<Ident>(segment.ident.to_token_stream()).map_or_else(
-                    |_| Ident::new_raw(&segment.ident.to_string(), node_name.span()),
-                    |mut ident| {
-                        ident.set_span(node_name.span());
-                        ident
-                    },
-                );
-                let is_namespace = l > 1;
-                (ident, is_namespace)
-            }
-        },
-        NodeName::Punctuated(punctuated) => {
-            let string = punctuated.pairs().map(Pair::into_tuple).try_fold(
-                String::new(),
-                |mut acc, (fragment, punct)| {
-                    acc.push_str(&fragment.to_string());
-
-                    if let Some(punct) = punct {
-                        if punct.as_char() == ':' {
-                            return ControlFlow::Break(acc);
-                        } else if punct.as_char() == '-' {
-                            acc.push('_');
-                        }
-                    }
-
-                    ControlFlow::Continue(acc)
-                },
-            );
-
-            let (string, is_namespace) = match string {
-                ControlFlow::Break(string) => (string, true),
-                ControlFlow::Continue(string) => (string, false),
-            };
-
-            (
-                // results in better editor hover-doc support than unconditional `new_raw` usage
-                syn::parse_str::<Ident>(&string).map_or_else(
-                    |_| Ident::new_raw(&string, node_name.span()),
-                    |mut ident| {
-                        ident.set_span(node_name.span());
-                        ident
-                    },
-                ),
-                is_namespace,
-            )
-        }
-        NodeName::Block(_) => (Ident::new("_", node_name.span()), false),
-    }
-}
-
-fn node_name_lit(node_name: &NodeName) -> LitStr {
-    match node_name {
-        NodeName::Path(ExprPath { path, .. }) => {
-            let string =
-                path.segments
-                    .iter()
-                    .enumerate()
-                    .fold(String::new(), |mut acc, (i, segment)| {
-                        if i > 0 {
-                            acc.push_str("::");
-                        }
-                        acc.push_str(&segment.ident.to_string());
-                        acc
-                    });
-
-            LitStr::new(&string, node_name.span())
-        }
-        NodeName::Punctuated(punctuated) => {
-            let string = punctuated.pairs().map(Pair::into_tuple).fold(
-                String::new(),
-                |mut acc, (ident, punct)| {
-                    acc.push_str(&ident.to_string());
-                    if let Some(punct) = punct {
-                        acc.push(punct.as_char());
-                    }
-                    acc
-                },
-            );
-
-            LitStr::new(&string, node_name.span())
-        }
-        NodeName::Block(_) => LitStr::new("", node_name.span()),
     }
 }

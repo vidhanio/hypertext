@@ -56,7 +56,7 @@
 //! // expands to (roughly):
 //!
 //! {
-//!     const _: () = {
+//!     const _: fn() = || {
 //!         html_elements::div;
 //!         html_elements::h1;
 //!         let _: hypertext::Attribute = html_elements::div::id;
@@ -70,7 +70,7 @@
 //!         );
 //!
 //!         for i in 1..=3 {
-//!             const _: () = {
+//!             const _: fn() = || {
 //!                 html_elements::p;
 //!                 let _: hypertext::Attribute = html_elements::p::class;
 //!             };
@@ -125,18 +125,18 @@
 
 #[cfg(feature = "alloc")]
 mod alloc;
-mod attributes;
 pub mod frameworks;
 pub mod html_elements;
 #[doc(hidden)]
 pub mod proc_macros;
+mod validation;
 mod web;
 
 pub mod prelude;
 
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;
-pub use self::attributes::*;
+pub use self::validation::*;
 
 /// Render static HTML using [`maud`] syntax.
 ///
@@ -165,7 +165,6 @@ pub use self::attributes::*;
 ///
 /// [`maud`]: https://docs.rs/maud
 #[macro_export]
-#[cfg(feature = "maud")]
 macro_rules! maud_static {
     ($($tokens:tt)*) => {
         $crate::Raw($crate::proc_macros::maud_literal!($($tokens)*))
@@ -194,15 +193,11 @@ macro_rules! maud_static {
 /// );
 /// ```
 #[macro_export]
-#[cfg(feature = "rsx")]
 macro_rules! rsx_static {
     ($($tokens:tt)*) => {
         $crate::Raw($crate::proc_macros::rsx_literal!($($tokens)*))
     };
 }
-
-/// Elements that can be self-closing.
-pub trait VoidElement {}
 
 /// A raw value that is rendered without escaping.
 ///

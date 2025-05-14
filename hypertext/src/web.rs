@@ -130,3 +130,21 @@ mod warp {
         }
     }
 }
+
+#[cfg(feature = "http")]
+mod http {
+    extern crate alloc;
+
+    use alloc::string::String;
+
+    use http::Uri;
+
+    use crate::{DisplayExt, Renderable};
+
+    impl Renderable for Uri {
+        #[inline]
+        fn render_to(&self, output: &mut String) {
+            self.renderable().render_to(output);
+        }
+    }
+}

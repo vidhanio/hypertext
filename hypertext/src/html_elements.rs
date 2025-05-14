@@ -1,33 +1,54 @@
 //! HTML elements.
 
-#[macro_export]
 /// Create a set of HTML elements.
-/// Every element is represented as a block containing its attributes.
 ///
-/// This macro should be called from within the `html_elements` module.
+/// This macro should be called from within an `html_elements` module.
 ///
-/// Example:
+/// # Example
+///
 /// ```rust
 /// mod html_elements {
 ///     use hypertext::elements;
-///     // Import all existing html elements
+///     // Re-export all standard HTML elements
 ///     pub use hypertext::html_elements::*;
 ///
-///     // Define a greeting element which is a custom web component (like the Lit example)
 ///     elements! {
 ///         /// A custom web component that greets the user.
 ///         simple_greeting {
 ///             /// The name of the person to greet.
 ///             name
 ///         }
+///
+///         /// An element representing a coordinate.
+///         coordinate {
+///             /// The x coordinate.
+///             x
+///
+///             /// The y coordinate.
+///             y
+///         }
 ///     }
 /// }
+///
+/// // Now, you can use the custom elements like this:
+///
+/// use hypertext::{prelude::*, Rendered};
+///
+/// assert_eq!(
+///     maud! {
+///         simple_greeting name="Alice" {
+///             coordinate x=1 y=2 {}
+///         }
+///     }.render(),
+///     Rendered(r#"<simple_greeting name="Alice"><coordinate x="1" y="2"></coordinate></simple_greeting>"#),
+/// )
 /// ```
+#[macro_export]
 macro_rules! elements {
     {
         $(
-            $(#[$element_meta:meta])*
-            $element:ident $(
+            $(#[$meta:meta])*
+            $name:ident $(
                 {
                     $(
                         $(#[$attr_meta:meta])*
@@ -38,22 +59,26 @@ macro_rules! elements {
         )*
     } => {
         $(
-            $(#[$element_meta])*
+            $(#[$meta])*
             #[allow(non_camel_case_types)]
-            #[derive(Debug, Clone, Copy)]
-            pub struct $element;
+            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
+            pub struct $name;
 
-            impl $element {
-                $(
+            $(
+                #[allow(non_upper_case_globals)]
+                impl $name {
                     $(
                         $(#[$attr_meta])*
-                        #[allow(non_upper_case_globals)]
                         pub const $attr: $crate::Attribute = $crate::Attribute;
                     )*
-                )?
+                }
+            )?
+
+            impl $crate::Element for $name {
+                type Kind = $crate::Normal;
             }
 
-            impl $crate::GlobalAttributes for $element {}
+            impl $crate::GlobalAttributes for $name {}
         )*
     }
 }
@@ -67,90 +92,6 @@ elements! {
 
     /// The document's title or name.
     title
-
-    /// Allows authors to specify the document base URL for the purposes of
-    /// parsing URLs, and the name of the default navigable for the purposes of
-    /// following hyperlinks.
-    base {
-        /// Document base URL
-        href
-
-        /// Default navigable for hyperlink navigation and form submission
-        target
-    }
-
-    /// Allows authors to link their document to other resources.
-    link {
-        /// Address of the hyperlink
-        href
-
-        /// How the element handles crossorigin requests
-        crossorigin
-
-        /// Relationship between the document containing the hyperlink and the
-        /// destination resource
-        rel
-
-        /// Applicable media
-        media
-
-        /// Integrity metadata used in _Subresource Integrity_ checks
-        integrity
-
-        /// Language of the linked resource
-        hreflang
-
-        /// Hint for the type of the referenced resource
-        r#type
-
-        /// Referrer policy for fetches initiated by the element
-        referrerpolicy
-
-        /// Sizes of the icons (for `rel="icon"`)
-        sizes
-
-        /// Images to use in different situations, e.g., high-resolution
-        /// displays, small monitors, etc. (for `rel="preload"`)
-        imagesrcset
-
-        /// Image sizes for different page layouts (for `rel="preload"`)
-        imagesizes
-
-        /// Potential destination for a preload request (for `rel="preload"` and
-        /// `rel="modulepreload"`)
-        r#as
-
-        /// Whether the element is potentially render-blocking
-        blocking
-
-        /// Color to use when customizing a site's icon (for `rel="mask-icon"`)
-        color
-
-        /// Whether the link is disabled
-        disabled
-
-        /// Sets the priority for fetches initiated by the element
-        fetchpriority
-    }
-
-    /// Various kinds of metadata that cannot be expressed using the `title`,
-    /// `base`, `link`, `style`, and `script` elements.
-    meta {
-        /// Metadata name
-        name
-
-        /// Pragma directive
-        http_equiv
-
-        /// Value of the element
-        content
-
-        /// Character encoding declaration
-        charset
-
-        /// Applicable media
-        media
-    }
 
     /// Allows authors to embed CSS style sheets in their documents.
     style {
@@ -216,12 +157,6 @@ elements! {
     /// A paragraph.
     p
 
-    /// A paragraph-level thematic break, e.g., a scene change in a story, or a
-    /// transition to another topic within a section of a reference book;
-    /// alternatively, it represents a separator between a set of options of a
-    /// select element.
-    hr
-
     /// A block of preformatted text, in which structure is represented by
     /// typographic conventions rather than by elements.
     pre
@@ -232,7 +167,6 @@ elements! {
         /// edit
         cite
     }
-
 
     /// A list of items, where the items have been intentionally ordered, such
     /// that changing the order would change the meaning of the document.
@@ -270,7 +204,6 @@ elements! {
     /// The term, or name, part of a term-description group in a description
     /// list (`dl` element).
     dt
-
 
     /// The description, definition, or value, part of a term-description group
     /// in a description list (`dl` element).
@@ -434,12 +367,6 @@ elements! {
     /// No special meaning.
     span
 
-    /// A line break.
-    br
-
-    /// A line break opportunity.
-    wbr
-
     /// An addition to the document.
     ins {
         /// Link to the source of the quotation or more information about the
@@ -465,75 +392,6 @@ elements! {
     /// user agent about which image resource to use, based on the screen pixel
     /// density, viewport size, image format, and other factors.
     picture
-
-    /// Allows authors to specify multiple alternative source sets for `img`
-    /// elements or multiple alternative media resources for media elements.
-    source {
-        /// Type of embedded resource
-        r#type
-
-        /// Applicable media
-        media
-
-        /// Address of the resource
-        src
-
-        /// Images to use in different situations, e.g., high-resolution
-        /// displays, small monitors, etc.
-        srcset
-
-        /// Image sizes for different page layouts
-        sizes
-
-        /// Horizontal dimension
-        width
-
-        /// Vertical dimension
-        height
-    }
-
-    /// An image.
-    img {
-        /// Replacement text for use when images are not available
-        alt
-
-        /// Address of the resource
-        src
-
-        /// Images to use in different situations, e.g., high-resolution
-        /// displays, small monitors, etc.
-        srcset
-
-        /// Image sizes for different page layouts
-        sizes
-
-        /// How the element handles crossorigin requests
-        crossorigin
-
-        /// Name of image map to use
-        usemap
-
-        /// Whether the image is a server-side image map
-        ismap
-
-        /// Horizontal dimension
-        width
-
-        /// Vertical dimension
-        height
-
-        /// Referrer policy for fetches initiated by the element
-        referrerpolicy
-
-        /// Decoding hint to use when processing this image for presentation
-        decoding
-
-        /// Used when determining loading deferral
-        loading
-
-        /// Sets the priority for fetches initiated by the element
-        fetchpriority
-    }
 
     /// Contains a content navigable.
     iframe {
@@ -567,21 +425,6 @@ elements! {
 
         /// Used when determining loading deferral
         loading
-    }
-
-    /// An integration point for an external application or interactive content.
-    embed {
-        /// Address of the resource
-        src
-
-        /// Type of embedded resource
-        r#type
-
-        /// Horizontal dimension
-        width
-
-        /// Vertical dimension
-        height
     }
 
     /// An external resource, which, depending on the type of the resource, will
@@ -669,62 +512,10 @@ elements! {
         controls
     }
 
-    /// Allows authors to specify explicit external timed text tracks for media
-    /// elements.
-    track {
-        /// The type of text track
-        kind
-
-        /// Address of the resource
-        src
-
-        /// Language of the text track
-        srclang
-
-        /// User-visible label
-        label
-
-        /// Enable the track if no other text track is more suitable
-        default
-    }
-
     /// Defines an image map.
     map {
         /// Name of image map to reference from the `usemap` attribute
         name
-    }
-
-    /// Either a hyperlink with some text and a corresponding area on an image
-    /// map, or a dead area on an image map.
-    area {
-        /// Replacement text for use when images are not available
-        alt
-
-        /// Coordinates for the shape to be created in an image map
-        coords
-
-        /// The kind of shape to be created in an image map
-        shape
-
-        /// Address of the hyperlink
-        href
-
-        /// Navigable for hyperlink navigation
-        target
-
-        /// Whether to download the resource instead of navigating to it, and
-        /// its filename if so
-        download
-
-        /// URLs to ping
-        ping
-
-        /// Relationship between the location in the document containing the
-        /// hyperlink and the destination resource
-        rel
-
-        /// Referrer policy for fetches initiated by the element
-        referrerpolicy
     }
 
     /// Data with more than one dimension, in the form of a table.
@@ -737,13 +528,6 @@ elements! {
     /// A group of one or more columns in the `table` that is its parent, if it
     /// has a parent and that is a `table` element.
     colgroup {
-        /// Number of columns spanned by the element
-        span
-    }
-
-    /// One or more columns in the column group represented by a parent
-    /// `colgroup`.
-    col {
         /// Number of columns spanned by the element
         span
     }
@@ -835,112 +619,6 @@ elements! {
         r#for
     }
 
-    /// A typed data field, usually with a form control to allow the user to
-    /// edit the data.
-    input {
-        /// Hint for expected file type in file upload controls
-        accept
-
-        /// Replacement text for use when images are not available
-        alt
-
-        /// Hint for form autofill feature
-        autocomplete
-
-        /// Media capture input method in file upload controls
-        capture
-
-        /// Whether the control is checked
-        checked
-
-        /// Name of form control to use for sending the element's directionality
-        /// in form submission
-        dirname
-
-        /// Whether the form control is disabled
-        disabled
-
-        /// Associates the element with a `form` element
-        form
-
-        /// URL to use for form submission
-        formaction
-
-        /// Entry list encoding type to use for form submission
-        formenctype
-
-        /// Variant to use for form submission
-        formmethod
-
-        /// Bypass form control validation for form submission
-        formnovalidate
-
-        /// Navigable for form submission
-        formtarget
-
-        /// Vertical dimension
-        height
-
-        /// List of autocomplete options
-        list
-
-        /// Maximum value
-        max
-
-        /// Maximum length of value
-        maxlength
-
-        /// Minimum value
-        min
-
-        /// Minimum length of value
-        minlength
-
-        /// Whether to allow multiple values
-        multiple
-
-        /// Name of the element to use for form submission and in the
-        /// `form.elements` API
-        name
-
-        /// Pattern to be matched by the form control's value
-        pattern
-
-        /// User-visible label to be placed within the form control
-        placeholder
-
-        /// Targets a popover element to toggle, show, or hide
-        popovertarget
-
-        /// Indicates whether a targeted popover element is to be toggled,
-        /// shown, or hidden
-        popovertargetaction
-
-        /// Whether to allow the value to be edited by the user
-        readonly
-
-        /// Whether the control is required for form submission
-        required
-
-        /// Size of the control
-        size
-
-        /// Address of the resource
-        src
-
-        /// Granularity to be matched by the form control's value
-        step
-
-        /// Type of form control
-        r#type
-
-        /// Value of the form control
-        value
-
-        /// Horizontal dimension
-        width
-    }
-
     /// A button labeled by its contents.
     button {
         /// Whether the form control is disabled
@@ -1010,7 +688,6 @@ elements! {
     /// A set of option elements that represent predefined options for other
     /// controls.
     datalist
-
 
     /// A group of `option` elements with a common label.
     optgroup {
@@ -1234,12 +911,388 @@ elements! {
     }
 }
 
-macro_rules! void {
-    ($($el:ident)*) => {
-        $(impl crate::VoidElement for $el {})*
-    };
+macro_rules! void_elements {
+    {
+        $(
+            $(#[$meta:meta])*
+            $name:ident $(
+                {
+                    $(
+                        $(#[$attr_meta:meta])*
+                        $attr:ident
+                    )*
+                }
+            )?
+        )*
+    } => {
+        $(
+            $(#[$meta])*
+            #[allow(non_camel_case_types)]
+            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
+            pub struct $name;
+
+            $(
+                #[allow(non_upper_case_globals)]
+                impl $name {
+                    $(
+                        $(#[$attr_meta])*
+                        pub const $attr: $crate::Attribute = $crate::Attribute;
+                    )*
+                }
+            )?
+
+            impl $crate::Element for $name {
+                type Kind = $crate::Void;
+            }
+
+            impl $crate::GlobalAttributes for $name {}
+        )*
+    }
 }
 
-void! {
-    area base br col embed hr img input link meta source track wbr
+void_elements! {
+    /// Either a hyperlink with some text and a corresponding area on an image
+    /// map, or a dead area on an image map.
+    area {
+        /// Replacement text for use when images are not available
+        alt
+
+        /// Coordinates for the shape to be created in an image map
+        coords
+
+        /// The kind of shape to be created in an image map
+        shape
+
+        /// Address of the hyperlink
+        href
+
+        /// Navigable for hyperlink navigation
+        target
+
+        /// Whether to download the resource instead of navigating to it, and
+        /// its filename if so
+        download
+
+        /// URLs to ping
+        ping
+
+        /// Relationship between the location in the document containing the
+        /// hyperlink and the destination resource
+        rel
+
+        /// Referrer policy for fetches initiated by the element
+        referrerpolicy
+    }
+
+    /// Allows authors to specify the document base URL for the purposes of
+    /// parsing URLs, and the name of the default navigable for the purposes of
+    /// following hyperlinks.
+    base {
+        /// Document base URL
+        href
+
+        /// Default navigable for hyperlink navigation and form submission
+        target
+    }
+
+    /// A line break.
+    br
+
+    /// One or more columns in the column group represented by a parent
+    /// `colgroup`.
+    col {
+        /// Number of columns spanned by the element
+        span
+    }
+
+    /// An integration point for an external application or interactive content.
+    embed {
+        /// Address of the resource
+        src
+
+        /// Type of embedded resource
+        r#type
+
+        /// Horizontal dimension
+        width
+
+        /// Vertical dimension
+        height
+    }
+
+    /// A paragraph-level thematic break, e.g., a scene change in a story, or a
+    /// transition to another topic within a section of a reference book;
+    /// alternatively, it represents a separator between a set of options of a
+    /// select element.
+    hr
+
+    /// An image.
+    img {
+        /// Replacement text for use when images are not available
+        alt
+
+        /// Address of the resource
+        src
+
+        /// Images to use in different situations, e.g., high-resolution
+        /// displays, small monitors, etc.
+        srcset
+
+        /// Image sizes for different page layouts
+        sizes
+
+        /// How the element handles crossorigin requests
+        crossorigin
+
+        /// Name of image map to use
+        usemap
+
+        /// Whether the image is a server-side image map
+        ismap
+
+        /// Horizontal dimension
+        width
+
+        /// Vertical dimension
+        height
+
+        /// Referrer policy for fetches initiated by the element
+        referrerpolicy
+
+        /// Decoding hint to use when processing this image for presentation
+        decoding
+
+        /// Used when determining loading deferral
+        loading
+
+        /// Sets the priority for fetches initiated by the element
+        fetchpriority
+    }
+
+    /// A typed data field, usually with a form control to allow the user to
+    /// edit the data.
+    input {
+        /// Hint for expected file type in file upload controls
+        accept
+
+        /// Replacement text for use when images are not available
+        alt
+
+        /// Hint for form autofill feature
+        autocomplete
+
+        /// Media capture input method in file upload controls
+        capture
+
+        /// Whether the control is checked
+        checked
+
+        /// Name of form control to use for sending the element's directionality
+        /// in form submission
+        dirname
+
+        /// Whether the form control is disabled
+        disabled
+
+        /// Associates the element with a `form` element
+        form
+
+        /// URL to use for form submission
+        formaction
+
+        /// Entry list encoding type to use for form submission
+        formenctype
+
+        /// Variant to use for form submission
+        formmethod
+
+        /// Bypass form control validation for form submission
+        formnovalidate
+
+        /// Navigable for form submission
+        formtarget
+
+        /// Vertical dimension
+        height
+
+        /// List of autocomplete options
+        list
+
+        /// Maximum value
+        max
+
+        /// Maximum length of value
+        maxlength
+
+        /// Minimum value
+        min
+
+        /// Minimum length of value
+        minlength
+
+        /// Whether to allow multiple values
+        multiple
+
+        /// Name of the element to use for form submission and in the
+        /// `form.elements` API
+        name
+
+        /// Pattern to be matched by the form control's value
+        pattern
+
+        /// User-visible label to be placed within the form control
+        placeholder
+
+        /// Targets a popover element to toggle, show, or hide
+        popovertarget
+
+        /// Indicates whether a targeted popover element is to be toggled,
+        /// shown, or hidden
+        popovertargetaction
+
+        /// Whether to allow the value to be edited by the user
+        readonly
+
+        /// Whether the control is required for form submission
+        required
+
+        /// Size of the control
+        size
+
+        /// Address of the resource
+        src
+
+        /// Granularity to be matched by the form control's value
+        step
+
+        /// Type of form control
+        r#type
+
+        /// Value of the form control
+        value
+
+        /// Horizontal dimension
+        width
+    }
+
+    /// Allows authors to link their document to other resources.
+    link {
+        /// Address of the hyperlink
+        href
+
+        /// How the element handles crossorigin requests
+        crossorigin
+
+        /// Relationship between the document containing the hyperlink and the
+        /// destination resource
+        rel
+
+        /// Applicable media
+        media
+
+        /// Integrity metadata used in _Subresource Integrity_ checks
+        integrity
+
+        /// Language of the linked resource
+        hreflang
+
+        /// Hint for the type of the referenced resource
+        r#type
+
+        /// Referrer policy for fetches initiated by the element
+        referrerpolicy
+
+        /// Sizes of the icons (for `rel="icon"`)
+        sizes
+
+        /// Images to use in different situations, e.g., high-resolution
+        /// displays, small monitors, etc. (for `rel="preload"`)
+        imagesrcset
+
+        /// Image sizes for different page layouts (for `rel="preload"`)
+        imagesizes
+
+        /// Potential destination for a preload request (for `rel="preload"` and
+        /// `rel="modulepreload"`)
+        r#as
+
+        /// Whether the element is potentially render-blocking
+        blocking
+
+        /// Color to use when customizing a site's icon (for `rel="mask-icon"`)
+        color
+
+        /// Whether the link is disabled
+        disabled
+
+        /// Sets the priority for fetches initiated by the element
+        fetchpriority
+    }
+
+    /// Various kinds of metadata that cannot be expressed using the `title`,
+    /// `base`, `link`, `style`, and `script` elements.
+    meta {
+        /// Metadata name
+        name
+
+        /// Pragma directive
+        http_equiv
+
+        /// Value of the element
+        content
+
+        /// Character encoding declaration
+        charset
+
+        /// Applicable media
+        media
+    }
+
+    /// Allows authors to specify multiple alternative source sets for `img`
+    /// elements or multiple alternative media resources for media elements.
+    source {
+        /// Type of embedded resource
+        r#type
+
+        /// Applicable media
+        media
+
+        /// Address of the resource
+        src
+
+        /// Images to use in different situations, e.g., high-resolution
+        /// displays, small monitors, etc.
+        srcset
+
+        /// Image sizes for different page layouts
+        sizes
+
+        /// Horizontal dimension
+        width
+
+        /// Vertical dimension
+        height
+    }
+
+    /// Allows authors to specify explicit external timed text tracks for media
+    /// elements.
+    track {
+        /// The type of text track
+        kind
+
+        /// Address of the resource
+        src
+
+        /// Language of the text track
+        srclang
+
+        /// User-visible label
+        label
+
+        /// Enable the track if no other text track is more suitable
+        default
+    }
+
+    /// A line break opportunity.
+    wbr
 }
