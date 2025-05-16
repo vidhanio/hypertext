@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use syn::{
-    Ident, LitBool, LitFloat, LitInt, LitStr, Token, braced,
+    Ident, Lit, LitBool, LitFloat, LitInt, LitStr, Token, braced,
     ext::IdentExt,
     parse::{Nothing, Parse, ParseStream, discouraged::Speculative},
     spanned::Spanned,
@@ -241,7 +241,11 @@ impl Parse for ElementNode<Rsx> {
         } else if lookahead.peek(Ident::peek_any) {
             let ident = input.call(Ident::parse_any)?;
 
-            let ident_string = if input.peek(Ident::peek_any) {
+            let ident_string = if input.peek(Ident::peek_any)
+                || input.peek(LitInt)
+                || input.peek(LitBool)
+                || input.peek(LitFloat)
+            {
                 format!("{ident} ")
             } else {
                 ident.to_string()
