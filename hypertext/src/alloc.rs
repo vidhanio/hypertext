@@ -10,6 +10,68 @@ use alloc::{
 };
 use core::fmt::{self, Debug, Display, Formatter, Write};
 
+use variadics_please::all_tuples_enumerated;
+
+/// Derive [`AttributeRenderable`] for a type via its [`Display`]
+/// implementation.
+///
+/// The implementation will automatically escape special characters for you.
+///
+/// # Example
+///
+/// ```
+/// use std::fmt::{self, Display, Formatter};
+///
+/// use hypertext::prelude::*;
+///
+/// #[derive(AttributeRenderable)]
+/// pub struct Position {
+///     x: i32,
+///     y: i32,
+/// }
+///
+/// impl Display for Position {
+///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+///         write!(f, "{},{}", self.x, self.y)
+///     }
+/// }
+///
+/// assert_eq!(
+///     maud! { div title=(Position { x: 1, y: 2 }) {} }.render(),
+///     Rendered(r#"<div title="1,2"></div>"#),
+/// );
+/// ```
+#[cfg(feature = "alloc")]
+pub use crate::proc_macros::AttributeRenderable;
+/// Derive [`Renderable`] for a type via its [`Display`] implementation.
+///
+/// The implementation will automatically escape special characters for you.
+///
+/// # Example
+///
+/// ```
+/// use std::fmt::{self, Display, Formatter};
+///
+/// use hypertext::prelude::*;
+///
+/// #[derive(Renderable)]
+/// pub struct Person {
+///     name: String,
+/// }
+///
+/// impl Display for Person {
+///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+///         write!(f, "My name is {}!", self.name)
+///     }
+/// }
+///
+/// assert_eq!(
+///     maud! { div { (Person { name: "Alice".into() }) } }.render(),
+///     Rendered(r#"<div>My name is Alice!</div>"#),
+/// );
+/// ```
+#[cfg(feature = "alloc")]
+pub use crate::proc_macros::Renderable;
 use crate::{Raw, Rendered};
 
 /// Generate HTML using [`maud`] syntax, returning a [`Lazy`].
@@ -22,8 +84,6 @@ use crate::{Raw, Rendered};
 /// - [`id`]'s shorthand (`#`), if specified, must be the first attribute.
 /// - [`class`]'s shorthand (`.`), if specified must be the second group of
 ///   attributes.
-/// - Optional [`class`]es (`.some-class[condition]`) must come after all
-///   required [`class`]es.
 ///
 /// Additionally, adding `!DOCTYPE` at the beginning of the invocation will
 /// render `"<!DOCTYPE html>"`.
@@ -50,7 +110,6 @@ use crate::{Raw, Rendered};
 /// [`id`]: crate::GlobalAttributes::id
 /// [`class`]: crate::GlobalAttributes::class
 #[macro_export]
-#[cfg(feature = "maud")]
 macro_rules! maud {
     ($($tokens:tt)*) => {
         {
@@ -72,7 +131,6 @@ macro_rules! maud {
 ///
 /// [`maud!`]: crate::maud
 #[macro_export]
-#[cfg(feature = "maud")]
 macro_rules! maud_borrow {
     ($($tokens:tt)*) => {
         {
@@ -101,7 +159,6 @@ macro_rules! maud_borrow {
 /// );
 /// ```
 #[macro_export]
-#[cfg(feature = "rsx")]
 macro_rules! rsx {
     ($($tokens:tt)*) => {
         {
@@ -121,7 +178,6 @@ macro_rules! rsx {
 /// some captured variables, but you still want to be able to use the variables
 /// after the [`Lazy`] is created.
 #[macro_export]
-#[cfg(feature = "rsx")]
 macro_rules! rsx_borrow {
     ($($tokens:tt)*) => {
         {
@@ -139,7 +195,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
     }
 }
 
-/// A type that can be rendered to a string.
+/// A type that can be rendered as an HTML node.
 ///
 /// # Example
 ///
@@ -174,10 +230,14 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// );
 /// ```
 pub trait Renderable {
-    /// Renders this type to the given string.
+    /// Renders this value to the given string.
     ///
-    /// This must handle escaping any special characters and match the
-    /// implementation of [`render`] and [`memoize`].
+    /// This does not necessarily have to escape special characters, as it is
+    /// intended to be used for rendering raw HTML. If being implemented on a
+    /// string-like type, this should escape `&` to `&amp;`, `<` to `&lt;`, and
+    /// `>` to `&gt;`.
+    ///
+    /// This must match the implementation of [`render`] and [`memoize`].
     ///
     /// [`render`]: Renderable::render
     /// [`memoize`]: Renderable::memoize
@@ -186,16 +246,17 @@ pub trait Renderable {
     /// Renders this value to a string. This is a convenience method that
     /// calls [`render_to`] on a new [`String`] and returns the result.
     ///
-    /// This must handle escaping any special characters and match the
-    /// implementation of [`render_to`] and [`memoize`].
+    /// If overriding this method for performance reasons, you should prefer to
+    /// override [`memoize`] instead as the default implementation of this
+    /// method calls [`memoize`] then wraps it in a [`Rendered`].
+    ///
+    /// This must match the implementation of [`render_to`] and [`memoize`].
     ///
     /// [`render_to`]: Renderable::render_to
     /// [`memoize`]: Renderable::memoize
     #[inline]
     fn render(&self) -> Rendered<String> {
-        let mut output = String::new();
-        self.render_to(&mut output);
-        Rendered(output)
+        Rendered(self.memoize().into_inner())
     }
 
     /// Pre-renders the value and stores it in a [`Raw`] so that it can be
@@ -205,8 +266,7 @@ pub trait Renderable {
     /// may be useful if it is more expensive to compute the value multiple
     /// times.
     ///
-    /// This must handle escaping any special characters and match the
-    /// implementation of [`render`] and [`render_to`].
+    /// This must match the implementation of [`render`] and [`render_to`].
     ///
     /// [`render`]: Renderable::render
     /// [`render_to`]: Renderable::render_to
@@ -216,83 +276,19 @@ pub trait Renderable {
         self.render_to(&mut output);
         Raw(output)
     }
-
-    /// Converts this value into a [`Box<dyn Renderable>`].
-    ///
-    /// This is useful for dynamically generated HTML that needs to be passed
-    /// around as a trait object without being pre-rendered. A common use case
-    /// is when returning [`Lazy`] closures from branched code, where the
-    /// different concrete [`Fn(&mut String)`] implementations stored in the
-    /// [`Lazy`] closures need to be converted to the same type.
-    ///
-    /// Note that this is usually not necessary when using [`maud!`] or
-    /// [`rsx!`], as they provide branching syntax within the macro that allows
-    /// you to generate the same type without needing to convert to a trait
-    /// object.
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use hypertext::prelude::*;
-    ///
-    /// fn cake_status_dyn(likes_cake: bool) -> impl Renderable {
-    ///     if likes_cake {
-    ///         maud! { div { "I like cake!" } }.dyn_renderable()
-    ///     } else {
-    ///         maud! { div { "I don't like cake!" } }.dyn_renderable()
-    ///     }
-    /// }
-    ///
-    /// // instead, could be written as:
-    ///
-    /// fn cake_status(likes_cake: bool) -> impl Renderable {
-    ///     maud! {
-    ///         div {
-    ///             @if likes_cake {
-    ///                 "I like cake!"
-    ///             } @else {
-    ///                 "I don't like cake!"
-    ///             }
-    ///         }
-    ///     }
-    /// }
-    /// # assert_eq!(cake_status_dyn(true).render(), cake_status(true).render());
-    /// # assert_eq!(cake_status_dyn(false).render(), cake_status(false).render());
-    /// ```
-    ///
-    /// [`maud!`]: crate::maud
-    /// [`Fn(&mut String)`]: core::ops::Fn
-    #[inline]
-    fn dyn_renderable<'a>(self) -> Box<dyn Renderable + 'a>
-    where
-        Self: Sized + 'a,
-    {
-        Box::new(self)
-    }
 }
 
-/// A value rendered via its [`Display`] implementation.
+/// A value that can be rendered as an HTML attribute.
 ///
-/// This will handle escaping special characters for you.
-#[derive(Debug, Clone, Copy)]
-pub struct Displayed<T: Display>(pub T);
-
-impl<T: Display> Renderable for Displayed<T> {
-    #[inline]
-    fn render_to(&self, output: &mut String) {
-        struct Escaper<'a>(&'a mut String);
-
-        impl fmt::Write for Escaper<'_> {
-            #[inline]
-            fn write_str(&mut self, s: &str) -> fmt::Result {
-                html_escape::encode_double_quoted_attribute_to_string(s, self.0);
-                Ok(())
-            }
-        }
-
-        // ignore errors, as writing to a string is infallible
-        _ = write!(Escaper(output), "{}", self.0);
-    }
+/// This is present to disallow accidentally rendering [`Renderable`] types
+/// to attributes, as [`Renderable`]s do not necessarily have to be escaped and
+/// can contain raw HTML.
+pub trait AttributeRenderable {
+    /// Renders this value to the given string for use as an attribute value.
+    ///
+    /// This must escape `&` to `&amp;`, `<` to `&lt;`, `>` to `&gt;`, and `"`
+    /// to `&quot;`.
+    fn render_attribute_to(&self, output: &mut String);
 }
 
 /// A value lazily rendered via a closure.
@@ -302,7 +298,7 @@ impl<T: Display> Renderable for Displayed<T> {
 ///
 /// [`maud!`]: crate::maud
 #[derive(Clone, Copy)]
-#[must_use = "`Lazy` does nothing unless `.render_to()` or `.render()` is called"]
+#[must_use = "`Lazy` does nothing unless `.render()` or `.render_to()` is called"]
 pub struct Lazy<F: Fn(&mut String)>(pub F);
 
 impl<F: Fn(&mut String)> Renderable for Lazy<F> {
@@ -319,6 +315,60 @@ impl<F: Fn(&mut String)> Debug for Lazy<F> {
     }
 }
 
+/// An extension trait for [`Display`] types to allow them to be escaped and
+/// rendered as HTML.
+pub trait DisplayExt: Display {
+    /// Makes this value renderable and escapes it for use in HTML.
+    #[inline]
+    fn renderable(&self) -> Displayed<&Self> {
+        Displayed(self)
+    }
+}
+
+impl<T: Display> DisplayExt for T {}
+
+/// A value rendered via its [`Display`] implementation.
+///
+/// This will handle escaping special characters for you.
+///
+/// This can be created more easily via the [`DisplayExt::renderable`] method.
+#[derive(Debug, Clone, Copy)]
+pub struct Displayed<T: Display>(pub T);
+
+impl<T: Display> Renderable for Displayed<T> {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        struct Escaper<'a>(&'a mut String);
+
+        impl fmt::Write for Escaper<'_> {
+            #[inline]
+            fn write_str(&mut self, s: &str) -> fmt::Result {
+                html_escape::encode_text_to_string(s, self.0);
+                Ok(())
+            }
+        }
+
+        _ = write!(Escaper(output), "{}", self.0);
+    }
+}
+
+impl<T: Display> AttributeRenderable for Displayed<T> {
+    #[inline]
+    fn render_attribute_to(&self, output: &mut String) {
+        struct Escaper<'a>(&'a mut String);
+
+        impl fmt::Write for Escaper<'_> {
+            #[inline]
+            fn write_str(&mut self, s: &str) -> fmt::Result {
+                html_escape::encode_double_quoted_attribute_to_string(s, self.0);
+                Ok(())
+            }
+        }
+
+        _ = write!(Escaper(output), "{}", self.0);
+    }
+}
+
 impl<T: AsRef<str>> Renderable for Raw<T> {
     #[inline]
     fn render_to(&self, output: &mut String) {
@@ -326,29 +376,14 @@ impl<T: AsRef<str>> Renderable for Raw<T> {
     }
 
     #[inline]
-    fn render(&self) -> Rendered<String> {
-        Rendered(self.0.as_ref().to_owned())
-    }
-
-    #[inline]
     fn memoize(&self) -> Raw<String> {
-        Raw(self.0.as_ref().to_owned())
+        Raw(self.0.as_ref().into())
     }
 }
 
-impl Renderable for () {
+impl AttributeRenderable for () {
     #[inline]
-    fn render_to(&self, _: &mut String) {}
-
-    #[inline]
-    fn render(&self) -> Rendered<String> {
-        Rendered(String::new())
-    }
-
-    #[inline]
-    fn memoize(&self) -> Raw<String> {
-        Raw(String::new())
-    }
+    fn render_attribute_to(&self, _: &mut String) {}
 }
 
 impl Renderable for char {
@@ -358,48 +393,50 @@ impl Renderable for char {
             '&' => output.push_str("&amp;"),
             '<' => output.push_str("&lt;"),
             '>' => output.push_str("&gt;"),
-            '"' => output.push_str("&quot;"),
             c => output.push(c),
         }
     }
 
     #[inline]
-    fn render(&self) -> Rendered<String> {
-        Rendered(match *self {
-            '&' => "&amp;".to_owned(),
-            '<' => "&lt;".to_owned(),
-            '>' => "&gt;".to_owned(),
-            '"' => "&quot;".to_owned(),
+    fn memoize(&self) -> Raw<String> {
+        Raw(match *self {
+            '&' => "&amp;".into(),
+            '<' => "&lt;".into(),
+            '>' => "&gt;".into(),
             c => c.into(),
         })
     }
+}
 
+impl AttributeRenderable for char {
     #[inline]
-    fn memoize(&self) -> Raw<String> {
-        Raw(match *self {
-            '&' => "&amp;".to_owned(),
-            '<' => "&lt;".to_owned(),
-            '>' => "&gt;".to_owned(),
-            '"' => "&quot;".to_owned(),
-            c => c.into(),
-        })
+    fn render_attribute_to(&self, output: &mut String) {
+        match *self {
+            '&' => output.push_str("&amp;"),
+            '<' => output.push_str("&lt;"),
+            '>' => output.push_str("&gt;"),
+            '"' => output.push_str("&quot;"),
+            c => output.push(c),
+        }
     }
 }
 
 impl Renderable for str {
     #[inline]
     fn render_to(&self, output: &mut String) {
-        html_escape::encode_double_quoted_attribute_to_string(self, output);
-    }
-
-    #[inline]
-    fn render(&self) -> Rendered<String> {
-        Rendered(html_escape::encode_double_quoted_attribute(self).into_owned())
+        html_escape::encode_text_to_string(self, output);
     }
 
     #[inline]
     fn memoize(&self) -> Raw<String> {
-        Raw(html_escape::encode_double_quoted_attribute(self).into_owned())
+        Raw(html_escape::encode_text(self).into_owned())
+    }
+}
+
+impl AttributeRenderable for str {
+    #[inline]
+    fn render_attribute_to(&self, output: &mut String) {
+        html_escape::encode_double_quoted_attribute_to_string(self, output);
     }
 }
 
@@ -410,13 +447,15 @@ impl Renderable for String {
     }
 
     #[inline]
-    fn render(&self) -> Rendered<String> {
-        self.as_str().render()
-    }
-
-    #[inline]
     fn memoize(&self) -> Raw<String> {
         self.as_str().memoize()
+    }
+}
+
+impl AttributeRenderable for String {
+    #[inline]
+    fn render_attribute_to(&self, output: &mut String) {
+        self.as_str().render_attribute_to(output);
     }
 }
 
@@ -427,13 +466,15 @@ impl Renderable for bool {
     }
 
     #[inline]
-    fn render(&self) -> Rendered<String> {
-        Rendered(if *self { "true" } else { "false" }.to_owned())
-    }
-
-    #[inline]
     fn memoize(&self) -> Raw<String> {
-        Raw(if *self { "true" } else { "false" }.to_owned())
+        Raw(if *self { "true" } else { "false" }.into())
+    }
+}
+
+impl AttributeRenderable for bool {
+    #[inline]
+    fn render_attribute_to(&self, output: &mut String) {
+        self.render_to(output);
     }
 }
 
@@ -447,13 +488,15 @@ macro_rules! render_via_itoa {
                 }
 
                 #[inline]
-                fn render(&self) -> Rendered<String> {
-                    Rendered(itoa::Buffer::new().format(*self).to_owned())
-                }
-
-                #[inline]
                 fn memoize(&self) -> Raw<String> {
-                    Raw(itoa::Buffer::new().format(*self).to_owned())
+                    Raw(itoa::Buffer::new().format(*self).into())
+                }
+            }
+
+            impl AttributeRenderable for $Ty {
+                #[inline]
+                fn render_attribute_to(&self, output: &mut String) {
+                    self.render_to(output);
                 }
             }
         )*
@@ -475,13 +518,15 @@ macro_rules! render_via_ryu {
                 }
 
                 #[inline]
-                fn render(&self) -> Rendered<String> {
-                    Rendered(ryu::Buffer::new().format(*self).to_owned())
-                }
-
-                #[inline]
                 fn memoize(&self) -> Raw<String> {
-                    Raw(ryu::Buffer::new().format(*self).to_owned())
+                    Raw(ryu::Buffer::new().format(*self).into())
+                }
+            }
+
+            impl AttributeRenderable for $Ty {
+                #[inline]
+                fn render_attribute_to(&self, output: &mut String) {
+                    self.render_to(output);
                 }
             }
         )*
@@ -490,43 +535,6 @@ macro_rules! render_via_ryu {
 
 render_via_ryu! {
     f32 f64
-}
-
-impl<T: Renderable> Renderable for Option<T> {
-    #[inline]
-    fn render_to(&self, output: &mut String) {
-        if let Some(value) = self {
-            value.render_to(output);
-        }
-    }
-
-    #[inline]
-    fn render(&self) -> Rendered<String> {
-        self.as_ref()
-            .map_or_else(|| Rendered(String::new()), Renderable::render)
-    }
-
-    #[inline]
-    fn memoize(&self) -> Raw<String> {
-        self.as_ref()
-            .map_or_else(|| Raw(String::new()), Renderable::memoize)
-    }
-}
-
-impl<T: Renderable> Renderable for [T] {
-    #[inline]
-    fn render_to(&self, output: &mut String) {
-        for item in self {
-            item.render_to(output);
-        }
-    }
-}
-
-impl<T: Renderable> Renderable for Vec<T> {
-    #[inline]
-    fn render_to(&self, output: &mut String) {
-        self.as_slice().render_to(output);
-    }
 }
 
 macro_rules! render_via_deref {
@@ -546,6 +554,13 @@ macro_rules! render_via_deref {
                 #[inline]
                 fn memoize(&self) -> Raw<String> {
                     T::memoize(&**self)
+                }
+            }
+
+            impl<T: AttributeRenderable + ?Sized> AttributeRenderable for $Ty {
+                #[inline]
+                fn render_attribute_to(&self, output: &mut String) {
+                    T::render_attribute_to(&**self, output);
                 }
             }
         )*
@@ -576,3 +591,60 @@ impl<'a, B: 'a + Renderable + ToOwned + ?Sized> Renderable for Cow<'a, B> {
         B::memoize(&**self)
     }
 }
+
+impl<'a, B: 'a + AttributeRenderable + ToOwned + ?Sized> AttributeRenderable for Cow<'a, B> {
+    #[inline]
+    fn render_attribute_to(&self, output: &mut String) {
+        B::render_attribute_to(&**self, output);
+    }
+}
+
+impl<T: Renderable> Renderable for [T] {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        for item in self {
+            item.render_to(output);
+        }
+    }
+}
+
+impl<T: Renderable, const N: usize> Renderable for [T; N] {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        self.as_slice().render_to(output);
+    }
+}
+
+impl<T: Renderable> Renderable for Vec<T> {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        self.as_slice().render_to(output);
+    }
+}
+
+impl Renderable for () {
+    #[inline]
+    fn render_to(&self, _: &mut String) {}
+}
+
+macro_rules! impl_variadic {
+    ($(#[$meta:meta])* $(($n:tt, $T:ident)),*) => {
+        $(#[$meta])*
+        impl<$($T: Renderable),*> Renderable for ($($T,)*) {
+            #[inline]
+            fn render_to(&self, output: &mut String) {
+                $(
+                    self.$n.render_to(output);
+                )*
+            }
+        }
+    }
+}
+
+all_tuples_enumerated!(
+    #[doc(fake_variadic)]
+    impl_variadic,
+    1,
+    15,
+    T
+);

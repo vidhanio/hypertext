@@ -2,11 +2,8 @@
 name = "htmx-rsx"
 
 edition = "2024"
-license = "MIT"
 publish = false
 version = "0.1.0"
-
-build = "build.rs"
 
 [dependencies]
 axum = "0.8"
