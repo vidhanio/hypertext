@@ -5,7 +5,11 @@ use std::{
 
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, quote, quote_spanned};
-use syn::{LitStr, braced, parse::Parse, spanned::Spanned, token::Brace};
+use syn::{
+    LitStr, braced,
+    parse::Parse,
+    token::{Brace, Paren},
+};
 
 use crate::node::{Markup, Syntax, UnquotedName};
 
@@ -139,7 +143,7 @@ impl Generator {
     }
 
     pub fn push_str(&mut self, s: &'static str) {
-        self.push_spanned_str(s, Span::call_site());
+        self.push_spanned_str(s, Span::mixed_site());
     }
 
     pub fn push_spanned_str(&mut self, s: &'static str, span: Span) {
@@ -148,7 +152,7 @@ impl Generator {
 
     pub fn push_text_lit(&mut self, lit: &LitStr) {
         let value = lit.value();
-        let escaped_value = html_escape::encode_double_quoted_attribute(&value);
+        let escaped_value = html_escape::encode_text(&value);
 
         self.parts
             .push(Part::Static(LitStr::new(&escaped_value, lit.span())));
@@ -156,29 +160,35 @@ impl Generator {
 
     pub fn push_attribute_lit(&mut self, lit: &LitStr) {
         let value = lit.value();
-        let escaped_value = html_escape::encode_text(&value);
+        let escaped_value = html_escape::encode_double_quoted_attribute(&value);
 
         self.parts
             .push(Part::Static(LitStr::new(&escaped_value, lit.span())));
     }
 
-    pub fn push_unquoted_name(&mut self, name: &UnquotedName) {
-        for s in name.strs() {
-            self.parts.push(Part::Static(s));
+    pub fn push_lits(&mut self, literals: Vec<LitStr>) {
+        for lit in literals {
+            self.parts.push(Part::Static(lit));
         }
     }
 
-    pub fn push_text_expr(&mut self, expr: impl ToTokens) {
+    pub fn push_text_expr(&mut self, paren_token: Paren, expr: impl ToTokens) {
         let output_ident = &self.output_ident;
-        let expr = quote_spanned!(expr.span()=> &(#expr));
-        self.push_stmt(quote!(::hypertext::Renderable::render_to(#expr, #output_ident);));
+        let mut paren_expr = TokenStream::new();
+        paren_token.surround(&mut paren_expr, |tokens| expr.to_tokens(tokens));
+        let reference = quote_spanned!(paren_token.span=> &);
+        self.push_stmt(
+            quote!(::hypertext::Renderable::render_to(#reference #paren_expr, #output_ident);),
+        );
     }
 
-    pub fn push_attribute_expr(&mut self, expr: impl ToTokens) {
+    pub fn push_attribute_expr(&mut self, paren_token: Paren, expr: impl ToTokens) {
         let output_ident = &self.output_ident;
-        let expr = quote_spanned!(expr.span()=> &(#expr));
+        let mut paren_expr = TokenStream::new();
+        paren_token.surround(&mut paren_expr, |tokens| expr.to_tokens(tokens));
+        let reference = quote_spanned!(paren_token.span=> &);
         self.push_stmt(
-            quote!(::hypertext::AttributeRenderable::render_attribute_to(#expr, #output_ident);),
+            quote!(::hypertext::AttributeRenderable::render_attribute_to(#reference #paren_expr, #output_ident);),
         );
     }
 
@@ -197,7 +207,7 @@ impl Generator {
         value.generate(self);
     }
 
-    pub fn record_element(&mut self, el_checks: ElementChecks) {
+    pub fn record_element(&mut self, el_checks: ElementCheck) {
         self.checks.push(el_checks);
     }
 
@@ -224,7 +234,7 @@ impl<T: Generate> Generate for &T {
 }
 
 struct Checks {
-    elements: Vec<ElementChecks>,
+    elements: Vec<ElementCheck>,
 }
 
 impl Checks {
@@ -262,7 +272,7 @@ impl ToTokens for Checks {
 }
 
 impl Deref for Checks {
-    type Target = Vec<ElementChecks>;
+    type Target = Vec<ElementCheck>;
 
     fn deref(&self) -> &Self::Target {
         &self.elements
@@ -275,16 +285,15 @@ impl DerefMut for Checks {
     }
 }
 
-pub struct ElementChecks {
+pub struct ElementCheck {
     ident: String,
     kind: ElementKind,
     opening_spans: Vec<Span>,
     closing_spans: Vec<Span>,
-    attributes: Vec<(String, Vec<Span>)>,
-    namespaces: Vec<(String, Vec<Span>)>,
+    attributes: Vec<(AttributeCheckKind, String, Vec<Span>)>,
 }
 
-impl ElementChecks {
+impl ElementCheck {
     pub fn new(el_name: &UnquotedName, element_kind: ElementKind) -> Self {
         Self {
             ident: el_name.ident_string(),
@@ -292,7 +301,6 @@ impl ElementChecks {
             opening_spans: el_name.spans(),
             closing_spans: Vec::new(),
             attributes: Vec::new(),
-            namespaces: Vec::new(),
         }
     }
 
@@ -300,17 +308,12 @@ impl ElementChecks {
         self.closing_spans = el_name.spans();
     }
 
-    pub fn push_attribute(&mut self, attr: &UnquotedName) {
-        self.attributes.push((attr.ident_string(), attr.spans()));
-    }
-
-    pub fn push_namespace(&mut self, namespace: &UnquotedName) {
-        self.namespaces
-            .push((namespace.ident_string(), namespace.spans()));
+    pub fn push_attribute(&mut self, kind: AttributeCheckKind, ident: String, spans: Vec<Span>) {
+        self.attributes.push((kind, ident, spans));
     }
 }
 
-impl ToTokens for ElementChecks {
+impl ToTokens for ElementCheck {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let kind = self.kind;
 
@@ -331,32 +334,31 @@ impl ToTokens for ElementChecks {
             self.opening_spans
                 .first()
                 .copied()
-                .unwrap_or_else(Span::call_site),
+                .unwrap_or_else(Span::mixed_site),
         );
 
-        let check = quote! {
+        let check_kind = quote! {
             check_element::<html_elements::#el, #kind>();
         };
 
         let attr_checks = self
             .attributes
             .iter()
-            .flat_map(|(attr, spans)| spans.iter().map(|span| Ident::new_raw(attr, *span)))
-            .map(|attr| quote!(let _: ::hypertext::Attribute = html_elements::#el::#attr;));
+            .flat_map(|(attr_kind, ident, spans)| {
+                let el = el.clone();
+                spans.iter().map(move |span| {
+                    let attr_ident = Ident::new_raw(ident, *span);
 
-        let ns_checks = self
-            .namespaces
-            .iter()
-            .flat_map(|(namespace, spans)| {
-                spans.iter().map(|span| Ident::new_raw(namespace, *span))
-            })
-            .map(|namespace| quote!(let _: ::hypertext::AttributeNamespace = html_elements::#el::#namespace;));
+                    quote! {
+                        let _: #attr_kind = html_elements::#el::#attr_ident;
+                    }
+                })
+            });
 
         quote! {
-            #check
+            #check_kind
             #(#el_checks)*
             #(#attr_checks)*
-            #(#ns_checks)*
         }
         .to_tokens(tokens);
     }
@@ -373,6 +375,23 @@ impl ToTokens for ElementKind {
         match self {
             Self::Normal => quote!(::hypertext::Normal),
             Self::Void => quote!(::hypertext::Void),
+        }
+        .to_tokens(tokens);
+    }
+}
+
+pub enum AttributeCheckKind {
+    Normal,
+    Namespace,
+    Symbol,
+}
+
+impl ToTokens for AttributeCheckKind {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Normal => quote!(::hypertext::Attribute),
+            Self::Namespace => quote!(::hypertext::AttributeNamespace),
+            Self::Symbol => quote!(::hypertext::AttributeSymbol),
         }
         .to_tokens(tokens);
     }

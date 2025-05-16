@@ -56,6 +56,10 @@ pub struct Attribute;
 #[derive(Debug, Clone, Copy)]
 pub struct AttributeNamespace;
 
+/// An HTML attribute symbol.
+#[derive(Debug, Clone, Copy)]
+pub struct AttributeSymbol;
+
 /// Global HTML attributes.
 ///
 /// This trait must be in scope to use standard HTML attributes such as
@@ -80,7 +84,7 @@ pub struct AttributeNamespace;
 ///     impl GlobalAttributes for custom_element {}
 /// }
 ///
-/// use hypertext::{prelude::*, Rendered};
+/// use hypertext::{Rendered, prelude::*};
 ///
 /// assert_eq!(
 ///     maud! { custom-element title="abc" { "Hello, world!" } }.render(),

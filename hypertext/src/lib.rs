@@ -119,9 +119,10 @@
 //!     Rendered(r#"<div hx-get="/api/endpoint" hx-on:click="alert('Hello, world!')">Hello, world!</div>"#),
 //! );
 //! ```
-#![no_std]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![allow(internal_features)]
 #![deny(clippy::missing_inline_in_public_items)]
+#![no_std]
+#![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg, rustdoc_internals))]
 
 #[cfg(feature = "alloc")]
 mod alloc;

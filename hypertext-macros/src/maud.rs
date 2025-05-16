@@ -1,21 +1,15 @@
-use std::marker::PhantomData;
-
-use proc_macro2::Span;
-use quote::quote;
 use syn::{
-    Ident, LitBool, LitInt, LitStr, Token, braced, bracketed,
+    Ident, LitBool, LitFloat, LitInt, LitStr, Token, braced,
     ext::IdentExt,
-    parenthesized,
     parse::{Nothing, Parse, ParseStream},
     parse_quote_spanned,
     spanned::Spanned,
-    token::{Brace, Bracket, Paren},
+    token::{Brace, Paren},
 };
 
 use crate::node::{
-    AnyExpr, Attribute, AttributeKind, Class, Component, ComponentAttribute,
-    ComponentAttributeValue, ControlSyntax, Element, ElementBody, ElementNode, Group, Markup, Node,
-    QuotedValueNode, Syntax, Toggle, UnquotedName, UnquotedValueNode,
+    Attribute, AttributeKind, Class, Component, ControlSyntax, Element, ElementBody, ElementNode,
+    Group, Markup, Node, QuotedValueNode, Syntax, Toggle, UnquotedName, UnquotedValueNode,
 };
 
 pub struct Maud;
@@ -57,7 +51,11 @@ impl Parse for ElementNode<Maud> {
             } else {
                 input.parse().map(Self::Element)
             }
-        } else if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
+        } else if lookahead.peek(LitStr)
+            || lookahead.peek(LitInt)
+            || lookahead.peek(LitBool)
+            || lookahead.peek(LitFloat)
+        {
             input.parse().map(Self::Literal)
         } else if lookahead.peek(Token![@]) {
             input.parse().map(Self::Control)
@@ -68,18 +66,6 @@ impl Parse for ElementNode<Maud> {
         } else {
             Err(lookahead.error())
         }
-    }
-}
-
-impl Parse for AnyExpr<Maud> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        parenthesized!(content in input);
-
-        Ok(Self {
-            expr: content.parse()?,
-            phantom: PhantomData,
-        })
     }
 }
 
@@ -201,7 +187,7 @@ impl Parse for UnquotedValueNode<Maud> {
         if lookahead.peek(Ident::peek_any) || lookahead.peek(LitInt) {
             input.parse().map(Self::UnquotedName)
         } else if lookahead.peek(LitStr) {
-            input.parse().map(Self::Literal)
+            input.parse().map(Self::Str)
         } else if lookahead.peek(Brace) {
             input.parse().map(Self::Group)
         } else if lookahead.peek(Token![@]) {
@@ -232,28 +218,6 @@ impl Parse for QuotedValueNode<Maud> {
     }
 }
 
-impl Toggle<Maud> {
-    fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
-        if input.peek(Bracket) {
-            Ok(Some(input.parse()?))
-        } else {
-            Ok(None)
-        }
-    }
-}
-
-impl Parse for Toggle<Maud> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        bracketed!(content in input);
-
-        Ok(Self {
-            expr: content.parse()?,
-            phantom: PhantomData,
-        })
-    }
-}
-
 impl Parse for Component<Maud> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
@@ -261,93 +225,13 @@ impl Parse for Component<Maud> {
             attrs: {
                 let mut attrs = Vec::new();
 
-                if input.peek(Token![#]) {
-                    attrs.push(input.call(ComponentAttribute::parse_id)?);
-                }
-
-                if input.peek(Token![.]) {
-                    attrs.push(input.call(ComponentAttribute::parse_class_list)?);
-                }
-
                 while !(input.peek(Token![;]) || input.peek(Brace)) {
-                    attrs.push(input.call(ComponentAttribute::parse_normal)?);
+                    attrs.push(input.parse()?);
                 }
 
                 attrs
             },
             body: input.parse()?,
         })
-    }
-}
-
-impl ComponentAttribute<Maud> {
-    fn parse_id(input: ParseStream) -> syn::Result<Self> {
-        let pound_token = input.parse::<Token![#]>()?;
-        Ok(Self {
-            name: parse_quote_spanned!(pound_token.span()=> id),
-            value: input.parse()?,
-        })
-    }
-
-    fn parse_class_list(input: ParseStream) -> syn::Result<Self> {
-        let dot_token = input.fork().parse::<Token![.]>()?;
-        let mut strs = Vec::new();
-
-        let mut i = 0;
-        while input.peek(Token![.]) {
-            input.parse::<Token![.]>()?;
-            if i > 0 {
-                strs.push(LitStr::new(" ", Span::call_site()));
-            }
-
-            let lookahead = input.lookahead1();
-
-            if lookahead.peek(Ident::peek_any) || lookahead.peek(LitInt) {
-                strs.append(&mut input.parse::<UnquotedName>()?.strs());
-            } else if lookahead.peek(LitStr) {
-                strs.push(input.parse()?);
-            } else {
-                return Err(lookahead.error());
-            }
-
-            i += 1;
-        }
-
-        let expr = quote!(::core::concat!(#(#strs),*));
-
-        Ok(Self {
-            name: parse_quote_spanned!(dot_token.span()=> class),
-            value: ComponentAttributeValue::Expr(AnyExpr {
-                expr,
-                phantom: PhantomData,
-            }),
-        })
-    }
-
-    fn parse_normal(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            name: input.parse()?,
-            value: {
-                input.parse::<Token![=]>()?;
-
-                input.parse()?
-            },
-        })
-    }
-}
-
-impl Parse for ComponentAttributeValue<Maud> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(Ident::peek_any) {
-            input.parse().map(Self::UnquotedName)
-        } else if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
-            input.parse().map(Self::Literal)
-        } else if lookahead.peek(Paren) {
-            input.parse().map(Self::Expr)
-        } else {
-            Err(lookahead.error())
-        }
     }
 }

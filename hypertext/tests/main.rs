@@ -29,8 +29,8 @@ fn readme() {
             <ul>
                 @for (i, item) in (1..).zip(shopping_list) {
                     <li class="item">
-                        <input id={ format!("item-{i}") } type="checkbox">
-                        <label for={ format!("item-{i}") }>{ item }</label>
+                        <input id={ "item-" (i) } type="checkbox">
+                        <label for={ "item-" (i) }>(item)</label>
                     </li>
                 }
             </ul>
@@ -278,14 +278,14 @@ fn keywords() {
             }
 
             @for i in 0..3 {
-                <span>{ i }</span>
+                <span>(i)</span>
             }
 
             @let mut i = 3;
 
             @while i < 6 {
-                <span>{ i }</span>
-                {i += 1}
+                <span>(i)</span>
+                (i += 1)
             }
         </div>
     }
@@ -312,7 +312,7 @@ fn components() {
     }
 
     fn wrapping_component_rsx(c: impl Renderable) -> impl Renderable {
-        rsx! { <div>{ &c }</div> }
+        rsx! { <div>(c)</div> }
     }
 
     let result = maud! {
@@ -336,7 +336,7 @@ fn components() {
 fn borrow() {
     let s = "Hello, world!".to_owned();
     let maud_result = maud_borrow! { span { (s) } };
-    let rsx_result = rsx_borrow! { <span>{ &s }</span> };
+    let rsx_result = rsx_borrow! { <span>(s)</span> };
     // still able to use `s` after the borrow, as we use `maud_borrow!` and
     // `rsx_borrow!`
     let expected = Rendered(format!("<span>{s}</span>"));

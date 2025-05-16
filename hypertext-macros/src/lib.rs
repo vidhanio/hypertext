@@ -7,7 +7,8 @@ mod node;
 mod rsx;
 
 use node::{Markup, Syntax};
-use syn::parse::Parse;
+use quote::quote;
+use syn::{DeriveInput, parse::Parse, parse_macro_input};
 
 use self::{maud::Maud, rsx::Rsx};
 
@@ -49,4 +50,55 @@ where
     generate::literal::<S>(tokens.into())
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
+}
+
+#[proc_macro_derive(Renderable)]
+pub fn derive_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let derive_input = parse_macro_input!(input as DeriveInput);
+
+    let ident = &derive_input.ident;
+    let (impl_generics, ty_generics, where_clause) = derive_input.generics.split_for_impl();
+
+    quote! {
+        const _: () = {
+            extern crate alloc;
+
+            impl<#impl_generics> ::hypertext::Renderable for #ident #ty_generics #where_clause {
+                fn render_to(&self, output: &mut alloc::string::String) {
+                    ::hypertext::Renderable::render_to(
+                        &::hypertext::Displayed(self),
+                        output,
+                    )
+                }
+            }
+        };
+    }
+    .into()
+}
+
+#[proc_macro_derive(AttributeRenderable)]
+pub fn derive_attribute_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let derive_input = parse_macro_input!(input as DeriveInput);
+
+    let ident = &derive_input.ident;
+    let (impl_generics, ty_generics, where_clause) = derive_input.generics.split_for_impl();
+
+    quote! {
+        const _: () = {
+            extern crate alloc;
+
+            impl<#impl_generics> ::hypertext::AttributeRenderable for #ident #ty_generics #where_clause {
+                fn render_attribute_to(
+                    &self,
+                    output: &mut alloc::string::String,
+                ) {
+                    ::hypertext::AttributeRenderable::render_attribute_to(
+                        &::hypertext::Displayed(self),
+                        output,
+                    )
+                }
+            }
+        };
+    }
+    .into()
 }

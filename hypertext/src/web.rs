@@ -6,7 +6,16 @@ mod actix_web {
 
     use actix_web::{HttpRequest, HttpResponse, Responder, web::Html};
 
-    use crate::Rendered;
+    use crate::{Lazy, Renderable, Rendered};
+
+    impl<F: Fn(&mut String)> Responder for Lazy<F> {
+        type Body = <Rendered<String> as Responder>::Body;
+
+        #[inline]
+        fn respond_to(self, req: &HttpRequest) -> HttpResponse<Self::Body> {
+            self.render().respond_to(req)
+        }
+    }
 
     impl<T: Into<String>> Responder for Rendered<T> {
         type Body = <Html as Responder>::Body;
@@ -20,18 +29,29 @@ mod actix_web {
 
 #[cfg(feature = "axum")]
 mod axum {
+    extern crate alloc;
+
+    use alloc::string::String;
+
     use axum_core::{
         body::Body,
         response::{IntoResponse, Response},
     };
     use http::{HeaderName, HeaderValue, header};
 
-    use crate::Rendered;
+    use crate::{Lazy, Renderable, Rendered};
 
     const HEADER: (HeaderName, HeaderValue) = (
         header::CONTENT_TYPE,
         HeaderValue::from_static("text/html; charset=utf-8"),
     );
+
+    impl<F: Fn(&mut String)> IntoResponse for Lazy<F> {
+        #[inline]
+        fn into_response(self) -> Response {
+            self.render().into_response()
+        }
+    }
 
     impl<T: Into<Body>> IntoResponse for Rendered<T> {
         #[inline]
@@ -50,7 +70,14 @@ mod poem {
 
     use poem::{IntoResponse, Response, web::Html};
 
-    use crate::Rendered;
+    use crate::{Lazy, Renderable, Rendered};
+
+    impl<F: Fn(&mut String) + Send> IntoResponse for Lazy<F> {
+        #[inline]
+        fn into_response(self) -> Response {
+            self.render().into_response()
+        }
+    }
 
     impl<T: Into<String> + Send> IntoResponse for Rendered<T> {
         #[inline]
@@ -64,12 +91,21 @@ mod poem {
 mod rocket {
     extern crate alloc;
 
+    use alloc::string::String;
+
     use rocket::{
         Request,
         response::{self, Responder, content::RawHtml},
     };
 
-    use crate::Rendered;
+    use crate::{Lazy, Renderable, Rendered};
+
+    impl<'r, 'o: 'r, F: Fn(&mut String) + Send> Responder<'r, 'o> for Lazy<F> {
+        #[inline]
+        fn respond_to(self, req: &'r Request<'_>) -> response::Result<'o> {
+            self.render().respond_to(req)
+        }
+    }
 
     impl<'r, 'o: 'r, R: Responder<'r, 'o>> Responder<'r, 'o> for Rendered<R> {
         #[inline]
@@ -81,9 +117,20 @@ mod rocket {
 
 #[cfg(feature = "salvo")]
 mod salvo {
+    extern crate alloc;
+
+    use alloc::string::String;
+
     use salvo_core::{Response, Scribe, writing::Text};
 
-    use crate::Rendered;
+    use crate::{Lazy, Renderable, Rendered};
+
+    impl<F: Fn(&mut String)> Scribe for Lazy<F> {
+        #[inline]
+        fn render(self, res: &mut Response) {
+            Renderable::render(&self).render(res);
+        }
+    }
 
     impl<T> Scribe for Rendered<T>
     where
@@ -98,9 +145,20 @@ mod salvo {
 
 #[cfg(feature = "tide")]
 mod tide {
+    extern crate alloc;
+
+    use alloc::string::String;
+
     use tide::{Body, Response, http::mime};
 
-    use crate::Rendered;
+    use crate::{Lazy, Renderable, Rendered};
+
+    impl<F: Fn(&mut String)> From<Lazy<F>> for Response {
+        #[inline]
+        fn from(lazy: Lazy<F>) -> Self {
+            lazy.render().into()
+        }
+    }
 
     impl<T: Into<Body>> From<Rendered<T>> for Response {
         #[inline]
@@ -115,10 +173,21 @@ mod tide {
 
 #[cfg(feature = "warp")]
 mod warp {
+    extern crate alloc;
+
+    use alloc::string::String;
+
     use hyper::Body;
     use warp::reply::{Reply, Response};
 
-    use crate::Rendered;
+    use crate::{Lazy, Renderable, Rendered};
+
+    impl<F: Fn(&mut String) + Send> Reply for Lazy<F> {
+        #[inline]
+        fn into_response(self) -> Response {
+            self.render().into_response()
+        }
+    }
 
     impl<T: Send> Reply for Rendered<T>
     where
@@ -139,12 +208,19 @@ mod http {
 
     use http::Uri;
 
-    use crate::{DisplayExt, Renderable};
+    use crate::{AttributeRenderable, DisplayExt, Renderable};
 
     impl Renderable for Uri {
         #[inline]
         fn render_to(&self, output: &mut String) {
             self.renderable().render_to(output);
+        }
+    }
+
+    impl AttributeRenderable for Uri {
+        #[inline]
+        fn render_attribute_to(&self, output: &mut String) {
+            self.renderable().render_attribute_to(output);
         }
     }
 }

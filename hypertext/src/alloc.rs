@@ -10,6 +10,68 @@ use alloc::{
 };
 use core::fmt::{self, Debug, Display, Formatter, Write};
 
+use variadics_please::all_tuples_enumerated;
+
+/// Derive [`AttributeRenderable`] for a type via its [`Display`]
+/// implementation.
+///
+/// The implementation will automatically escape special characters for you.
+///
+/// # Example
+///
+/// ```
+/// use std::fmt::{self, Display, Formatter};
+///
+/// use hypertext::prelude::*;
+///
+/// #[derive(AttributeRenderable)]
+/// pub struct Position {
+///     x: i32,
+///     y: i32,
+/// }
+///
+/// impl Display for Position {
+///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+///         write!(f, "{},{}", self.x, self.y)
+///     }
+/// }
+///
+/// assert_eq!(
+///     maud! { div title=(Position { x: 1, y: 2 }) {} }.render(),
+///     Rendered(r#"<div title="1,2"></div>"#),
+/// );
+/// ```
+#[cfg(feature = "alloc")]
+pub use crate::proc_macros::AttributeRenderable;
+/// Derive [`Renderable`] for a type via its [`Display`] implementation.
+///
+/// The implementation will automatically escape special characters for you.
+///
+/// # Example
+///
+/// ```
+/// use std::fmt::{self, Display, Formatter};
+///
+/// use hypertext::prelude::*;
+///
+/// #[derive(Renderable)]
+/// pub struct Person {
+///     name: String,
+/// }
+///
+/// impl Display for Person {
+///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+///         write!(f, "My name is {}!", self.name)
+///     }
+/// }
+///
+/// assert_eq!(
+///     maud! { div { (Person { name: "Alice".into() }) } }.render(),
+///     Rendered(r#"<div>My name is Alice!</div>"#),
+/// );
+/// ```
+#[cfg(feature = "alloc")]
+pub use crate::proc_macros::Renderable;
 use crate::{Raw, Rendered};
 
 /// Generate HTML using [`maud`] syntax, returning a [`Lazy`].
@@ -133,7 +195,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
     }
 }
 
-/// A type that can be rendered to a string.
+/// A type that can be rendered as an HTML node.
 ///
 /// # Example
 ///
@@ -216,12 +278,12 @@ pub trait Renderable {
     }
 }
 
-/// A value that can be rendered to an attribute.
+/// A value that can be rendered as an HTML attribute.
 ///
 /// This is present to disallow accidentally rendering [`Renderable`] types
 /// to attributes, as [`Renderable`]s do not necessarily have to be escaped and
 /// can contain raw HTML.
-pub trait AttributeRenderable: Renderable {
+pub trait AttributeRenderable {
     /// Renders this value to the given string for use as an attribute value.
     ///
     /// This must escape `&` to `&amp;`, `<` to `&lt;`, `>` to `&gt;`, and `"`
@@ -316,16 +378,6 @@ impl<T: AsRef<str>> Renderable for Raw<T> {
     #[inline]
     fn memoize(&self) -> Raw<String> {
         Raw(self.0.as_ref().into())
-    }
-}
-
-impl Renderable for () {
-    #[inline]
-    fn render_to(&self, _: &mut String) {}
-
-    #[inline]
-    fn memoize(&self) -> Raw<String> {
-        Raw(String::new())
     }
 }
 
@@ -556,9 +608,43 @@ impl<T: Renderable> Renderable for [T] {
     }
 }
 
+impl<T: Renderable, const N: usize> Renderable for [T; N] {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        self.as_slice().render_to(output);
+    }
+}
+
 impl<T: Renderable> Renderable for Vec<T> {
     #[inline]
     fn render_to(&self, output: &mut String) {
         self.as_slice().render_to(output);
     }
 }
+
+impl Renderable for () {
+    #[inline]
+    fn render_to(&self, _: &mut String) {}
+}
+
+macro_rules! impl_variadic {
+    ($(#[$meta:meta])* $(($n:tt, $T:ident)),*) => {
+        $(#[$meta])*
+        impl<$($T: Renderable),*> Renderable for ($($T,)*) {
+            #[inline]
+            fn render_to(&self, output: &mut String) {
+                $(
+                    self.$n.render_to(output);
+                )*
+            }
+        }
+    }
+}
+
+all_tuples_enumerated!(
+    #[doc(fake_variadic)]
+    impl_variadic,
+    1,
+    15,
+    T
+);
