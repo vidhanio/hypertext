@@ -1,4 +1,4 @@
-#![expect(clippy::struct_field_names)]
+#![expect(clippy::struct_field_names, clippy::large_enum_variant)]
 
 mod control;
 
