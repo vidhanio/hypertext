@@ -17,6 +17,7 @@ resolver = "2"
 
 
     [workspace.dependencies]
+    hypertext = { version = "0.9.0", path = "./hypertext" }
     hypertext-macros = { version = "0.9.0", path = "./hypertext-macros" }
 
     html-escape = { version = "0.2", default-features = false }

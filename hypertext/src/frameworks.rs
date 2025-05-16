@@ -22,9 +22,8 @@
 //! # ), hypertext::Rendered(r#"<a hx-get="/about">About</a>"#));
 //! ```
 #![allow(non_upper_case_globals)]
-use crate::AttributeSymbol;
 #[allow(unused_imports)]
-use crate::{Attribute, AttributeNamespace, GlobalAttributes};
+use crate::{Attribute, AttributeNamespace, AttributeSymbol, GlobalAttributes};
 
 /// Attributes for use with [htmx](https://htmx.org/).
 #[cfg(feature = "htmx")]
