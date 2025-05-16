@@ -1,4 +1,4 @@
-#![expect(clippy::struct_field_names)]
+#![expect(clippy::struct_field_names, clippy::large_enum_variant)]
 
 mod control;
 
@@ -8,7 +8,7 @@ use std::{
 };
 
 use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, quote};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
     Ident, LitBool, LitFloat, LitInt, LitStr, Token, bracketed,
     ext::IdentExt,
@@ -21,7 +21,7 @@ use syn::{
 
 pub use self::control::*;
 use crate::generate::{
-    AnyBlock, AttributeCheckKind, ElementCheck, ElementKind, Generate, Generator,
+    AnyBlock, AttributeCheck, AttributeCheckKind, ElementCheck, ElementKind, Generate, Generator,
 };
 
 pub mod kw {
@@ -198,8 +198,8 @@ impl<S: Syntax> Generate for Element<S> {
 
         for attr in &self.attrs {
             g.push(attr);
-            if let Some((kind, ident, spans)) = attr.name.check() {
-                el_checks.push_attribute(kind, ident, spans);
+            if let Some(check) = attr.name.check() {
+                el_checks.push_attribute(check);
             }
         }
 
@@ -344,7 +344,7 @@ pub enum AttributeName {
 }
 
 impl AttributeName {
-    pub fn check(&self) -> Option<(AttributeCheckKind, String, Vec<Span>)> {
+    pub fn check(&self) -> Option<AttributeCheck> {
         match self {
             Self::Data { .. } => None,
             Self::Namespace {
@@ -352,18 +352,18 @@ impl AttributeName {
             } => {
                 let mut spans = namespace.spans();
                 spans.push(colon.span());
-                Some((
+                Some(AttributeCheck::new(
                     AttributeCheckKind::Namespace,
                     namespace.ident_string(),
                     spans,
                 ))
             }
-            Self::Symbol { symbol, .. } => Some((
+            Self::Symbol { symbol, .. } => Some(AttributeCheck::new(
                 AttributeCheckKind::Symbol,
                 symbol.ident_string(),
                 vec![symbol.span()],
             )),
-            Self::Normal(name) => Some((
+            Self::Normal(name) => Some(AttributeCheck::new(
                 AttributeCheckKind::Normal,
                 name.ident_string(),
                 name.spans(),
@@ -452,8 +452,8 @@ impl AttributeSymbol {
 
     fn ident_string(&self) -> String {
         match self {
-            Self::At(_) => "at".to_string(),
-            Self::Colon(_) => "colon".to_string(),
+            Self::At(_) => "_at".to_string(),
+            Self::Colon(_) => "_colon".to_string(),
         }
     }
 
@@ -605,6 +605,7 @@ impl Parse for Toggle {
 pub struct Component<S: Syntax> {
     pub name: Ident,
     pub attrs: Vec<ComponentAttribute>,
+    pub dotdot: Option<Token![..]>,
     pub body: ElementBody<S>,
 }
 
@@ -619,7 +620,7 @@ impl<S: Syntax> Generate for Component<S> {
 
         let children = match &self.body {
             ElementBody::Normal { children, .. } => {
-                let output_ident = Ident::new("hypertext_output", Span::mixed_site());
+                let output_ident = Generator::output_ident();
 
                 let block = g.block_with(Brace::default(), |g| {
                     g.push(children);
@@ -643,10 +644,17 @@ impl<S: Syntax> Generate for Component<S> {
 
         let name = &self.name;
 
+        let default = self
+            .dotdot
+            .as_ref()
+            .map(|dotdot| quote_spanned!(dotdot.span()=> ..::core::default::Default::default()))
+            .unwrap_or_default();
+
         let init = quote! {
             #name {
                 #(#fields,)*
                 #children
+                #default
             }
         };
 
@@ -673,7 +681,6 @@ impl Parse for ComponentAttribute {
 }
 
 pub enum ComponentAttributeValue {
-    UnquotedName(UnquotedName),
     Literal(Literal),
     Expr(ParenExpr),
 }
@@ -681,11 +688,6 @@ pub enum ComponentAttributeValue {
 impl ComponentAttributeValue {
     fn expr(&self) -> TokenStream {
         match self {
-            Self::UnquotedName(name) => {
-                let strs = name.lits();
-
-                quote!(::core::concat!(#(#strs),*))
-            }
             Self::Literal(lit) => match lit {
                 Literal::Str(lit) => lit.to_token_stream(),
                 Literal::Int(lit) => lit.to_token_stream(),
@@ -709,9 +711,7 @@ impl Parse for ComponentAttributeValue {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(Ident::peek_any) {
-            input.parse().map(Self::UnquotedName)
-        } else if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
+        if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
             input.parse().map(Self::Literal)
         } else if lookahead.peek(Paren) {
             input.parse().map(Self::Expr)
@@ -739,8 +739,10 @@ impl UnquotedName {
                 NameFragment::Hyphen(_) => {
                     s.push('_');
                 }
-                NameFragment::Colon(_) => {
-                    unreachable!("colons should never be in idents")
+                NameFragment::Colon(_) | NameFragment::Dot(_) => {
+                    unreachable!(
+                        "unquoted name idents should only contain identifiers, int literals, and hyphens"
+                    );
                 }
             }
         }
@@ -792,6 +794,7 @@ impl UnquotedName {
 
         while input.peek(Token![-])
             || input.peek(Token![:])
+            || input.peek(Token![.])
             || (name.last().is_none_or(NameFragment::is_punct)
                 && (input.peek(Ident::peek_any) || input.peek(LitInt)))
         {
@@ -831,6 +834,7 @@ pub enum NameFragment {
     Number(LitInt),
     Hyphen(Token![-]),
     Colon(Token![:]),
+    Dot(Token![.]),
 }
 
 impl NameFragment {
@@ -840,11 +844,12 @@ impl NameFragment {
             Self::Number(num) => num.span(),
             Self::Hyphen(hyphen) => hyphen.span(),
             Self::Colon(colon) => colon.span(),
+            Self::Dot(dot) => dot.span(),
         }
     }
 
     const fn is_punct(&self) -> bool {
-        matches!(self, Self::Hyphen(_) | Self::Colon(_))
+        matches!(self, Self::Hyphen(_) | Self::Colon(_) | Self::Dot(_))
     }
 }
 
@@ -869,6 +874,8 @@ impl Parse for NameFragment {
             input.parse().map(Self::Hyphen)
         } else if lookahead.peek(Token![:]) {
             input.parse().map(Self::Colon)
+        } else if lookahead.peek(Token![.]) {
+            input.parse().map(Self::Dot)
         } else {
             Err(lookahead.error())
         }
@@ -882,6 +889,7 @@ impl Display for NameFragment {
             Self::Number(num) => write!(f, "{num}"),
             Self::Hyphen(_) => f.write_str("-"),
             Self::Colon(_) => f.write_str(":"),
+            Self::Dot(_) => f.write_str("."),
         }
     }
 }

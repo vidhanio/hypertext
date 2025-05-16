@@ -17,13 +17,13 @@ pub fn closure<S: Syntax>(tokens: TokenStream, len_estimate: usize) -> syn::Resu
 where
     Markup<S>: Parse,
 {
-    let output_ident = Ident::new("hypertext_output", Span::mixed_site());
-
-    let mut g = Generator::new_closure(output_ident.clone());
+    let mut g = Generator::new_closure();
 
     g.push(syn::parse2::<Markup<S>>(tokens)?);
 
     let block = g.finish();
+
+    let output_ident = Generator::output_ident();
 
     Ok(quote! {
         {
@@ -56,8 +56,12 @@ pub struct Generator {
 }
 
 impl Generator {
-    fn new_closure(output_ident: Ident) -> Self {
-        Self::new_with_brace(Some(output_ident), Brace::default())
+    pub fn output_ident() -> Ident {
+        Ident::new("hypertext_output", Span::mixed_site())
+    }
+
+    fn new_closure() -> Self {
+        Self::new_with_brace(Some(Self::output_ident()), Brace::default())
     }
 
     fn new_static() -> Self {
@@ -290,7 +294,7 @@ pub struct ElementCheck {
     kind: ElementKind,
     opening_spans: Vec<Span>,
     closing_spans: Vec<Span>,
-    attributes: Vec<(AttributeCheckKind, String, Vec<Span>)>,
+    attributes: Vec<AttributeCheck>,
 }
 
 impl ElementCheck {
@@ -308,8 +312,8 @@ impl ElementCheck {
         self.closing_spans = el_name.spans();
     }
 
-    pub fn push_attribute(&mut self, kind: AttributeCheckKind, ident: String, spans: Vec<Span>) {
-        self.attributes.push((kind, ident, spans));
+    pub fn push_attribute(&mut self, attr: AttributeCheck) {
+        self.attributes.push(attr);
     }
 }
 
@@ -344,16 +348,7 @@ impl ToTokens for ElementCheck {
         let attr_checks = self
             .attributes
             .iter()
-            .flat_map(|(attr_kind, ident, spans)| {
-                let el = el.clone();
-                spans.iter().map(move |span| {
-                    let attr_ident = Ident::new_raw(ident, *span);
-
-                    quote! {
-                        let _: #attr_kind = html_elements::#el::#attr_ident;
-                    }
-                })
-            });
+            .map(|attr| attr.to_token_stream_with_el(&el));
 
         quote! {
             #check_kind
@@ -377,6 +372,33 @@ impl ToTokens for ElementKind {
             Self::Void => quote!(::hypertext::Void),
         }
         .to_tokens(tokens);
+    }
+}
+
+pub struct AttributeCheck {
+    kind: AttributeCheckKind,
+    ident: String,
+    spans: Vec<Span>,
+}
+
+impl AttributeCheck {
+    pub const fn new(kind: AttributeCheckKind, ident: String, spans: Vec<Span>) -> Self {
+        Self { kind, ident, spans }
+    }
+
+    fn to_token_stream_with_el(&self, el: &Ident) -> TokenStream {
+        let kind = &self.kind;
+
+        self.spans
+            .iter()
+            .map(|span| {
+                let ident = Ident::new_raw(&self.ident, *span);
+
+                quote! {
+                    let _: #kind = html_elements::#el::#ident;
+                }
+            })
+            .collect()
     }
 }
 

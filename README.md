@@ -58,8 +58,8 @@ let shopping_list_rsx = rsx! {
         <ul>
             @for (i, item) in (1..).zip(shopping_list) {
                 <li class="item">
-                    <input id={ format!("item-{i}") } type="checkbox">
-                    <label for={ format!("item-{i}") }>{ item }</label>
+                    <input id={ "item-" (i) } type="checkbox">
+                    <label for={ "item-" (i) }>(item)</label>
                 </li>
             }
         </ul>

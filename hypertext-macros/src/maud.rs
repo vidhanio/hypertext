@@ -225,12 +225,13 @@ impl Parse for Component<Maud> {
             attrs: {
                 let mut attrs = Vec::new();
 
-                while !(input.peek(Token![;]) || input.peek(Brace)) {
+                while !(input.peek(Token![..]) || input.peek(Token![;]) || input.peek(Brace)) {
                     attrs.push(input.parse()?);
                 }
 
                 attrs
             },
+            dotdot: input.parse()?,
             body: input.parse()?,
         })
     }

@@ -24,7 +24,10 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Execute tests
-        run: cargo test --all-features --all-targets
+        run: cargo test --all-features --lib --bins --tests
+
+      - name: Execute documentation tests
+        run: cargo +nightly test --all-features --doc
 
   check:
     name: Check

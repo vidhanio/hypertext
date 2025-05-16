@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use syn::{
-    Ident, Lit, LitBool, LitFloat, LitInt, LitStr, Token, braced,
+    Ident, LitBool, LitFloat, LitInt, LitStr, Token, braced, custom_punctuation,
     ext::IdentExt,
     parse::{Nothing, Parse, ParseStream, discouraged::Speculative},
     spanned::Spanned,
@@ -9,9 +9,8 @@ use syn::{
 };
 
 use crate::node::{
-    Attribute, AttributeKind, AttributeName, Component, ControlSyntax, Element, ElementBody,
-    ElementNode, Group, Literal, Markup, NameFragment, Nodes, QuotedValueNode, Syntax,
-    UnquotedName, UnquotedValueNode,
+    Attribute, AttributeKind, Component, ControlSyntax, Element, ElementBody, ElementNode, Group,
+    Literal, Markup, NameFragment, Nodes, QuotedValueNode, Syntax, UnquotedName, UnquotedValueNode,
 };
 
 pub struct Rsx;
@@ -23,6 +22,11 @@ impl Syntax for Rsx {
 impl ControlSyntax for Rsx {
     type ControlToken = Token![@];
 }
+
+custom_punctuation!(FragmentOpen, <>);
+custom_punctuation!(FragmentClose, </>);
+custom_punctuation!(OpenTagSolidusEnd, />);
+custom_punctuation!(CloseTagStart, </);
 
 impl Parse for Markup<Rsx> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
@@ -56,9 +60,11 @@ impl ElementNode<Rsx> {
 
         let mut attrs = Vec::new();
 
-        while !(input.peek(Token![>]) || (input.peek(Token![/]) && input.peek2(Token![>]))) {
+        while !(input.peek(Token![..]) || input.peek(Token![>]) || input.peek(OpenTagSolidusEnd)) {
             attrs.push(input.parse()?);
         }
+
+        let dotdot = input.parse()?;
 
         let solidus = input.parse::<Option<Token![/]>>()?;
         input.parse::<Token![>]>()?;
@@ -67,18 +73,20 @@ impl ElementNode<Rsx> {
             Ok(Self::Component(Component {
                 name,
                 attrs,
+                dotdot,
                 body: ElementBody::Void,
             }))
         } else {
             let mut children = Vec::new();
 
-            while !(input.peek(Token![<]) && input.peek2(Token![/])) {
+            while !input.peek(CloseTagStart) {
                 if input.is_empty() {
                     children.insert(
                         0,
                         Self::Component(Component {
                             name,
                             attrs,
+                            dotdot,
                             body: ElementBody::Void,
                         }),
                     );
@@ -93,8 +101,7 @@ impl ElementNode<Rsx> {
             }
 
             let fork = input.fork();
-            fork.parse::<Token![<]>()?;
-            fork.parse::<Token![/]>()?;
+            fork.parse::<CloseTagStart>()?;
             let closing_name = fork.parse::<Ident>()?;
             if closing_name == name {
                 input.advance_to(&fork);
@@ -104,6 +111,7 @@ impl ElementNode<Rsx> {
                     Self::Component(Component {
                         name,
                         attrs,
+                        dotdot,
                         body: ElementBody::Void,
                     }),
                 );
@@ -118,6 +126,7 @@ impl ElementNode<Rsx> {
             Ok(Self::Component(Component {
                 name,
                 attrs,
+                dotdot,
                 body: ElementBody::Normal {
                     children: Nodes {
                         nodes: children,
@@ -136,7 +145,7 @@ impl ElementNode<Rsx> {
 
         let mut attrs = Vec::new();
 
-        while !(input.peek(Token![>]) || (input.peek(Token![/]) && input.peek2(Token![>]))) {
+        while !(input.peek(Token![>]) || (input.peek(OpenTagSolidusEnd))) {
             attrs.push(input.parse()?);
         }
 
@@ -152,7 +161,7 @@ impl ElementNode<Rsx> {
         } else {
             let mut children = Vec::new();
 
-            while !(input.peek(Token![<]) && input.peek2(Token![/])) {
+            while !(input.peek(CloseTagStart)) {
                 if input.is_empty() {
                     children.insert(
                         0,
@@ -172,8 +181,7 @@ impl ElementNode<Rsx> {
             }
 
             let fork = input.fork();
-            fork.parse::<Token![<]>()?;
-            fork.parse::<Token![/]>()?;
+            fork.parse::<CloseTagStart>()?;
             let closing_name = fork.parse()?;
             if closing_name == name {
                 input.advance_to(&fork);
@@ -263,18 +271,15 @@ impl Parse for ElementNode<Rsx> {
 
 impl Parse for Group<Rsx, ElementNode<Rsx>> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        input.parse::<Token![<]>()?;
-        input.parse::<Token![>]>()?;
+        input.parse::<FragmentOpen>()?;
 
         let mut nodes = Vec::new();
 
-        while !(input.peek(Token![<]) && input.peek2(Token![/]) && input.peek3(Token![>])) {
+        while !input.peek(FragmentClose) {
             nodes.push(input.parse()?);
         }
 
-        input.parse::<Token![<]>()?;
-        input.parse::<Token![/]>()?;
-        input.parse::<Token![>]>()?;
+        input.parse::<FragmentClose>()?;
 
         Ok(Self(Nodes {
             nodes,

@@ -111,6 +111,194 @@ fn htmx() {
 }
 
 #[test]
+#[cfg(feature = "alpine")]
+#[allow(clippy::too_many_lines)]
+fn alpine() {
+    let tests = [
+        (
+            maud! { div x-data="{ open: false }" { "Hello, world!" } }.render(),
+            r#"<div x-data="{ open: false }">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-data="{ open: false }">"Hello, world!"</div> }.render(),
+            r#"<div x-data="{ open: false }">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div x-bind:class="! open ? 'hidden' : ''" { "Hello, world!" } }.render(),
+            r#"<div x-bind:class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-bind:class="! open ? 'hidden' : ''">"Hello, world!"</div> }.render(),
+            r#"<div x-bind:class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div :class="! open ? 'hidden' : ''" { "Hello, world!" } }.render(),
+            r#"<div :class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div :class="! open ? 'hidden' : ''">"Hello, world!"</div> }.render(),
+            r#"<div :class="! open ? 'hidden' : ''">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div x-on:click="open = ! open" { "Hello, world!" } }.render(),
+            r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-on:click="open = ! open">"Hello, world!"</div> }.render(),
+            r#"<div x-on:click="open = ! open">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div @click="open = ! open" { "Hello, world!" } }.render(),
+            r#"<div @click="open = ! open">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div @click="open = ! open">"Hello, world!"</div> }.render(),
+            r#"<div @click="open = ! open">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div @click.shift="open = ! open" { "Hello, world!" } }.render(),
+            r#"<div @click.shift="open = ! open">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div @click.shift="open = ! open">"Hello, world!"</div> }.render(),
+            r#"<div @click.shift="open = ! open">Hello, world!</div>"#,
+        ),
+        (
+            maud! { input type="text" @keyup.enter="alert('Submitted!')"; }.render(),
+            r#"<input type="text" @keyup.enter="alert('Submitted!')">"#,
+        ),
+        (
+            rsx! { <input type="text" @keyup.enter="alert('Submitted!')" /> }.render(),
+            r#"<input type="text" @keyup.enter="alert('Submitted!')">"#,
+        ),
+        (
+            maud! { input type="text" @keyup.shift.enter="alert('Submitted!')"; }.render(),
+            r#"<input type="text" @keyup.shift.enter="alert('Submitted!')">"#,
+        ),
+        (
+            rsx! { <input type="text" @keyup.shift.enter="alert('Submitted!')" /> }.render(),
+            r#"<input type="text" @keyup.shift.enter="alert('Submitted!')">"#,
+        ),
+        (
+            maud! { div x-text="new Date().getFullYear()" { "Hello, world!" } }.render(),
+            r#"<div x-text="new Date().getFullYear()">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-text="new Date().getFullYear()">"Hello, world!"</div> }.render(),
+            r#"<div x-text="new Date().getFullYear()">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div x-html="(await axios.get('/some/html/partial')).data" { "Hello, world!" } }.render(),
+            r#"<div x-html="(await axios.get('/some/html/partial')).data">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-html="(await axios.get('/some/html/partial')).data">"Hello, world!"</div> }.render(),
+            r#"<div x-html="(await axios.get('/some/html/partial')).data">Hello, world!</div>"#,
+        ),
+        (
+            maud! { input type="text" x-model="search"; }.render(),
+            r#"<input type="text" x-model="search">"#,
+        ),
+        (
+            rsx! { <input type="text" x-model="search" /> }.render(),
+            r#"<input type="text" x-model="search">"#,
+        ),
+        (
+            maud! { div x-show="open" { "Hello, world!" } }.render(),
+            r#"<div x-show="open">Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-show="open">"Hello, world!"</div> }.render(),
+            r#"<div x-show="open">Hello, world!</div>"#,
+        ),
+        (
+            maud! { div x-show="open" x-transition { "Hello, world!" } }.render(),
+            r#"<div x-show="open" x-transition>Hello, world!</div>"#,
+        ),
+        (
+            rsx! { <div x-show="open" x-transition>"Hello, world!"</div> }.render(),
+            r#"<div x-show="open" x-transition>Hello, world!</div>"#,
+        ),
+        (
+            maud! {
+                template x-for="post in posts" {
+                    h2 x-text="post.title" {}
+                }
+            }.render(),
+            r#"<template x-for="post in posts"><h2 x-text="post.title"></h2></template>"#,
+        ),
+        (
+            rsx! {
+                <template x-for="post in posts">
+                    <h2 x-text="post.title"></h2>
+                </template>
+            }.render(),
+            r#"<template x-for="post in posts"><h2 x-text="post.title"></h2></template>"#,
+        ),
+        (
+            maud! {
+                template x-if="open" {
+                    h2 x-text="post.title" {}
+                }
+            }.render(),
+            r#"<template x-if="open"><h2 x-text="post.title"></h2></template>"#,
+        ),
+        (
+            rsx! {
+                <template x-if="open">
+                    <h2 x-text="post.title"></h2>
+                </template>
+            }.render(),
+            r#"<template x-if="open"><h2 x-text="post.title"></h2></template>"#,
+        ),
+        (
+            maud! { div x-init="date = new Date()" {} }.render(),
+            r#"<div x-init="date = new Date()"></div>"#,
+        ),
+        (
+            rsx! { <div x-init="date = new Date()"></div> }.render(),
+            r#"<div x-init="date = new Date()"></div>"#,
+        ),
+        (
+            maud! { div x-effect="console.log('Count is '+count)" {} }.render(),
+            r#"<div x-effect="console.log('Count is '+count)"></div>"#,
+        ),
+        (
+            rsx! { <div x-effect="console.log('Count is '+count)"></div> }.render(),
+            r#"<div x-effect="console.log('Count is '+count)"></div>"#,
+        ),
+        (
+            maud! { input type="text" x-ref="content"; }.render(),
+            r#"<input type="text" x-ref="content">"#,
+        ),
+        (
+            rsx! { <input type="text" x-ref="content" /> }.render(),
+            r#"<input type="text" x-ref="content">"#,
+        ),
+        (
+            maud! { div x-cloak {} }.render(),
+            r"<div x-cloak></div>",
+        ),
+        (
+            rsx! { <div x-cloak></div> }.render(),
+            r"<div x-cloak></div>",
+        ),
+        (
+            maud! { div x-ignore {} }.render(),
+            r"<div x-ignore></div>",
+        ),
+        (
+            rsx! { <div x-ignore></div> }.render(),
+            r"<div x-ignore></div>",
+        ),
+    ];
+
+    for (test, expected) in tests {
+        assert_eq!(test, Rendered(expected.to_string()));
+    }
+}
+
+#[test]
 #[cfg(feature = "hyperscript")]
 fn hyperscript() {
     let results = [
@@ -231,7 +419,7 @@ fn statics() {
 }
 
 #[test]
-fn keywords() {
+fn control() {
     let cond = true;
 
     let maud_result = maud! {
