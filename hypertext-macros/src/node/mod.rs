@@ -203,13 +203,13 @@ impl<S: Syntax> Generate for Element<S> {
             }
         }
 
-        g.push_str(">");
-
         match &self.body {
             ElementBody::Normal {
                 children,
                 closing_name,
             } => {
+                g.push_str(">");
+
                 let name = closing_name.as_ref().map_or(&self.name, |closing_name| {
                     el_checks.set_closing_name(closing_name);
                     closing_name
@@ -220,7 +220,9 @@ impl<S: Syntax> Generate for Element<S> {
                 g.push_lits(name.lits());
                 g.push_str(">");
             }
-            ElementBody::Void => {}
+            ElementBody::Void => {
+                g.push_str(" />");
+            }
         }
 
         g.record_element(el_checks);
@@ -347,17 +349,11 @@ impl AttributeName {
     pub fn check(&self) -> Option<AttributeCheck> {
         match self {
             Self::Data { .. } => None,
-            Self::Namespace {
-                namespace, colon, ..
-            } => {
-                let mut spans = namespace.spans();
-                spans.push(colon.span());
-                Some(AttributeCheck::new(
-                    AttributeCheckKind::Namespace,
-                    namespace.ident_string(),
-                    spans,
-                ))
-            }
+            Self::Namespace { namespace, .. } => Some(AttributeCheck::new(
+                AttributeCheckKind::Namespace,
+                namespace.ident_string(),
+                namespace.spans(),
+            )),
             Self::Symbol { symbol, .. } => Some(AttributeCheck::new(
                 AttributeCheckKind::Symbol,
                 symbol.ident_string(),
@@ -385,12 +381,10 @@ impl AttributeName {
                 lits
             }
             Self::Namespace {
-                namespace,
-                colon,
-                rest,
+                namespace, rest, ..
             } => {
                 let mut lits = namespace.lits();
-                lits.push(LitStr::new(":", colon.span));
+                lits.push(LitStr::new(":", Span::mixed_site()));
                 lits.append(&mut rest.lits());
                 lits
             }

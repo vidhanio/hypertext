@@ -262,13 +262,19 @@ impl ToTokens for Checks {
         let checks = &self.elements;
 
         quote! {
-            const _: fn() = || {
-                fn check_element<
-                    T: ::hypertext::Element<Kind = K>,
-                    K: ::hypertext::ElementKind
-                >() {}
+            const _: () = {
+                #[allow(unused_imports)]
+                use html_elements::*;
 
-                #(#checks)*
+                const _: () = {
+                    #[doc(hidden)]
+                    const fn check_element<
+                        T: ::hypertext::Element<Kind = K>,
+                        K: ::hypertext::ElementKind
+                    >() {}
+
+                    #(#checks)*
+                };
             };
         }
         .to_tokens(tokens);
@@ -329,7 +335,7 @@ impl ToTokens for ElementCheck {
                 let el = Ident::new_raw(&self.ident, *span);
 
                 quote! {
-                    let _: html_elements::#el = html_elements::#el;
+                    let _: #el = #el;
                 }
             });
 
@@ -342,7 +348,7 @@ impl ToTokens for ElementCheck {
         );
 
         let check_kind = quote! {
-            check_element::<html_elements::#el, #kind>();
+            check_element::<#el, #kind>();
         };
 
         let attr_checks = self
@@ -395,7 +401,7 @@ impl AttributeCheck {
                 let ident = Ident::new_raw(&self.ident, *span);
 
                 quote! {
-                    let _: #kind = html_elements::#el::#ident;
+                    let _: #kind = #el::#ident;
                 }
             })
             .collect()

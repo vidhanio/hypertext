@@ -1,8 +1,15 @@
-//! HTML elements.
+//! All standard HTML elements.
+//!
+//! This module can be overridden in your own crate to add custom HTML elements.
+//! See the documentation for [`elements!`] or [`GlobalAttributes`] for more
+//! information.
+//!
+//! [`elements!`]: crate::elements
+//! [`GlobalAttributes`]: crate::GlobalAttributes
 
 /// Create a set of HTML elements.
 ///
-/// This macro should be called from within an `html_elements` module.
+/// This macro should be called from within a module named `html_elements`.
 ///
 /// # Example
 ///

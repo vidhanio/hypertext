@@ -36,7 +36,6 @@ poem = { version = "3", default-features = false, optional = true }
 rocket = { version = "0.5", default-features = false, optional = true }
 salvo_core = { version = "0.78", default-features = false, optional = true }
 tide = { version = "0.16", default-features = false, optional = true }
-variadics_please = "1.1.0"
 warp = { version = "0.3", default-features = false, optional = true }
 
 [features]
