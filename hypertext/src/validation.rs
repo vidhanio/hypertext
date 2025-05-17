@@ -1,3 +1,53 @@
+/// An HTML element.
+pub trait Element {
+    /// The kind of this element.
+    type Kind: ElementKind;
+}
+/// An element kind.
+///
+/// This can be either [`Normal`] or [`Void`]. A [`Normal`] element will always
+/// have a closing tag, and can have children. A [`Void`] element will never
+/// have a closing tag, and cannot have children.
+pub trait ElementKind: sealed::Sealed {}
+
+/// A normal HTML element.
+///
+/// This element has a closing tag and can have children.
+///
+/// # Example
+///
+/// ```html
+/// <div>
+///   Hello, world!
+/// </div>
+/// ```
+#[derive(Debug, Clone, Copy)]
+pub struct Normal;
+
+impl ElementKind for Normal {}
+
+/// A void HTML element.
+///
+/// This element does not have a closing tag and cannot have children.
+///
+/// # Example
+///
+/// ```html
+/// <img src="image.png" alt="An image">
+/// ```
+#[derive(Debug, Clone, Copy)]
+pub struct Void;
+
+impl ElementKind for Void {}
+
+mod sealed {
+    use super::{Normal, Void};
+
+    pub trait Sealed {}
+    impl Sealed for Normal {}
+    impl Sealed for Void {}
+}
+
 /// An HTML attribute.
 #[derive(Debug, Clone, Copy)]
 pub struct Attribute;
@@ -6,35 +56,43 @@ pub struct Attribute;
 #[derive(Debug, Clone, Copy)]
 pub struct AttributeNamespace;
 
+/// An HTML attribute symbol.
+#[derive(Debug, Clone, Copy)]
+pub struct AttributeSymbol;
+
 /// Global HTML attributes.
 ///
-/// This trait must be in scope to use well-known attributes such as
+/// This trait must be in scope to use standard HTML attributes such as
 /// [`class`](Self::class) and [`id`](Self::id). This trait is implemented
 /// by every HTML element specified in [`crate::html_elements`].
 ///
 /// # Usage With Custom Elements
 ///
 /// ```
-/// use hypertext::{Rendered, prelude::*};
-///
 /// mod html_elements {
-///     #![allow(non_camel_case_types)]
+///     #![expect(non_camel_case_types)]
 ///
-///     use hypertext::GlobalAttributes;
 ///     pub use hypertext::html_elements::*;
+///     use hypertext::{Element, GlobalAttributes, Normal};
 ///
 ///     pub struct custom_element;
 ///
+///     impl Element for custom_element {
+///         type Kind = Normal;
+///     }
+///
 ///     impl GlobalAttributes for custom_element {}
 /// }
+///
+/// use hypertext::{Rendered, prelude::*};
 ///
 /// assert_eq!(
 ///     maud! { custom-element title="abc" { "Hello, world!" } }.render(),
 ///     Rendered(r#"<custom-element title="abc">Hello, world!</custom-element>"#),
 /// );
 /// ```
-#[allow(non_upper_case_globals, clippy::module_name_repetitions)]
-pub trait GlobalAttributes {
+#[expect(non_upper_case_globals)]
+pub trait GlobalAttributes: Element {
     /// Used as a guide for creating a keyboard shortcut that activates or
     /// focuses the element.
     const access_key: Attribute = Attribute;
@@ -48,6 +106,7 @@ pub trait GlobalAttributes {
     const autofocus: Attribute = Attribute;
 
     /// The class of the element.
+    #[doc(alias = ".")]
     const class: Attribute = Attribute;
 
     /// Whether the element is editable.
@@ -66,6 +125,7 @@ pub trait GlobalAttributes {
     const hidden: Attribute = Attribute;
 
     /// A unique identifier for the element.
+    #[doc(alias = "#")]
     const id: Attribute = Attribute;
 
     /// Mark an element and its children as inert, disabling interaction.

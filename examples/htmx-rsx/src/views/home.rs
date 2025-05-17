@@ -5,7 +5,7 @@ use crate::views::nav;
 pub fn home(nav_oob: bool) -> impl Renderable {
     rsx! {
         @if nav_oob {
-            { nav("/", true) }
+            (nav("/", true))
         }
         <div class="flex flex-col items-center">
             <h1 class="text-4xl font-bold">"Welcome to HTMX-RSX"</h1>

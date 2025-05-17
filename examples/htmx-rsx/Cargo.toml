@@ -1,16 +1,14 @@
 [package]
 name = "htmx-rsx"
 
-edition = "2024"
-license = "MIT"
+edition.workspace = true
+license.workspace = true
 publish = false
-version = "0.1.0"
-
-build = "build.rs"
+version = "0.0.0"
 
 [dependencies]
 axum = "0.8"
 axum-htmx = "0.7"
-hypertext = { path = "../../hypertext", features = ["axum", "htmx"] }
-tokio = { version = "1", features = ["full"] }
+hypertext = { workspace = true, features = ["axum", "htmx"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 tower-http = { version = "0.6", features = ["fs"] }
