@@ -1,6 +1,7 @@
 use hypertext::prelude::*;
 
-pub fn nav(selected: &str, oob: bool) -> impl Renderable {
+#[component]
+pub fn nav(selected: String, oob: bool) -> impl Renderable {
     let routes = [("Home", "/"), ("About", "/about"), ("List", "/list")];
 
     let unselected_class =
@@ -8,7 +9,7 @@ pub fn nav(selected: &str, oob: bool) -> impl Renderable {
     let selected_class = format!("{unselected_class} bg-gray-800");
 
     let class = move |path| {
-        if path == selected {
+        if path == &selected {
             selected_class.clone()
         } else {
             unselected_class.to_owned()

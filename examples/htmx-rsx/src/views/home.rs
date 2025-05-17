@@ -1,11 +1,11 @@
+use crate::views::nav::Nav;
 use hypertext::prelude::*;
 
-use crate::views::nav;
-
+#[component]
 pub fn home(nav_oob: bool) -> impl Renderable {
     rsx! {
         @if nav_oob {
-            (nav("/", true))
+            <Nav selected=(String::from("/")) oob=true />
         }
         <div class="flex flex-col items-center">
             <h1 class="text-4xl font-bold">"Welcome to HTMX-RSX"</h1>

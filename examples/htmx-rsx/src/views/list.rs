@@ -1,12 +1,11 @@
+use crate::views::nav::Nav;
 use hypertext::prelude::*;
-
-use crate::views::nav;
 
 pub fn list(nav_oob: bool) -> impl Renderable {
     let list_items = vec!["Hypertext", "is", "fun!"];
     rsx! {
         @if nav_oob {
-            (nav("/list", true))
+            <Nav selected=(String::from("/list")) oob=true />
         }
         <div class="flex flex-col items-center">
             <h1 class="text-4xl font-bold">"Loop through items using Rust code!"</h1>

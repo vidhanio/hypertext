@@ -8,7 +8,7 @@ pub async fn handle_home(HxRequest(is_hx_request): HxRequest) -> impl IntoRespon
     if is_hx_request {
         home(true).render()
     } else {
-        index("/", home(false)).render()
+        index(String::from("/"), home(false)).render()
     }
 }
 
@@ -16,7 +16,7 @@ pub async fn handle_about(HxRequest(is_hx_request): HxRequest) -> impl IntoRespo
     if is_hx_request {
         about(true).render()
     } else {
-        index("/about", about(false)).render()
+        index(String::from("/about"), about(false)).render()
     }
 }
 
@@ -24,6 +24,6 @@ pub async fn handle_list(HxRequest(is_hx_request): HxRequest) -> impl IntoRespon
     if is_hx_request {
         list(true).render()
     } else {
-        index("/list", list(false)).render()
+        index(String::from("/list"), list(false)).render()
     }
 }
