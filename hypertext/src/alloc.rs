@@ -731,6 +731,15 @@ impl<T: Renderable> Renderable for Option<T> {
     }
 }
 
+impl<T: AttributeRenderable> AttributeRenderable for Option<T> {
+    #[inline]
+    fn render_attribute_to(&self, output: &mut String) {
+        if let Some(value) = self {
+            value.render_attribute_to(output);
+        }
+    }
+}
+
 macro_rules! impl_tuple {
     () => {
         impl Renderable for () {
