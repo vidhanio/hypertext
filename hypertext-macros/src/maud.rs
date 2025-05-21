@@ -152,7 +152,11 @@ impl Parse for AttributeValueNode<Maud> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(LitStr) {
+        if lookahead.peek(LitStr)
+            || lookahead.peek(LitInt)
+            || lookahead.peek(LitBool)
+            || lookahead.peek(LitFloat)
+        {
             input.parse().map(Self::Literal)
         } else if lookahead.peek(Brace) {
             input.parse().map(Self::Group)

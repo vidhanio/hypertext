@@ -213,13 +213,13 @@ impl<S: Syntax> Generate for Element<S> {
             }
         }
 
+        g.push_str(">");
+
         match &self.body {
             ElementBody::Normal {
                 children,
                 closing_name,
             } => {
-                g.push_str(">");
-
                 let name = closing_name.as_ref().map_or(&self.name, |closing_name| {
                     el_checks.set_closing_name(closing_name);
                     closing_name
@@ -230,9 +230,7 @@ impl<S: Syntax> Generate for Element<S> {
                 g.push_lits(name.lits());
                 g.push_str(">");
             }
-            ElementBody::Void => {
-                g.push_str(" />");
-            }
+            ElementBody::Void => {}
         }
 
         g.record_element(el_checks);
