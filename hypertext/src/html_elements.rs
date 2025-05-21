@@ -67,7 +67,10 @@ macro_rules! elements {
     } => {
         $(
             $(#[$meta])*
-            #[allow(non_camel_case_types)]
+            #[expect(
+                non_camel_case_types,
+                reason = "camel case types will be interpreted as components"
+            )]
             #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
             pub struct $name;
 
@@ -934,7 +937,10 @@ macro_rules! void_elements {
     } => {
         $(
             $(#[$meta])*
-            #[allow(non_camel_case_types)]
+            #[expect(
+                non_camel_case_types,
+                reason = "camel case types will be interpreted as components"
+            )]
             #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
             pub struct $name;
 

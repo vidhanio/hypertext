@@ -1,6 +1,7 @@
 use hypertext::prelude::*;
 
-pub fn nav(selected: &str, oob: bool) -> impl Renderable {
+#[component]
+pub fn nav<'a>(selected: &'a str, oob: bool) -> impl Renderable {
     let routes = [("Home", "/"), ("About", "/about"), ("List", "/list")];
 
     rsx! {

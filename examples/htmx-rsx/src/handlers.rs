@@ -2,34 +2,33 @@ use axum::response::IntoResponse;
 use axum_htmx::HxRequest;
 use hypertext::prelude::*;
 
-use crate::views::{about, home, index, list};
+use crate::views::{Document, Nav, about, home, list};
 
-pub async fn handle_home(HxRequest(is_hx_request): HxRequest) -> impl IntoResponse {
+fn maybe_document<R: Renderable>(
+    HxRequest(is_hx_request): HxRequest,
+    selected: &str,
+    children: R,
+) -> impl IntoResponse {
     rsx! {
         @if is_hx_request {
-            (home(true))
+            <Nav selected=selected oob=true />
+            (children)
         } @else {
-            (index("/", home(false)))
+            <Document selected=selected>
+                (children)
+            </Document>
         }
     }
 }
 
-pub async fn handle_about(HxRequest(is_hx_request): HxRequest) -> impl IntoResponse {
-    rsx! {
-        @if is_hx_request {
-            (about(true))
-        } @else {
-            (index("/about", about(false)))
-        }
-    }
+pub async fn handle_home(hx_request: HxRequest) -> impl IntoResponse {
+    maybe_document(hx_request, "/", home())
 }
 
-pub async fn handle_list(HxRequest(is_hx_request): HxRequest) -> impl IntoResponse {
-    rsx! {
-        @if is_hx_request {
-            (list(true))
-        } @else {
-            (index("/list", list(false)))
-        }
-    }
+pub async fn handle_about(hx_request: HxRequest) -> impl IntoResponse {
+    maybe_document(hx_request, "/about", about())
+}
+
+pub async fn handle_list(hx_request: HxRequest) -> impl IntoResponse {
+    maybe_document(hx_request, "/list", list())
 }

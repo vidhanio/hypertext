@@ -119,9 +119,9 @@
 //!     Rendered(r#"<div hx-get="/api/endpoint" hx-on:click="alert('Hello, world!')">Hello, world!</div>"#),
 //! );
 //! ```
-#![allow(internal_features)]
-#![deny(clippy::missing_inline_in_public_items)]
 #![no_std]
+#![deny(clippy::missing_inline_in_public_items)]
+#![cfg_attr(docsrs, allow(internal_features))]
 #![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg, rustdoc_internals))]
 
 #[cfg(feature = "alloc")]

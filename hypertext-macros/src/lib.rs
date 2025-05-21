@@ -1,16 +1,25 @@
 #![expect(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
+mod component;
 mod generate;
 mod maud;
 mod node;
 mod rsx;
 
-use node::{Markup, Syntax};
+use proc_macro::TokenStream;
 use quote::quote;
-use syn::{DeriveInput, parse::Parse, parse_macro_input};
+use syn::{
+    DeriveInput, ItemFn,
+    parse::{Nothing, Parse},
+    parse_macro_input,
+};
 
-use self::{maud::Maud, rsx::Rsx};
+use self::{
+    maud::Maud,
+    node::{Document, Syntax},
+    rsx::Rsx,
+};
 
 #[proc_macro]
 pub fn maud_closure(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -34,7 +43,7 @@ pub fn rsx_literal(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 fn closure<S: Syntax>(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream
 where
-    Markup<S>: Parse,
+    Document<S>: Parse,
 {
     let len_estimate = tokens.to_string().len();
 
@@ -45,7 +54,7 @@ where
 
 fn literal<S: Syntax>(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream
 where
-    Markup<S>: Parse,
+    Document<S>: Parse,
 {
     generate::literal::<S>(tokens.into())
         .unwrap_or_else(|err| err.to_compile_error())
@@ -101,4 +110,14 @@ pub fn derive_attribute_renderable(input: proc_macro::TokenStream) -> proc_macro
         };
     }
     .into()
+}
+
+#[proc_macro_attribute]
+pub fn component(attr: TokenStream, item: TokenStream) -> TokenStream {
+    parse_macro_input!(attr as Nothing);
+    let item = parse_macro_input!(item as ItemFn);
+
+    component::generate(&item)
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
 }

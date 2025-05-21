@@ -6,20 +6,20 @@ use std::{
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    LitStr, braced,
+    LitStr, Token, braced,
     parse::Parse,
     token::{Brace, Paren},
 };
 
-use crate::node::{Markup, Syntax, UnquotedName};
+use crate::node::{Document, Syntax, UnquotedName};
 
 pub fn closure<S: Syntax>(tokens: TokenStream, len_estimate: usize) -> syn::Result<TokenStream>
 where
-    Markup<S>: Parse,
+    Document<S>: Parse,
 {
     let mut g = Generator::new_closure();
 
-    g.push(syn::parse2::<Markup<S>>(tokens)?);
+    g.push(syn::parse2::<Document<S>>(tokens)?);
 
     let block = g.finish();
 
@@ -39,11 +39,11 @@ where
 
 pub fn literal<S: Syntax>(tokens: TokenStream) -> syn::Result<TokenStream>
 where
-    Markup<S>: Parse,
+    Document<S>: Parse,
 {
     let mut g = Generator::new_static();
 
-    g.push(syn::parse2::<Markup<S>>(tokens)?);
+    g.push(syn::parse2::<Document<S>>(tokens)?);
 
     Ok(g.finish().to_token_stream())
 }
@@ -180,7 +180,7 @@ impl Generator {
         let output_ident = &self.output_ident;
         let mut paren_expr = TokenStream::new();
         paren_token.surround(&mut paren_expr, |tokens| expr.to_tokens(tokens));
-        let reference = quote_spanned!(paren_token.span=> &);
+        let reference = Token![&](paren_token.span.join());
         self.push_stmt(
             quote!(::hypertext::Renderable::render_to(#reference #paren_expr, #output_ident);),
         );

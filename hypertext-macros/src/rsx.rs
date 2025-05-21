@@ -3,50 +3,27 @@ use std::marker::PhantomData;
 use syn::{
     Ident, LitBool, LitFloat, LitInt, LitStr, Token, braced, custom_punctuation,
     ext::IdentExt,
-    parse::{Nothing, Parse, ParseStream, discouraged::Speculative},
-    spanned::Spanned,
+    parse::{Parse, ParseStream, discouraged::Speculative},
     token::{Brace, Paren},
 };
 
 use crate::node::{
-    Attribute, AttributeKind, Component, ControlSyntax, Element, ElementBody, ElementNode, Group,
-    Literal, Markup, NameFragment, Nodes, QuotedValueNode, Syntax, UnquotedName, UnquotedValueNode,
+    AttributeValueNode, Component, Doctype, Document, Element, ElementBody, ElementNode, Group,
+    Literal, NameFragment, Nodes, Syntax, UnquotedName,
 };
 
 pub struct Rsx;
 
-impl Syntax for Rsx {
-    type NodeSeparator = Nothing;
-}
-
-impl ControlSyntax for Rsx {
-    type ControlToken = Token![@];
-}
+impl Syntax for Rsx {}
 
 custom_punctuation!(FragmentOpen, <>);
 custom_punctuation!(FragmentClose, </>);
 custom_punctuation!(OpenTagSolidusEnd, />);
 custom_punctuation!(CloseTagStart, </);
 
-impl Parse for Markup<Rsx> {
+impl Parse for Document<Rsx> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            doctype: {
-                syn::custom_keyword!(DOCTYPE);
-                syn::custom_keyword!(html);
-
-                if input.peek(Token![<]) && input.peek2(Token![!]) {
-                    input.parse::<Token![<]>()?;
-                    input.parse::<Token![!]>()?;
-                    let doctype = input.parse::<DOCTYPE>()?;
-                    input.parse::<html>()?;
-                    input.parse::<Token![>]>()?;
-
-                    Some(doctype.span())
-                } else {
-                    None
-                }
-            },
             nodes: input.parse()?,
         })
     }
@@ -233,6 +210,8 @@ impl Parse for ElementNode<Rsx> {
                 } else {
                     input.call(Self::parse_element)
                 }
+            } else if lookahead.peek(Token![!]) {
+                input.parse().map(Self::Doctype)
             } else {
                 Err(lookahead.error())
             }
@@ -269,6 +248,19 @@ impl Parse for ElementNode<Rsx> {
     }
 }
 
+impl Parse for Doctype<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            lt_token: input.parse()?,
+            bang_token: input.parse()?,
+            doctype_token: input.parse()?,
+            html_token: input.parse()?,
+            gt_token: input.parse()?,
+            phantom: PhantomData,
+        })
+    }
+}
+
 impl Parse for Group<Rsx, ElementNode<Rsx>> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         input.parse::<FragmentOpen>()?;
@@ -288,7 +280,7 @@ impl Parse for Group<Rsx, ElementNode<Rsx>> {
     }
 }
 
-impl Parse for Group<Rsx, UnquotedValueNode<Rsx>> {
+impl Parse for Group<Rsx, AttributeValueNode<Rsx>> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
         braced!(content in input);
@@ -297,59 +289,7 @@ impl Parse for Group<Rsx, UnquotedValueNode<Rsx>> {
     }
 }
 
-impl Parse for Group<Rsx, QuotedValueNode<Rsx>> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        braced!(content in input);
-
-        Ok(Self(content.parse()?))
-    }
-}
-
-impl Parse for Attribute<Rsx> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let name = input.parse()?;
-
-        if input.peek(Token![=]) {
-            input.parse::<Token![=]>()?;
-
-            Ok(Self {
-                name,
-                kind: AttributeKind::Value {
-                    value: input.parse()?,
-                    toggle: None,
-                },
-            })
-        } else {
-            Ok(Self {
-                name,
-                kind: AttributeKind::Empty(None),
-            })
-        }
-    }
-}
-
-impl Parse for UnquotedValueNode<Rsx> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(Ident::peek_any) || lookahead.peek(LitInt) {
-            input.parse().map(Self::UnquotedName)
-        } else if lookahead.peek(LitStr) {
-            input.parse().map(Self::Str)
-        } else if lookahead.peek(Brace) {
-            input.parse().map(Self::Group)
-        } else if lookahead.peek(Token![@]) {
-            input.parse().map(Self::Control)
-        } else if lookahead.peek(Paren) {
-            input.parse().map(Self::Expr)
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-impl Parse for QuotedValueNode<Rsx> {
+impl Parse for AttributeValueNode<Rsx> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
 
@@ -361,6 +301,8 @@ impl Parse for QuotedValueNode<Rsx> {
             input.parse().map(Self::Control)
         } else if lookahead.peek(Paren) {
             input.parse().map(Self::Expr)
+        } else if lookahead.peek(Ident) {
+            input.parse().map(Self::Ident)
         } else {
             Err(lookahead.error())
         }
