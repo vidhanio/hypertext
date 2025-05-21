@@ -1336,6 +1336,7 @@ dependencies = [
 name = "htmx-rsx"
 version = "0.0.0"
 dependencies = [
+ "anyhow",
  "axum",
  "axum-htmx",
  "hypertext",
@@ -1528,7 +1529,6 @@ dependencies = [
  "ryu",
  "salvo_core",
  "tide",
- "variadics_please",
  "warp",
 ]
 
@@ -3543,17 +3543,6 @@ dependencies = [
  "sval_json",
  "sval_ref",
  "sval_serde",
-]
-
-[[package]]
-name = "variadics_please"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41b6d82be61465f97d42bd1d15bf20f3b0a3a0905018f38f9d6f6962055b0b5c"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.101",
 ]
 
 [[package]]

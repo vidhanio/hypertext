@@ -20,17 +20,17 @@
 //!
 //! ## Type-Checking
 //!
-//! All macros are validated at compile time, so you can't ever misspell an
-//! element/attribute or use invalid attributes.
+//! All macro invocations are validated at compile time, so you can't ever
+//! misspell an element/attribute or use invalid attributes.
 //!
-//! It does this by looking for a module in your current namespace named
+//! It does this by looking in your current namespace, or a module named
 //! `html_elements` (all the valid HTML elements are defined in this crate
 //! already in [`html_elements`], but it doesn't hard-code this module so you
 //! can define your own elements).
 //!
-//! It then imports each element you use in your macro invocation as a
-//! struct, and then proceeds to attempt to access the corresponding associated
-//! type for each attribute you use.
+//! It then imports each element you use in your macro invocation, and then
+//! attempts to access the corresponding associated type for each attribute you
+//! use.
 //!
 //! # Example
 //!
@@ -119,9 +119,9 @@
 //!     Rendered(r#"<div hx-get="/api/endpoint" hx-on:click="alert('Hello, world!')">Hello, world!</div>"#),
 //! );
 //! ```
-#![allow(internal_features)]
-#![deny(clippy::missing_inline_in_public_items)]
 #![no_std]
+#![deny(clippy::missing_inline_in_public_items)]
+#![cfg_attr(docsrs, allow(internal_features))]
 #![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg, rustdoc_internals))]
 
 #[cfg(feature = "alloc")]

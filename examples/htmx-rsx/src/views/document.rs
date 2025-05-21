@@ -2,7 +2,8 @@ use hypertext::prelude::*;
 
 use crate::views::nav::Nav;
 
-pub fn index(selected: String, page: impl Renderable) -> impl Renderable {
+#[component]
+pub fn document<'a, R: Renderable>(selected: &'a str, children: &R) -> impl Renderable {
     rsx! {
         <!DOCTYPE html>
         <html>
@@ -13,19 +14,14 @@ pub fn index(selected: String, page: impl Renderable) -> impl Renderable {
                     name="viewport"
                     content="width=device-width, initial-scale=1.0"
                 >
-                <script
-                    src="https://unpkg.com/htmx.org@2.0.4"
-                    integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
-                    crossorigin="anonymous"
-                ></script>
-                <link rel="stylesheet" href="/static/output.css">
+                <script src="https://unpkg.com/htmx.org@2"></script>
+                <link rel="stylesheet" href="/styles.css">
             </head>
             <body class="bg-gray-900 text-gray-100">
                 <h1 class="flex text-5xl mx-auto font-bold justify-center items-center mb-2">Hypertext</h1>
-                // (nav(selected, false))
-                <Nav selected=(selected.clone()) oob=true />
+                <Nav selected=selected oob=true />
                 <div id="page" class="mt-2">
-                    (page)
+                    (children)
                 </div>
             </body>
         </html>

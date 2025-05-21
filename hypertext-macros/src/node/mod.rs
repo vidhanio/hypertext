@@ -14,7 +14,6 @@ use syn::{
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
-    punctuated::Punctuated,
     spanned::Spanned,
     token::{Brace, Bracket, Paren},
 };
@@ -34,44 +33,42 @@ pub mod kw {
             LitStr::new("data", self.span)
         }
     }
+
+    syn::custom_keyword!(DOCTYPE);
+
+    impl DOCTYPE {
+        pub fn lit(self) -> LitStr {
+            LitStr::new("DOCTYPE", self.span)
+        }
+    }
+
+    syn::custom_keyword!(html);
+
+    impl html {
+        pub fn lit(self) -> LitStr {
+            LitStr::new("html", self.span)
+        }
+    }
 }
 
-pub trait Syntax {
-    type NodeSeparator: Parse;
-}
+pub trait Syntax {}
 
-pub struct Markup<S: Syntax> {
-    pub doctype: Option<Span>,
+pub struct Document<S: Syntax> {
     pub nodes: Nodes<S, ElementNode<S>>,
 }
 
-impl<S: Syntax> Generate for Markup<S> {
+impl<S: Syntax> Generate for Document<S> {
     fn generate(&self, g: &mut Generator) {
-        if let Some(doctype) = self.doctype {
-            g.push_spanned_str("<!DOCTYPE html>", doctype);
-        }
-
         g.push(&self.nodes);
     }
 }
 
 pub trait Node<S: Syntax>: Generate + Sized {
-    type Child: Node<S>;
-
     fn is_control(&self) -> bool;
-
-    fn as_group(&self) -> Option<&Group<S, Self::Child>>;
-
-    fn in_block(&self, g: &mut Generator) -> AnyBlock {
-        if let Some(group) = self.as_group() {
-            group.block(g)
-        } else {
-            g.block_with(Brace::default(), |g| g.push(self))
-        }
-    }
 }
 
 pub enum ElementNode<S: Syntax> {
+    Doctype(Doctype<S>),
     Element(Element<S>),
     Component(Component<S>),
     Literal(Literal),
@@ -81,23 +78,15 @@ pub enum ElementNode<S: Syntax> {
 }
 
 impl<S: Syntax> Node<S> for ElementNode<S> {
-    type Child = Self;
-
     fn is_control(&self) -> bool {
         matches!(self, Self::Control(_))
-    }
-
-    fn as_group(&self) -> Option<&Group<S, Self::Child>> {
-        match self {
-            Self::Group(group) => Some(group),
-            _ => None,
-        }
     }
 }
 
 impl<S: Syntax> Generate for ElementNode<S> {
     fn generate(&self, g: &mut Generator) {
         match self {
+            Self::Doctype(doctype) => g.push(doctype),
             Self::Element(element) => g.push(element),
             Self::Component(component) => g.push(component),
             Self::Literal(lit) => g.push_text_lit(&lit.lit_str()),
@@ -105,6 +94,28 @@ impl<S: Syntax> Generate for ElementNode<S> {
             Self::Expr(expr) => expr.generate_text(g),
             Self::Group(group) => g.push(group),
         }
+    }
+}
+
+pub struct Doctype<S: Syntax> {
+    pub lt_token: Token![<],
+    pub bang_token: Token![!],
+    pub doctype_token: kw::DOCTYPE,
+    pub html_token: kw::html,
+    pub gt_token: Token![>],
+    pub phantom: PhantomData<S>,
+}
+
+impl<S: Syntax> Generate for Doctype<S> {
+    fn generate(&self, g: &mut Generator) {
+        g.push_lits(vec![
+            LitStr::new("<", self.lt_token.span),
+            LitStr::new("!", self.bang_token.span),
+            self.doctype_token.lit(),
+            LitStr::new(" ", Span::mixed_site()),
+            self.html_token.lit(),
+            LitStr::new(">", self.gt_token.span),
+        ]);
     }
 }
 
@@ -136,12 +147,6 @@ impl Parse for ParenExpr {
 
 pub struct Group<S: Syntax, N: Node<S>>(pub Nodes<S, N>);
 
-impl<S: Syntax, N: Node<S>> Group<S, N> {
-    fn block(&self, g: &mut Generator) -> AnyBlock {
-        self.0.block(g, Brace::default())
-    }
-}
-
 impl<S: Syntax, N: Node<S>> Generate for Group<S, N> {
     fn generate(&self, g: &mut Generator) {
         g.push(&self.0);
@@ -164,10 +169,15 @@ impl<S: Syntax, N: Node<S>> Nodes<S, N> {
 impl<S: Syntax, N: Node<S> + Parse> Parse for Nodes<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            nodes: input
-                .call(Punctuated::<N, S::NodeSeparator>::parse_terminated)?
-                .into_iter()
-                .collect(),
+            nodes: {
+                let mut nodes = Vec::new();
+
+                while !input.is_empty() {
+                    nodes.push(input.parse()?);
+                }
+
+                nodes
+            },
             phantom: PhantomData,
         })
     }
@@ -203,13 +213,13 @@ impl<S: Syntax> Generate for Element<S> {
             }
         }
 
-        g.push_str(">");
-
         match &self.body {
             ElementBody::Normal {
                 children,
                 closing_name,
             } => {
+                g.push_str(">");
+
                 let name = closing_name.as_ref().map_or(&self.name, |closing_name| {
                     el_checks.set_closing_name(closing_name);
                     closing_name
@@ -220,7 +230,9 @@ impl<S: Syntax> Generate for Element<S> {
                 g.push_lits(name.lits());
                 g.push_str(">");
             }
-            ElementBody::Void => {}
+            ElementBody::Void => {
+                g.push_str(" />");
+            }
         }
 
         g.record_element(el_checks);
@@ -247,6 +259,31 @@ impl<S: Syntax> ElementBody<S> {
 pub struct Attribute<S: Syntax> {
     pub name: AttributeName,
     pub kind: AttributeKind<S>,
+}
+
+impl<S: Syntax> Parse for Attribute<S>
+where
+    AttributeValueNode<S>: Parse,
+{
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            name: input.parse()?,
+            kind: if input.peek(Token![=]) {
+                input.parse::<Token![=]>()?;
+
+                if let Some(toggle) = input.call(Toggle::parse_optional)? {
+                    AttributeKind::Option(toggle)
+                } else {
+                    AttributeKind::Value {
+                        value: input.parse()?,
+                        toggle: input.call(Toggle::parse_optional)?,
+                    }
+                }
+            } else {
+                AttributeKind::Empty(input.call(Toggle::parse_optional)?)
+            },
+        })
+    }
 }
 
 impl<S: Syntax> Generate for Attribute<S> {
@@ -347,17 +384,11 @@ impl AttributeName {
     pub fn check(&self) -> Option<AttributeCheck> {
         match self {
             Self::Data { .. } => None,
-            Self::Namespace {
-                namespace, colon, ..
-            } => {
-                let mut spans = namespace.spans();
-                spans.push(colon.span());
-                Some(AttributeCheck::new(
-                    AttributeCheckKind::Namespace,
-                    namespace.ident_string(),
-                    spans,
-                ))
-            }
+            Self::Namespace { namespace, .. } => Some(AttributeCheck::new(
+                AttributeCheckKind::Namespace,
+                namespace.ident_string(),
+                namespace.spans(),
+            )),
             Self::Symbol { symbol, .. } => Some(AttributeCheck::new(
                 AttributeCheckKind::Symbol,
                 symbol.ident_string(),
@@ -385,12 +416,10 @@ impl AttributeName {
                 lits
             }
             Self::Namespace {
-                namespace,
-                colon,
-                rest,
+                namespace, rest, ..
             } => {
                 let mut lits = namespace.lits();
-                lits.push(LitStr::new(":", colon.span));
+                lits.push(LitStr::new(":", Span::mixed_site()));
                 lits.append(&mut rest.lits());
                 lits
             }
@@ -481,7 +510,7 @@ impl Parse for AttributeSymbol {
 
 pub enum AttributeKind<S: Syntax> {
     Value {
-        value: UnquotedValueNode<S>,
+        value: AttributeValueNode<S>,
         toggle: Option<Toggle>,
     },
     Empty(Option<Toggle>),
@@ -489,77 +518,56 @@ pub enum AttributeKind<S: Syntax> {
     ClassList(Vec<Class<S>>),
 }
 
-pub enum QuotedValueNode<S: Syntax> {
+pub enum AttributeValueNode<S: Syntax> {
     Literal(Literal),
     Group(Group<S, Self>),
     Control(Control<S, Self>),
     Expr(ParenExpr),
+    Ident(Ident),
 }
 
-impl<S: Syntax> Node<S> for QuotedValueNode<S> {
-    type Child = Self;
-
-    fn is_control(&self) -> bool {
-        matches!(self, Self::Control(_))
-    }
-
-    fn as_group(&self) -> Option<&Group<S, Self::Child>> {
-        match self {
-            Self::Group(group) => Some(group),
-            _ => None,
+impl<S: Syntax> AttributeValueNode<S> {
+    pub fn parse_unquoted(input: ParseStream) -> syn::Result<Self>
+    where
+        Self: Parse,
+    {
+        if input.peek(Ident::peek_any) || input.peek(LitInt) {
+            Ok(Self::Group(Group(Nodes {
+                nodes: input
+                    .parse::<UnquotedName>()?
+                    .lits()
+                    .into_iter()
+                    .map(|lit| Self::Literal(Literal::Str(lit)))
+                    .collect(),
+                phantom: PhantomData,
+            })))
+        } else {
+            input.parse()
         }
     }
 }
 
-impl<S: Syntax> Generate for QuotedValueNode<S> {
+impl<S: Syntax> Node<S> for AttributeValueNode<S> {
+    fn is_control(&self) -> bool {
+        matches!(self, Self::Control(_))
+    }
+}
+
+impl<S: Syntax> Generate for AttributeValueNode<S> {
     fn generate(&self, g: &mut Generator) {
         match self {
             Self::Literal(lit) => g.push_attribute_lit(&lit.lit_str()),
             Self::Group(block) => g.push(block),
             Self::Control(control) => g.push(control),
             Self::Expr(expr) => expr.generate_attribute(g),
+            Self::Ident(ident) => g.push_attribute_expr(Paren::default(), ident),
         }
     }
 }
 
 pub struct Class<S: Syntax> {
-    pub value: UnquotedValueNode<S>,
+    pub value: AttributeValueNode<S>,
     pub toggle: Option<Toggle>,
-}
-
-pub enum UnquotedValueNode<S: Syntax> {
-    UnquotedName(UnquotedName),
-    Str(LitStr),
-    Group(Group<S, QuotedValueNode<S>>),
-    Control(Control<S, QuotedValueNode<S>>),
-    Expr(ParenExpr),
-}
-
-impl<S: Syntax> Node<S> for UnquotedValueNode<S> {
-    type Child = QuotedValueNode<S>;
-
-    fn is_control(&self) -> bool {
-        matches!(self, Self::Control(_))
-    }
-
-    fn as_group(&self) -> Option<&Group<S, Self::Child>> {
-        match self {
-            Self::Group(group) => Some(group),
-            _ => None,
-        }
-    }
-}
-
-impl<S: Syntax> Generate for UnquotedValueNode<S> {
-    fn generate(&self, g: &mut Generator) {
-        match self {
-            Self::UnquotedName(name) => g.push_lits(name.lits()),
-            Self::Group(block) => g.push(block),
-            Self::Str(lit) => g.push_attribute_lit(&lit.clone()),
-            Self::Control(control) => g.push(control),
-            Self::Expr(expr) => expr.generate_attribute(g),
-        }
-    }
 }
 
 pub struct Toggle {
@@ -613,9 +621,9 @@ impl<S: Syntax> Generate for Component<S> {
     fn generate(&self, g: &mut Generator) {
         let fields = self.attrs.iter().map(|attr| {
             let name = &attr.name;
-            let value = &attr.value.expr();
+            let value = &attr.value_expr();
 
-            quote!(#name: #value)
+            quote!(#name: #value,)
         });
 
         let children = match &self.body {
@@ -630,7 +638,7 @@ impl<S: Syntax> Generate for Component<S> {
                     ::hypertext::Lazy({
                         extern crate alloc;
 
-                        move |#output_ident: &mut alloc::string::String|
+                        |#output_ident: &mut alloc::string::String|
                             #block
                     })
                 };
@@ -652,7 +660,7 @@ impl<S: Syntax> Generate for Component<S> {
 
         let init = quote! {
             #name {
-                #(#fields,)*
+                #(#fields)*
                 #children
                 #default
             }
@@ -665,6 +673,29 @@ impl<S: Syntax> Generate for Component<S> {
 pub struct ComponentAttribute {
     pub name: Ident,
     pub value: ComponentAttributeValue,
+}
+
+impl ComponentAttribute {
+    fn value_expr(&self) -> TokenStream {
+        match &self.value {
+            ComponentAttributeValue::Literal(lit) => match lit {
+                Literal::Str(lit) => lit.to_token_stream(),
+                Literal::Int(lit) => lit.to_token_stream(),
+                Literal::Bool(lit) => lit.to_token_stream(),
+                Literal::Float(lit) => lit.to_token_stream(),
+            },
+            ComponentAttributeValue::Ident(ident) => ident.to_token_stream(),
+            ComponentAttributeValue::Expr(expr) => {
+                let mut tokens = TokenStream::new();
+
+                expr.paren_token.surround(&mut tokens, |tokens| {
+                    expr.expr.to_tokens(tokens);
+                });
+
+                tokens
+            }
+        }
+    }
 }
 
 impl Parse for ComponentAttribute {
@@ -682,29 +713,8 @@ impl Parse for ComponentAttribute {
 
 pub enum ComponentAttributeValue {
     Literal(Literal),
+    Ident(Ident),
     Expr(ParenExpr),
-}
-
-impl ComponentAttributeValue {
-    fn expr(&self) -> TokenStream {
-        match self {
-            Self::Literal(lit) => match lit {
-                Literal::Str(lit) => lit.to_token_stream(),
-                Literal::Int(lit) => lit.to_token_stream(),
-                Literal::Bool(lit) => lit.to_token_stream(),
-                Literal::Float(lit) => lit.to_token_stream(),
-            },
-            Self::Expr(expr) => {
-                let mut tokens = TokenStream::new();
-
-                expr.paren_token.surround(&mut tokens, |tokens| {
-                    expr.expr.to_tokens(tokens);
-                });
-
-                tokens
-            }
-        }
-    }
 }
 
 impl Parse for ComponentAttributeValue {
@@ -713,6 +723,8 @@ impl Parse for ComponentAttributeValue {
 
         if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
             input.parse().map(Self::Literal)
+        } else if lookahead.peek(Ident) {
+            input.parse().map(Self::Ident)
         } else if lookahead.peek(Paren) {
             input.parse().map(Self::Expr)
         } else {

@@ -1,21 +1,18 @@
 use std::process::Command;
 
-fn main() {
-    println!("cargo:rerun-if-changed=src/views");
+const TAILWIND_CSS: &str = "tailwind.css";
 
-    let output = Command::new("npx")
-        .arg("@tailwindcss/cli")
-        .arg("-i")
-        .arg("./tailwind.css")
-        .arg("-o")
-        .arg("static/output.css")
-        .arg("--minify")
+fn main() {
+    println!("cargo:rerun-if-changed=src/views/");
+
+    let output = Command::new("tailwindcss")
+        .args(["-i", TAILWIND_CSS, "-o", "static/styles.css", "--minify"])
         .output()
-        .expect("Failed to execute tailwindcss");
+        .expect("failed to execute `tailwindcss`");
 
     if !output.status.success() {
         panic!(
-            "Failed to execute tailwindcss\n{}",
+            "failed to execute `tailwindcss`:\n{}",
             String::from_utf8_lossy(&output.stderr)
         );
     }

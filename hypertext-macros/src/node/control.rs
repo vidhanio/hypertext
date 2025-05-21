@@ -3,15 +3,11 @@ use quote::{ToTokens, quote};
 use syn::{
     Expr, Local, Pat, Stmt, Token, braced,
     parse::{Parse, ParseStream},
-    token::{Brace, Token},
+    token::Brace,
 };
 
 use super::{Node, Nodes, Syntax};
 use crate::generate::{AnyBlock, Generate, Generator};
-
-pub trait ControlSyntax: Syntax {
-    type ControlToken: Token + Parse;
-}
 
 pub enum Control<S: Syntax, N: Node<S>> {
     Let(Let),
@@ -21,9 +17,9 @@ pub enum Control<S: Syntax, N: Node<S>> {
     Match(Match<S, N>),
 }
 
-impl<S: ControlSyntax, N: Node<S> + Parse> Parse for Control<S, N> {
+impl<S: Syntax, N: Node<S> + Parse> Parse for Control<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        input.parse::<S::ControlToken>()?;
+        input.parse::<Token![@]>()?;
 
         let lookahead = input.lookahead1();
 
@@ -85,7 +81,7 @@ impl<S: Syntax, N: Node<S>> ControlBlock<S, N> {
     }
 }
 
-impl<S: ControlSyntax, N: Node<S> + Parse> Parse for ControlBlock<S, N> {
+impl<S: Syntax, N: Node<S> + Parse> Parse for ControlBlock<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
 
@@ -103,14 +99,14 @@ pub struct If<S: Syntax, N: Node<S>> {
     else_branch: Option<(Token![else], Box<ControlIfOrBlock<S, N>>)>,
 }
 
-impl<S: ControlSyntax, N: Node<S> + Parse> Parse for If<S, N> {
+impl<S: Syntax, N: Node<S> + Parse> Parse for If<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             if_token: input.parse()?,
             cond: input.call(Expr::parse_without_eager_brace)?,
             then_block: input.parse()?,
-            else_branch: if S::ControlToken::peek(input.cursor()) && input.peek2(Token![else]) {
-                input.parse::<S::ControlToken>()?;
+            else_branch: if input.peek(Token![@]) && input.peek2(Token![else]) {
+                input.parse::<Token![@]>()?;
 
                 Some((input.parse()?, input.parse()?))
             } else {
@@ -155,7 +151,7 @@ pub enum ControlIfOrBlock<S: Syntax, N: Node<S>> {
     Block(ControlBlock<S, N>),
 }
 
-impl<S: ControlSyntax, N: Node<S> + Parse> Parse for ControlIfOrBlock<S, N> {
+impl<S: Syntax, N: Node<S> + Parse> Parse for ControlIfOrBlock<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
 
@@ -177,7 +173,7 @@ pub struct For<S: Syntax, N: Node<S>> {
     pub block: ControlBlock<S, N>,
 }
 
-impl<S: ControlSyntax, N: Node<S> + Parse> Parse for For<S, N> {
+impl<S: Syntax, N: Node<S> + Parse> Parse for For<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             for_token: input.parse()?,
@@ -210,7 +206,7 @@ pub struct While<S: Syntax, N: Node<S>> {
     pub block: ControlBlock<S, N>,
 }
 
-impl<S: ControlSyntax, N: Node<S> + Parse> Parse for While<S, N> {
+impl<S: Syntax, N: Node<S> + Parse> Parse for While<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             while_token: input.parse()?,
@@ -240,7 +236,7 @@ pub struct Match<S: Syntax, N: Node<S>> {
     arms: Vec<MatchNodeArm<S, N>>,
 }
 
-impl<S: ControlSyntax, N: Node<S> + Parse> Parse for Match<S, N> {
+impl<S: Syntax, N: Node<S> + Parse> Parse for Match<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
 
@@ -275,7 +271,9 @@ impl<S: Syntax, N: Node<S>> Generate for Match<S, N> {
                 let fat_arrow_token = arm.fat_arrow_token;
                 let block = match &arm.body {
                     MatchNodeArmBody::Block(block) => block.block(g),
-                    MatchNodeArmBody::Node(node) => node.in_block(g),
+                    MatchNodeArmBody::Node(node) => {
+                        g.block_with(Brace::default(), |g| g.push(node))
+                    }
                 };
                 let comma = arm.comma_token;
 
@@ -303,7 +301,7 @@ pub struct MatchNodeArm<S: Syntax, N: Node<S>> {
     pub comma_token: Option<Token![,]>,
 }
 
-impl<S: ControlSyntax, N: Node<S> + Parse> Parse for MatchNodeArm<S, N> {
+impl<S: Syntax, N: Node<S> + Parse> Parse for MatchNodeArm<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             pat: input.call(Pat::parse_multi_with_leading_vert)?,
@@ -324,7 +322,7 @@ pub enum MatchNodeArmBody<S: Syntax, N: Node<S>> {
     Node(N),
 }
 
-impl<S: ControlSyntax, N: Node<S> + Parse> Parse for MatchNodeArmBody<S, N> {
+impl<S: Syntax, N: Node<S> + Parse> Parse for MatchNodeArmBody<S, N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if input.peek(Brace) {
             input.parse().map(Self::Block)

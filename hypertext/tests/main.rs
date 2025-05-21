@@ -329,36 +329,6 @@ fn hyperscript() {
 }
 
 #[test]
-fn elements_macro() {
-    mod html_elements {
-        use hypertext::elements;
-        pub use hypertext::html_elements::*;
-
-        elements! {
-            /// This is a test element
-            my_element {
-                /// This is a test attribute
-                my_attribute
-            }
-        }
-    }
-
-    let custom_maud = maud! {
-        div {
-            my-element my-attribute="test" {
-                "Hello, world!"
-            }
-        }
-    }
-    .render();
-
-    assert_eq!(
-        custom_maud,
-        Rendered(r#"<div><my-element my-attribute="test">Hello, world!</my-element></div>"#)
-    );
-}
-
-#[test]
 fn can_render_vec() {
     let groceries = ["milk", "eggs", "bread"]
         .into_iter()

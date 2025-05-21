@@ -10,8 +10,6 @@ use alloc::{
 };
 use core::fmt::{self, Debug, Display, Formatter, Write};
 
-use variadics_please::all_tuples_enumerated;
-
 /// Derive [`AttributeRenderable`] for a type via its [`Display`]
 /// implementation.
 ///
@@ -622,29 +620,45 @@ impl<T: Renderable> Renderable for Vec<T> {
     }
 }
 
-impl Renderable for () {
-    #[inline]
-    fn render_to(&self, _: &mut String) {}
-}
-
-macro_rules! impl_variadic {
-    ($(#[$meta:meta])* $(($n:tt, $T:ident)),*) => {
-        $(#[$meta])*
-        impl<$($T: Renderable),*> Renderable for ($($T,)*) {
+macro_rules! impl_tuple {
+    () => {
+        impl Renderable for () {
+            #[inline]
+            fn render_to(&self, _: &mut String) {}
+        }
+    };
+    (($i:tt $T:ident)) => {
+        #[cfg_attr(docsrs, doc(fake_variadic))]
+        #[cfg_attr(docsrs, doc = "This trait is implemented for tuples up to twelve items long.")]
+        impl<$T: Renderable> Renderable for ($T,) {
             #[inline]
             fn render_to(&self, output: &mut String) {
-                $(
-                    self.$n.render_to(output);
-                )*
+                self.$i.render_to(output);
+            }
+        }
+    };
+    (($i0:tt $T0:ident) $(($i:tt $T:ident))+) => {
+        #[cfg_attr(docsrs, doc(hidden))]
+        impl<$T0: Renderable, $($T: Renderable),*> Renderable for ($T0, $($T,)*) {
+            #[inline]
+            fn render_to(&self, output: &mut String) {
+                self.$i0.render_to(output);
+                $(self.$i.render_to(output);)*
             }
         }
     }
 }
 
-all_tuples_enumerated!(
-    #[doc(fake_variadic)]
-    impl_variadic,
-    1,
-    15,
-    T
-);
+impl_tuple!();
+impl_tuple!((0 T));
+impl_tuple!((0 T0) (1 T1));
+impl_tuple!((0 T0) (1 T1) (2 T2));
+impl_tuple!((0 T0) (1 T1) (2 T2) (3 T3));
+impl_tuple!((0 T0) (1 T1) (2 T2) (3 T3) (4 T4));
+impl_tuple!((0 T0) (1 T1) (2 T2) (3 T3) (4 T4) (5 T5));
+impl_tuple!((0 T0) (1 T1) (2 T2) (3 T3) (4 T4) (5 T5) (6 T6));
+impl_tuple!((0 T0) (1 T1) (2 T2) (3 T3) (4 T4) (5 T5) (6 T6) (7 T7));
+impl_tuple!((0 T0) (1 T1) (2 T2) (3 T3) (4 T4) (5 T5) (6 T6) (7 T7) (8 T8));
+impl_tuple!((0 T0) (1 T1) (2 T2) (3 T3) (4 T4) (5 T5) (6 T6) (7 T7) (8 T8) (9 T9));
+impl_tuple!((0 T0) (1 T1) (2 T2) (3 T3) (4 T4) (5 T5) (6 T6) (7 T7) (8 T8) (9 T9) (10 T10));
+impl_tuple!((0 T0) (1 T1) (2 T2) (3 T3) (4 T4) (5 T5) (6 T6) (7 T7) (8 T8) (9 T9) (10 T10) (11 T11));

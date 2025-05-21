@@ -5,9 +5,10 @@
 //! re-exports the [`html_elements`] module, and any [framework-specific
 //! attribute traits](crate::frameworks) that have been enabled, as well as
 //! the [`GlobalAttributes`] trait.
-#[allow(unused_imports)]
-pub use crate::frameworks::*;
-pub use crate::{html_elements, GlobalAttributes};
-#[cfg(feature = "alloc")]
-pub use crate::{maud, rsx, AttributeRenderable, Renderable, Rendered};
+#![allow(unused_imports)]
+
 pub use hypertext_macros::component;
+
+#[cfg(feature = "alloc")]
+pub use crate::{AttributeRenderable, Renderable, Rendered, maud, rsx};
+pub use crate::{GlobalAttributes, frameworks::*, html_elements};

@@ -1,8 +1,15 @@
-//! HTML elements.
+//! All standard HTML elements.
+//!
+//! This module can be overridden in your own crate to add custom HTML elements.
+//! See the documentation for [`elements!`] or [`GlobalAttributes`] for more
+//! information.
+//!
+//! [`elements!`]: crate::elements
+//! [`GlobalAttributes`]: crate::GlobalAttributes
 
 /// Create a set of HTML elements.
 ///
-/// This macro should be called from within an `html_elements` module.
+/// This macro should be called from within a module named `html_elements`.
 ///
 /// # Example
 ///
@@ -60,7 +67,10 @@ macro_rules! elements {
     } => {
         $(
             $(#[$meta])*
-            #[allow(non_camel_case_types)]
+            #[expect(
+                non_camel_case_types,
+                reason = "camel case types will be interpreted as components"
+            )]
             #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
             pub struct $name;
 
@@ -927,7 +937,10 @@ macro_rules! void_elements {
     } => {
         $(
             $(#[$meta])*
-            #[allow(non_camel_case_types)]
+            #[expect(
+                non_camel_case_types,
+                reason = "camel case types will be interpreted as components"
+            )]
             #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
             pub struct $name;
 

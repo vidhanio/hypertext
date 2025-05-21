@@ -1,41 +1,27 @@
+use std::marker::PhantomData;
+
+use proc_macro2::Span;
 use syn::{
     Ident, LitBool, LitFloat, LitInt, LitStr, Token, braced,
     ext::IdentExt,
-    parse::{Nothing, Parse, ParseStream},
+    parse::{Parse, ParseStream},
     parse_quote_spanned,
     spanned::Spanned,
     token::{Brace, Paren},
 };
 
 use crate::node::{
-    Attribute, AttributeKind, Class, Component, ControlSyntax, Element, ElementBody, ElementNode,
-    Group, Markup, Node, QuotedValueNode, Syntax, Toggle, UnquotedName, UnquotedValueNode,
+    Attribute, AttributeKind, AttributeValueNode, Class, Component, Doctype, Document, Element,
+    ElementBody, ElementNode, Group, Node, Syntax, Toggle, UnquotedName, kw,
 };
 
 pub struct Maud;
 
-impl Syntax for Maud {
-    type NodeSeparator = Nothing;
-}
+impl Syntax for Maud {}
 
-impl ControlSyntax for Maud {
-    type ControlToken = Token![@];
-}
-
-impl Parse for Markup<Maud> {
+impl Parse for Document<Maud> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
-            doctype: {
-                syn::custom_keyword!(DOCTYPE);
-
-                if input.peek(Token![!]) && input.peek2(DOCTYPE) {
-                    input.parse::<Token![!]>()?;
-
-                    Some(input.parse::<DOCTYPE>()?.span())
-                } else {
-                    None
-                }
-            },
             nodes: input.parse()?,
         })
     }
@@ -51,6 +37,8 @@ impl Parse for ElementNode<Maud> {
             } else {
                 input.parse().map(Self::Element)
             }
+        } else if lookahead.peek(Token![!]) {
+            input.parse().map(Self::Doctype)
         } else if lookahead.peek(LitStr)
             || lookahead.peek(LitInt)
             || lookahead.peek(LitBool)
@@ -94,7 +82,7 @@ impl Parse for Element<Maud> {
                 }
 
                 while !(input.peek(Token![;]) || input.peek(Brace)) {
-                    attrs.push(input.call(Attribute::parse_normal)?);
+                    attrs.push(input.parse()?);
                 }
 
                 attrs
@@ -129,7 +117,7 @@ impl Attribute<Maud> {
         Ok(Self {
             name: parse_quote_spanned!(pound_token.span()=> id),
             kind: AttributeKind::Value {
-                value: input.parse()?,
+                value: input.call(AttributeValueNode::parse_unquoted)?,
                 toggle: None,
             },
         })
@@ -148,59 +136,19 @@ impl Attribute<Maud> {
             kind: AttributeKind::ClassList(classes),
         })
     }
-
-    fn parse_normal(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            name: input.parse()?,
-            kind: if input.peek(Token![=]) {
-                input.parse::<Token![=]>()?;
-
-                if let Some(toggle) = input.call(Toggle::parse_optional)? {
-                    AttributeKind::Option(toggle)
-                } else {
-                    AttributeKind::Value {
-                        value: input.parse()?,
-                        toggle: input.call(Toggle::parse_optional)?,
-                    }
-                }
-            } else {
-                AttributeKind::Empty(input.call(Toggle::parse_optional)?)
-            },
-        })
-    }
 }
 
 impl Parse for Class<Maud> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         input.parse::<Token![.]>()?;
         Ok(Self {
-            value: input.parse()?,
+            value: input.call(AttributeValueNode::parse_unquoted)?,
             toggle: input.call(Toggle::parse_optional)?,
         })
     }
 }
 
-impl Parse for UnquotedValueNode<Maud> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(Ident::peek_any) || lookahead.peek(LitInt) {
-            input.parse().map(Self::UnquotedName)
-        } else if lookahead.peek(LitStr) {
-            input.parse().map(Self::Str)
-        } else if lookahead.peek(Brace) {
-            input.parse().map(Self::Group)
-        } else if lookahead.peek(Token![@]) {
-            input.parse().map(Self::Control)
-        } else if lookahead.peek(Paren) {
-            input.parse().map(Self::Expr)
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-impl Parse for QuotedValueNode<Maud> {
+impl Parse for AttributeValueNode<Maud> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
 
@@ -212,6 +160,8 @@ impl Parse for QuotedValueNode<Maud> {
             input.parse().map(Self::Control)
         } else if lookahead.peek(Paren) {
             input.parse().map(Self::Expr)
+        } else if lookahead.peek(Ident) {
+            input.parse().map(Self::Ident)
         } else {
             Err(lookahead.error())
         }
@@ -233,6 +183,19 @@ impl Parse for Component<Maud> {
             },
             dotdot: input.parse()?,
             body: input.parse()?,
+        })
+    }
+}
+
+impl Parse for Doctype<Maud> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            lt_token: Token![<](Span::mixed_site()),
+            bang_token: input.parse()?,
+            doctype_token: input.parse()?,
+            html_token: kw::html(Span::mixed_site()),
+            gt_token: Token![>](Span::mixed_site()),
+            phantom: PhantomData,
         })
     }
 }
