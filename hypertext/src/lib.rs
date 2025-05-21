@@ -59,9 +59,9 @@
 //!     const _: fn() = || {
 //!         html_elements::div;
 //!         html_elements::h1;
-//!         let _: hypertext::Attribute = html_elements::div::id;
-//!         let _: hypertext::Attribute = html_elements::div::title;
-//!         let _: hypertext::Attribute = html_elements::h1::class;
+//!         let _: hypertext::validation::Attribute = html_elements::div::id;
+//!         let _: hypertext::validation::Attribute = html_elements::div::title;
+//!         let _: hypertext::validation::Attribute = html_elements::h1::class;
 //!     };
 //!
 //!     hypertext::Lazy(|hypertext_output: &mut String| {
@@ -72,7 +72,7 @@
 //!         for i in 1..=3 {
 //!             const _: fn() = || {
 //!                 html_elements::p;
-//!                 let _: hypertext::Attribute = html_elements::p::class;
+//!                 let _: hypertext::validation::Attribute = html_elements::p::class;
 //!             };
 //!
 //!             hypertext_output.push_str(r#"<p class="p-"#);
@@ -97,7 +97,10 @@
 //! Here's an example of how you could define your own attributes for use with
 //! the wonderful frontend library [htmx](https://htmx.org):
 //! ```rust
-//! use hypertext::{Attribute, AttributeNamespace, prelude::*};
+//! use hypertext::{
+//!     prelude::*,
+//!     validation::{Attribute, AttributeNamespace},
+//! };
 //!
 //! trait HtmxAttributes: GlobalAttributes {
 //!     const hx_get: Attribute = Attribute;
