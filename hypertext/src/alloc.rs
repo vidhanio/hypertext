@@ -722,6 +722,15 @@ impl<T: Renderable> Renderable for Vec<T> {
     }
 }
 
+impl<T: Renderable> Renderable for Option<T> {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        if let Some(value) = self {
+            value.render_to(output);
+        }
+    }
+}
+
 macro_rules! impl_tuple {
     () => {
         impl Renderable for () {
