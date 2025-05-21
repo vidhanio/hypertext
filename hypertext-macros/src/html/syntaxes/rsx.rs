@@ -1,15 +1,16 @@
 use std::marker::PhantomData;
 
 use syn::{
-    Ident, LitBool, LitFloat, LitInt, LitStr, Token, braced, custom_punctuation,
+    Ident, LitBool, LitFloat, LitInt, LitStr, Token, custom_punctuation,
     ext::IdentExt,
     parse::{Parse, ParseStream, discouraged::Speculative},
-    token::{Brace, Paren},
+    parse_quote,
+    token::Paren,
 };
 
-use crate::node::{
-    AttributeValueNode, Component, Doctype, Document, Element, ElementBody, ElementNode, Group,
-    Literal, NameFragment, Nodes, Syntax, UnquotedName,
+use crate::html::{
+    Component, Doctype, Element, ElementBody, ElementNode, Group, Literal, Nodes, Syntax,
+    UnquotedName,
 };
 
 pub struct Rsx;
@@ -20,14 +21,6 @@ custom_punctuation!(FragmentOpen, <>);
 custom_punctuation!(FragmentClose, </>);
 custom_punctuation!(OpenTagSolidusEnd, />);
 custom_punctuation!(CloseTagStart, </);
-
-impl Parse for Document<Rsx> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            nodes: input.parse()?,
-        })
-    }
-}
 
 impl ElementNode<Rsx> {
     fn parse_component(input: ParseStream) -> syn::Result<Self> {
@@ -68,10 +61,7 @@ impl ElementNode<Rsx> {
                         }),
                     );
 
-                    return Ok(Self::Group(Group(Nodes {
-                        nodes: children,
-                        phantom: PhantomData,
-                    })));
+                    return Ok(Self::Group(Group(Nodes(children))));
                 }
 
                 children.push(input.parse()?);
@@ -93,10 +83,7 @@ impl ElementNode<Rsx> {
                     }),
                 );
 
-                return Ok(Self::Group(Group(Nodes {
-                    nodes: children,
-                    phantom: PhantomData,
-                })));
+                return Ok(Self::Group(Group(Nodes(children))));
             }
             input.parse::<Token![>]>()?;
 
@@ -105,11 +92,8 @@ impl ElementNode<Rsx> {
                 attrs,
                 dotdot,
                 body: ElementBody::Normal {
-                    children: Nodes {
-                        nodes: children,
-                        phantom: PhantomData,
-                    },
-                    closing_name: Some(UnquotedName(vec![NameFragment::Ident(closing_name)])),
+                    children: Nodes(children),
+                    closing_name: Some(parse_quote!(#closing_name)),
                 },
             }))
         }
@@ -149,10 +133,7 @@ impl ElementNode<Rsx> {
                         }),
                     );
 
-                    return Ok(Self::Group(Group(Nodes {
-                        nodes: children,
-                        phantom: PhantomData,
-                    })));
+                    return Ok(Self::Group(Group(Nodes(children))));
                 }
                 children.push(input.parse()?);
             }
@@ -172,10 +153,7 @@ impl ElementNode<Rsx> {
                     }),
                 );
 
-                return Ok(Self::Group(Group(Nodes {
-                    nodes: children,
-                    phantom: PhantomData,
-                })));
+                return Ok(Self::Group(Group(Nodes(children))));
             }
             input.parse::<Token![>]>()?;
 
@@ -183,10 +161,7 @@ impl ElementNode<Rsx> {
                 name,
                 attrs,
                 body: ElementBody::Normal {
-                    children: Nodes {
-                        nodes: children,
-                        phantom: PhantomData,
-                    },
+                    children: Nodes(children),
                     closing_name: Some(closing_name),
                 },
             }))
@@ -261,7 +236,7 @@ impl Parse for Doctype<Rsx> {
     }
 }
 
-impl Parse for Group<Rsx, ElementNode<Rsx>> {
+impl Parse for Group<ElementNode<Rsx>> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         input.parse::<FragmentOpen>()?;
 
@@ -273,42 +248,6 @@ impl Parse for Group<Rsx, ElementNode<Rsx>> {
 
         input.parse::<FragmentClose>()?;
 
-        Ok(Self(Nodes {
-            nodes,
-            phantom: PhantomData,
-        }))
-    }
-}
-
-impl Parse for Group<Rsx, AttributeValueNode<Rsx>> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let content;
-        braced!(content in input);
-
-        Ok(Self(content.parse()?))
-    }
-}
-
-impl Parse for AttributeValueNode<Rsx> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(LitStr)
-            || lookahead.peek(LitInt)
-            || lookahead.peek(LitBool)
-            || lookahead.peek(LitFloat)
-        {
-            input.parse().map(Self::Literal)
-        } else if lookahead.peek(Brace) {
-            input.parse().map(Self::Group)
-        } else if lookahead.peek(Token![@]) {
-            input.parse().map(Self::Control)
-        } else if lookahead.peek(Paren) {
-            input.parse().map(Self::Expr)
-        } else if lookahead.peek(Ident) {
-            input.parse().map(Self::Ident)
-        } else {
-            Err(lookahead.error())
-        }
+        Ok(Self(Nodes(nodes)))
     }
 }

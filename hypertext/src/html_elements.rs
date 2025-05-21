@@ -5,7 +5,7 @@
 //! information.
 //!
 //! [`elements!`]: crate::elements
-//! [`GlobalAttributes`]: crate::GlobalAttributes
+//! [`GlobalAttributes`]: crate::validation::GlobalAttributes
 
 /// Create a set of HTML elements.
 ///
@@ -39,7 +39,7 @@
 ///
 /// // Now, you can use the custom elements like this:
 ///
-/// use hypertext::{prelude::*, Rendered};
+/// use hypertext::prelude::*;
 ///
 /// assert_eq!(
 ///     maud! {
@@ -79,16 +79,16 @@ macro_rules! elements {
                 impl $name {
                     $(
                         $(#[$attr_meta])*
-                        pub const $attr: $crate::Attribute = $crate::Attribute;
+                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
                     )*
                 }
             )?
 
-            impl $crate::Element for $name {
-                type Kind = $crate::Normal;
+            impl $crate::validation::Element for $name {
+                type Kind = $crate::validation::Normal;
             }
 
-            impl $crate::GlobalAttributes for $name {}
+            impl $crate::validation::GlobalAttributes for $name {}
         )*
     }
 }
@@ -949,16 +949,16 @@ macro_rules! void_elements {
                 impl $name {
                     $(
                         $(#[$attr_meta])*
-                        pub const $attr: $crate::Attribute = $crate::Attribute;
+                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
                     )*
                 }
             )?
 
-            impl $crate::Element for $name {
-                type Kind = $crate::Void;
+            impl $crate::validation::Element for $name {
+                type Kind = $crate::validation::Void;
             }
 
-            impl $crate::GlobalAttributes for $name {}
+            impl $crate::validation::GlobalAttributes for $name {}
         )*
     }
 }

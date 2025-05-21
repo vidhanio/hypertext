@@ -1,7 +1,5 @@
 use hypertext::prelude::*;
 
-use crate::views::nav::Nav;
-
 #[component]
 pub fn home() -> impl Renderable {
     rsx! {

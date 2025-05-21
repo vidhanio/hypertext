@@ -1,29 +1,37 @@
 #![expect(clippy::struct_field_names, clippy::large_enum_variant)]
 
+mod basics;
+mod component;
 mod control;
+pub mod generate;
+mod syntaxes;
 
-use std::{
-    fmt::{self, Display, Formatter, Write},
-    marker::PhantomData,
-};
+use std::marker::PhantomData;
 
 use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, quote, quote_spanned};
+use quote::{ToTokens, quote};
 use syn::{
-    Ident, LitBool, LitFloat, LitInt, LitStr, Token, bracketed,
+    Ident, LitBool, LitFloat, LitInt, LitStr, Token, braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
+    parse_quote_spanned,
     spanned::Spanned,
     token::{Brace, Bracket, Paren},
 };
 
-pub use self::control::*;
-use crate::generate::{
-    AnyBlock, AttributeCheck, AttributeCheckKind, ElementCheck, ElementKind, Generate, Generator,
+pub use self::syntaxes::{Maud, Rsx};
+use self::{
+    basics::{Literal, UnquotedName},
+    component::Component,
+    control::Control,
+    generate::{
+        AnyBlock, AttributeCheck, AttributeCheckKind, ElementCheck, ElementKind, Generate,
+        Generator,
+    },
 };
 
-pub mod kw {
+mod kw {
     use syn::LitStr;
 
     syn::custom_keyword!(data);
@@ -53,17 +61,9 @@ pub mod kw {
 
 pub trait Syntax {}
 
-pub struct Document<S: Syntax> {
-    pub nodes: Nodes<S, ElementNode<S>>,
-}
+pub type Document<S> = Nodes<ElementNode<S>>;
 
-impl<S: Syntax> Generate for Document<S> {
-    fn generate(&self, g: &mut Generator) {
-        g.push(&self.nodes);
-    }
-}
-
-pub trait Node<S: Syntax>: Generate + Sized {
+pub trait Node: Generate {
     fn is_control(&self) -> bool;
 }
 
@@ -72,12 +72,12 @@ pub enum ElementNode<S: Syntax> {
     Element(Element<S>),
     Component(Component<S>),
     Literal(Literal),
-    Control(Control<S, Self>),
+    Control(Control<Self>),
     Expr(ParenExpr),
-    Group(Group<S, Self>),
+    Group(Group<Self>),
 }
 
-impl<S: Syntax> Node<S> for ElementNode<S> {
+impl<S: Syntax> Node for ElementNode<S> {
     fn is_control(&self) -> bool {
         matches!(self, Self::Control(_))
     }
@@ -98,12 +98,12 @@ impl<S: Syntax> Generate for ElementNode<S> {
 }
 
 pub struct Doctype<S: Syntax> {
-    pub lt_token: Token![<],
-    pub bang_token: Token![!],
-    pub doctype_token: kw::DOCTYPE,
-    pub html_token: kw::html,
-    pub gt_token: Token![>],
-    pub phantom: PhantomData<S>,
+    lt_token: Token![<],
+    bang_token: Token![!],
+    doctype_token: kw::DOCTYPE,
+    html_token: kw::html,
+    gt_token: Token![>],
+    phantom: PhantomData<S>,
 }
 
 impl<S: Syntax> Generate for Doctype<S> {
@@ -120,8 +120,8 @@ impl<S: Syntax> Generate for Doctype<S> {
 }
 
 pub struct ParenExpr {
-    pub paren_token: Paren,
-    pub expr: TokenStream,
+    paren_token: Paren,
+    expr: TokenStream,
 }
 
 impl ParenExpr {
@@ -145,58 +145,61 @@ impl Parse for ParenExpr {
     }
 }
 
-pub struct Group<S: Syntax, N: Node<S>>(pub Nodes<S, N>);
+pub struct Group<N: Node>(Nodes<N>);
 
-impl<S: Syntax, N: Node<S>> Generate for Group<S, N> {
+impl Parse for Group<AttributeValueNode> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let content;
+        braced!(content in input);
+
+        Ok(Self(content.parse()?))
+    }
+}
+
+impl<N: Node> Generate for Group<N> {
     fn generate(&self, g: &mut Generator) {
         g.push(&self.0);
     }
 }
 
-pub struct Nodes<S: Syntax, N: Node<S>> {
-    pub nodes: Vec<N>,
-    pub phantom: PhantomData<S>,
-}
+pub struct Nodes<N: Node>(Vec<N>);
 
-impl<S: Syntax, N: Node<S>> Nodes<S, N> {
+impl<N: Node> Nodes<N> {
     fn block(&self, g: &mut Generator, brace_token: Brace) -> AnyBlock {
         g.block_with(brace_token, |g| {
-            g.push_all(&self.nodes);
+            g.push_all(&self.0);
         })
     }
 }
 
-impl<S: Syntax, N: Node<S> + Parse> Parse for Nodes<S, N> {
+impl<N: Node + Parse> Parse for Nodes<N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            nodes: {
-                let mut nodes = Vec::new();
+        Ok(Self({
+            let mut nodes = Vec::new();
 
-                while !input.is_empty() {
-                    nodes.push(input.parse()?);
-                }
+            while !input.is_empty() {
+                nodes.push(input.parse()?);
+            }
 
-                nodes
-            },
-            phantom: PhantomData,
-        })
+            nodes
+        }))
     }
 }
 
-impl<S: Syntax, N: Node<S>> Generate for Nodes<S, N> {
+impl<N: Node> Generate for Nodes<N> {
     fn generate(&self, g: &mut Generator) {
-        if self.nodes.iter().any(Node::is_control) {
-            g.push_in_block(Brace::default(), |g| g.push_all(&self.nodes));
+        if self.0.iter().any(Node::is_control) {
+            g.push_in_block(Brace::default(), |g| g.push_all(&self.0));
         } else {
-            g.push_all(&self.nodes);
+            g.push_all(&self.0);
         }
     }
 }
 
 pub struct Element<S: Syntax> {
-    pub name: UnquotedName,
-    pub attrs: Vec<Attribute<S>>,
-    pub body: ElementBody<S>,
+    name: UnquotedName,
+    attrs: Vec<Attribute>,
+    body: ElementBody<S>,
 }
 
 impl<S: Syntax> Generate for Element<S> {
@@ -221,7 +224,7 @@ impl<S: Syntax> Generate for Element<S> {
                 closing_name,
             } => {
                 let name = closing_name.as_ref().map_or(&self.name, |closing_name| {
-                    el_checks.set_closing_name(closing_name);
+                    el_checks.set_closing_spans(closing_name.spans());
                     closing_name
                 });
 
@@ -239,7 +242,7 @@ impl<S: Syntax> Generate for Element<S> {
 
 pub enum ElementBody<S: Syntax> {
     Normal {
-        children: Nodes<S, ElementNode<S>>,
+        children: Nodes<ElementNode<S>>,
         closing_name: Option<UnquotedName>,
     },
     Void,
@@ -254,15 +257,39 @@ impl<S: Syntax> ElementBody<S> {
     }
 }
 
-pub struct Attribute<S: Syntax> {
-    pub name: AttributeName,
-    pub kind: AttributeKind<S>,
+pub struct Attribute {
+    name: AttributeName,
+    kind: AttributeKind,
 }
 
-impl<S: Syntax> Parse for Attribute<S>
-where
-    AttributeValueNode<S>: Parse,
-{
+impl Attribute {
+    fn parse_id(input: ParseStream) -> syn::Result<Self> {
+        let pound_token = input.parse::<Token![#]>()?;
+        Ok(Self {
+            name: parse_quote_spanned!(pound_token.span()=> id),
+            kind: AttributeKind::Value {
+                value: input.call(AttributeValueNode::parse_unquoted)?,
+                toggle: None,
+            },
+        })
+    }
+
+    fn parse_class_list(input: ParseStream) -> syn::Result<Self> {
+        let dot_token = input.fork().parse::<Token![.]>()?;
+        let mut classes = Vec::new();
+
+        while input.peek(Token![.]) {
+            classes.push(input.parse()?);
+        }
+
+        Ok(Self {
+            name: parse_quote_spanned!(dot_token.span()=> class),
+            kind: AttributeKind::ClassList(classes),
+        })
+    }
+}
+
+impl Parse for Attribute {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             name: input.parse()?,
@@ -284,7 +311,7 @@ where
     }
 }
 
-impl<S: Syntax> Generate for Attribute<S> {
+impl Generate for Attribute {
     fn generate(&self, g: &mut Generator) {
         match &self.kind {
             AttributeKind::Value { value, toggle, .. } => {
@@ -379,7 +406,7 @@ pub enum AttributeName {
 }
 
 impl AttributeName {
-    pub fn check(&self) -> Option<AttributeCheck> {
+    fn check(&self) -> Option<AttributeCheck> {
         match self {
             Self::Data { .. } => None,
             Self::Namespace { namespace, .. } => Some(AttributeCheck::new(
@@ -506,52 +533,72 @@ impl Parse for AttributeSymbol {
     }
 }
 
-pub enum AttributeKind<S: Syntax> {
+pub enum AttributeKind {
     Value {
-        value: AttributeValueNode<S>,
+        value: AttributeValueNode,
         toggle: Option<Toggle>,
     },
     Empty(Option<Toggle>),
     Option(Toggle),
-    ClassList(Vec<Class<S>>),
+    ClassList(Vec<Class>),
 }
 
-pub enum AttributeValueNode<S: Syntax> {
+pub enum AttributeValueNode {
     Literal(Literal),
-    Group(Group<S, Self>),
-    Control(Control<S, Self>),
+    Group(Group<Self>),
+    Control(Control<Self>),
     Expr(ParenExpr),
     Ident(Ident),
 }
 
-impl<S: Syntax> AttributeValueNode<S> {
-    pub fn parse_unquoted(input: ParseStream) -> syn::Result<Self>
-    where
-        Self: Parse,
-    {
+impl AttributeValueNode {
+    fn parse_unquoted(input: ParseStream) -> syn::Result<Self> {
         if input.peek(Ident::peek_any) || input.peek(LitInt) {
-            Ok(Self::Group(Group(Nodes {
-                nodes: input
+            Ok(Self::Group(Group(Nodes(
+                input
                     .parse::<UnquotedName>()?
                     .lits()
                     .into_iter()
                     .map(|lit| Self::Literal(Literal::Str(lit)))
                     .collect(),
-                phantom: PhantomData,
-            })))
+            ))))
         } else {
             input.parse()
         }
     }
 }
 
-impl<S: Syntax> Node<S> for AttributeValueNode<S> {
+impl Node for AttributeValueNode {
     fn is_control(&self) -> bool {
         matches!(self, Self::Control(_))
     }
 }
 
-impl<S: Syntax> Generate for AttributeValueNode<S> {
+impl Parse for AttributeValueNode {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(LitStr)
+            || lookahead.peek(LitInt)
+            || lookahead.peek(LitBool)
+            || lookahead.peek(LitFloat)
+        {
+            input.parse().map(Self::Literal)
+        } else if lookahead.peek(Brace) {
+            input.parse().map(Self::Group)
+        } else if lookahead.peek(Token![@]) {
+            input.parse().map(Self::Control)
+        } else if lookahead.peek(Paren) {
+            input.parse().map(Self::Expr)
+        } else if lookahead.peek(Ident) {
+            input.parse().map(Self::Ident)
+        } else {
+            Err(lookahead.error())
+        }
+    }
+}
+
+impl Generate for AttributeValueNode {
     fn generate(&self, g: &mut Generator) {
         match self {
             Self::Literal(lit) => g.push_attribute_lit(&lit.lit_str()),
@@ -563,14 +610,24 @@ impl<S: Syntax> Generate for AttributeValueNode<S> {
     }
 }
 
-pub struct Class<S: Syntax> {
-    pub value: AttributeValueNode<S>,
-    pub toggle: Option<Toggle>,
+pub struct Class {
+    value: AttributeValueNode,
+    toggle: Option<Toggle>,
+}
+
+impl Parse for Class {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        input.parse::<Token![.]>()?;
+        Ok(Self {
+            value: input.call(AttributeValueNode::parse_unquoted)?,
+            toggle: input.call(Toggle::parse_optional)?,
+        })
+    }
 }
 
 pub struct Toggle {
-    pub bracket_token: Bracket,
-    pub expr: TokenStream,
+    bracket_token: Bracket,
+    expr: TokenStream,
 }
 
 impl Toggle {
@@ -588,7 +645,7 @@ impl Toggle {
         tokens
     }
 
-    pub fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
+    fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
         if input.peek(Bracket) {
             input.parse().map(Some)
         } else {
@@ -605,337 +662,5 @@ impl Parse for Toggle {
             bracket_token: bracketed!(content in input),
             expr: content.parse()?,
         })
-    }
-}
-
-pub struct Component<S: Syntax> {
-    pub name: Ident,
-    pub attrs: Vec<ComponentAttribute>,
-    pub dotdot: Option<Token![..]>,
-    pub body: ElementBody<S>,
-}
-
-impl<S: Syntax> Generate for Component<S> {
-    fn generate(&self, g: &mut Generator) {
-        let fields = self.attrs.iter().map(|attr| {
-            let name = &attr.name;
-            let value = &attr.value_expr();
-
-            quote!(#name: #value,)
-        });
-
-        let children = match &self.body {
-            ElementBody::Normal { children, .. } => {
-                let output_ident = Generator::output_ident();
-
-                let block = g.block_with(Brace::default(), |g| {
-                    g.push(children);
-                });
-
-                let lazy = quote! {
-                    ::hypertext::Lazy({
-                        extern crate alloc;
-
-                        |#output_ident: &mut alloc::string::String|
-                            #block
-                    })
-                };
-
-                quote!(
-                    children: #lazy,
-                )
-            }
-            ElementBody::Void => quote!(),
-        };
-
-        let name = &self.name;
-
-        let default = self
-            .dotdot
-            .as_ref()
-            .map(|dotdot| quote_spanned!(dotdot.span()=> ..::core::default::Default::default()))
-            .unwrap_or_default();
-
-        let init = quote! {
-            #name {
-                #(#fields)*
-                #children
-                #default
-            }
-        };
-
-        g.push_text_expr(Paren::default(), &init);
-    }
-}
-
-pub struct ComponentAttribute {
-    pub name: Ident,
-    pub value: ComponentAttributeValue,
-}
-
-impl ComponentAttribute {
-    fn value_expr(&self) -> TokenStream {
-        match &self.value {
-            ComponentAttributeValue::Literal(lit) => match lit {
-                Literal::Str(lit) => lit.to_token_stream(),
-                Literal::Int(lit) => lit.to_token_stream(),
-                Literal::Bool(lit) => lit.to_token_stream(),
-                Literal::Float(lit) => lit.to_token_stream(),
-            },
-            ComponentAttributeValue::Ident(ident) => ident.to_token_stream(),
-            ComponentAttributeValue::Expr(expr) => {
-                let mut tokens = TokenStream::new();
-
-                expr.paren_token.surround(&mut tokens, |tokens| {
-                    expr.expr.to_tokens(tokens);
-                });
-
-                tokens
-            }
-        }
-    }
-}
-
-impl Parse for ComponentAttribute {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            name: input.parse()?,
-            value: {
-                input.parse::<Token![=]>()?;
-
-                input.parse()?
-            },
-        })
-    }
-}
-
-pub enum ComponentAttributeValue {
-    Literal(Literal),
-    Ident(Ident),
-    Expr(ParenExpr),
-}
-
-impl Parse for ComponentAttributeValue {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
-            input.parse().map(Self::Literal)
-        } else if lookahead.peek(Ident) {
-            input.parse().map(Self::Ident)
-        } else if lookahead.peek(Paren) {
-            input.parse().map(Self::Expr)
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-#[derive(PartialEq, Eq, Clone)]
-pub struct UnquotedName(pub Vec<NameFragment>);
-
-impl UnquotedName {
-    pub fn ident_string(&self) -> String {
-        let mut s = String::new();
-
-        for fragment in &self.0 {
-            match fragment {
-                NameFragment::Ident(ident) => {
-                    _ = write!(s, "{ident}");
-                }
-                NameFragment::Number(num) => {
-                    _ = write!(s, "{num}");
-                }
-                NameFragment::Hyphen(_) => {
-                    s.push('_');
-                }
-                NameFragment::Colon(_) | NameFragment::Dot(_) => {
-                    unreachable!(
-                        "unquoted name idents should only contain identifiers, int literals, and hyphens"
-                    );
-                }
-            }
-        }
-
-        if s == "super"
-            || s == "self"
-            || s == "Self"
-            || s == "extern"
-            || s == "crate"
-            || s == "_"
-            || s.chars().next().is_some_and(|c| c.is_ascii_digit())
-        {
-            s.insert(0, '_');
-        }
-
-        s
-    }
-
-    pub fn is_component(&self) -> bool {
-        matches!(
-            self.0.as_slice(),
-            [NameFragment::Ident(ident)]
-                if ident.to_string().chars().next().is_some_and(|c| c.is_ascii_uppercase())
-        )
-    }
-
-    pub fn spans(&self) -> Vec<Span> {
-        let mut spans = Vec::new();
-
-        for fragment in &self.0 {
-            spans.push(fragment.span());
-        }
-
-        spans
-    }
-
-    pub fn lits(&self) -> Vec<LitStr> {
-        let mut strs = Vec::new();
-
-        for fragment in &self.0 {
-            strs.push(LitStr::new(&fragment.to_string(), fragment.span()));
-        }
-
-        strs
-    }
-
-    fn parse_any(input: ParseStream) -> syn::Result<Self> {
-        let mut name = Vec::new();
-
-        while input.peek(Token![-])
-            || input.peek(Token![:])
-            || input.peek(Token![.])
-            || (name.last().is_none_or(NameFragment::is_punct)
-                && (input.peek(Ident::peek_any) || input.peek(LitInt)))
-        {
-            name.push(input.parse()?);
-        }
-
-        Ok(Self(name))
-    }
-}
-
-impl Parse for UnquotedName {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        let mut name = Vec::new();
-
-        if lookahead.peek(Ident::peek_any) || lookahead.peek(LitInt) {
-            name.push(input.parse()?);
-
-            while input.peek(Token![-])
-                || (name.last().is_none_or(NameFragment::is_punct)
-                    && (input.peek(Ident::peek_any) || input.peek(LitInt)))
-            {
-                name.push(input.parse()?);
-            }
-
-            Ok(Self(name))
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub enum NameFragment {
-    Ident(Ident),
-    Number(LitInt),
-    Hyphen(Token![-]),
-    Colon(Token![:]),
-    Dot(Token![.]),
-}
-
-impl NameFragment {
-    fn span(&self) -> Span {
-        match self {
-            Self::Ident(ident) => ident.span(),
-            Self::Number(num) => num.span(),
-            Self::Hyphen(hyphen) => hyphen.span(),
-            Self::Colon(colon) => colon.span(),
-            Self::Dot(dot) => dot.span(),
-        }
-    }
-
-    const fn is_punct(&self) -> bool {
-        matches!(self, Self::Hyphen(_) | Self::Colon(_) | Self::Dot(_))
-    }
-}
-
-impl Parse for NameFragment {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(Ident::peek_any) {
-            input.call(Ident::parse_any).map(Self::Ident)
-        } else if lookahead.peek(LitInt) {
-            let int = input.parse::<LitInt>()?;
-
-            if !int.suffix().is_empty() {
-                return Err(syn::Error::new_spanned(
-                    &int,
-                    "integer suffixes are not allowed in names",
-                ));
-            }
-
-            Ok(Self::Number(int))
-        } else if lookahead.peek(Token![-]) {
-            input.parse().map(Self::Hyphen)
-        } else if lookahead.peek(Token![:]) {
-            input.parse().map(Self::Colon)
-        } else if lookahead.peek(Token![.]) {
-            input.parse().map(Self::Dot)
-        } else {
-            Err(lookahead.error())
-        }
-    }
-}
-
-impl Display for NameFragment {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Ident(ident) => write!(f, "{ident}"),
-            Self::Number(num) => write!(f, "{num}"),
-            Self::Hyphen(_) => f.write_str("-"),
-            Self::Colon(_) => f.write_str(":"),
-            Self::Dot(_) => f.write_str("."),
-        }
-    }
-}
-
-pub enum Literal {
-    Str(LitStr),
-    Int(LitInt),
-    Bool(LitBool),
-    Float(LitFloat),
-}
-
-impl Literal {
-    fn lit_str(&self) -> LitStr {
-        match self {
-            Self::Str(lit) => lit.clone(),
-            Self::Int(lit) => LitStr::new(&lit.to_string(), lit.span()),
-            Self::Bool(lit) => LitStr::new(&lit.value.to_string(), lit.span()),
-            Self::Float(lit) => LitStr::new(&lit.to_string(), lit.span()),
-        }
-    }
-}
-
-impl Parse for Literal {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-
-        if lookahead.peek(LitStr) {
-            input.parse().map(Self::Str)
-        } else if lookahead.peek(LitInt) {
-            input.parse().map(Self::Int)
-        } else if lookahead.peek(LitBool) {
-            input.parse().map(Self::Bool)
-        } else if lookahead.peek(LitFloat) {
-            input.parse().map(Self::Float)
-        } else {
-            Err(lookahead.error())
-        }
     }
 }

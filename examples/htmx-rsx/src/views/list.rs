@@ -1,7 +1,5 @@
 use hypertext::prelude::*;
 
-use crate::views::nav::Nav;
-
 #[component]
 pub fn list() -> impl Renderable {
     let list_items = vec!["Hypertext", "is", "fun!"];

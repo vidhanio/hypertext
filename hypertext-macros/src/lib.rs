@@ -2,11 +2,9 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 mod component;
-mod generate;
-mod maud;
-mod node;
-mod rsx;
+mod html;
 
+use html::{AttributeValueNode, Nodes};
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{
@@ -15,11 +13,7 @@ use syn::{
     parse_macro_input,
 };
 
-use self::{
-    maud::Maud,
-    node::{Document, Syntax},
-    rsx::Rsx,
-};
+use self::html::{Document, Maud, Rsx, Syntax};
 
 #[proc_macro]
 pub fn maud_closure(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -45,9 +39,7 @@ fn closure<S: Syntax>(tokens: proc_macro::TokenStream) -> proc_macro::TokenStrea
 where
     Document<S>: Parse,
 {
-    let len_estimate = tokens.to_string().len();
-
-    generate::closure::<S>(tokens.into(), len_estimate)
+    html::generate::closure::<Document<S>>(tokens.into())
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
@@ -56,7 +48,21 @@ fn literal<S: Syntax>(tokens: proc_macro::TokenStream) -> proc_macro::TokenStrea
 where
     Document<S>: Parse,
 {
-    generate::literal::<S>(tokens.into())
+    html::generate::literal::<Document<S>>(tokens.into())
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
+#[proc_macro]
+pub fn attribute_closure(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    html::generate::closure::<Nodes<AttributeValueNode>>(tokens.into())
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
+#[proc_macro]
+pub fn attribute_literal(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    html::generate::literal::<Nodes<AttributeValueNode>>(tokens.into())
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
@@ -69,18 +75,14 @@ pub fn derive_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStr
     let (impl_generics, ty_generics, where_clause) = derive_input.generics.split_for_impl();
 
     quote! {
-        const _: () = {
-            extern crate alloc;
-
-            impl<#impl_generics> ::hypertext::Renderable for #ident #ty_generics #where_clause {
-                fn render_to(&self, output: &mut alloc::string::String) {
-                    ::hypertext::Renderable::render_to(
-                        &::hypertext::Displayed(self),
-                        output,
-                    )
-                }
+        impl<#impl_generics> ::hypertext::Renderable for #ident #ty_generics #where_clause {
+            fn render_to(&self, output: &mut ::hypertext::proc_macros::String) {
+                ::hypertext::Renderable::render_to(
+                    &::hypertext::Displayed(self),
+                    output,
+                )
             }
-        };
+        }
     }
     .into()
 }
@@ -93,21 +95,17 @@ pub fn derive_attribute_renderable(input: proc_macro::TokenStream) -> proc_macro
     let (impl_generics, ty_generics, where_clause) = derive_input.generics.split_for_impl();
 
     quote! {
-        const _: () = {
-            extern crate alloc;
-
-            impl<#impl_generics> ::hypertext::AttributeRenderable for #ident #ty_generics #where_clause {
-                fn render_attribute_to(
-                    &self,
-                    output: &mut alloc::string::String,
-                ) {
-                    ::hypertext::AttributeRenderable::render_attribute_to(
-                        &::hypertext::Displayed(self),
-                        output,
-                    )
-                }
+        impl<#impl_generics> ::hypertext::AttributeRenderable for #ident #ty_generics #where_clause {
+            fn render_attribute_to(
+                &self,
+                output: &mut ::hypertext::proc_macros::String,
+            ) {
+                ::hypertext::AttributeRenderable::render_attribute_to(
+                    &::hypertext::Displayed(self),
+                    output,
+                )
             }
-        };
+        }
     }
     .into()
 }

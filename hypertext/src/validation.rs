@@ -1,3 +1,5 @@
+//! Types used for validation of HTML elements and attributes.
+
 /// An HTML element.
 pub trait Element {
     /// The kind of this element.
@@ -69,11 +71,13 @@ pub struct AttributeSymbol;
 /// # Usage With Custom Elements
 ///
 /// ```
+/// use hypertext::prelude::*;
+///
 /// mod html_elements {
 ///     #![expect(non_camel_case_types)]
 ///
 ///     pub use hypertext::html_elements::*;
-///     use hypertext::{Element, GlobalAttributes, Normal};
+///     use hypertext::validation::{Element, GlobalAttributes, Normal};
 ///
 ///     pub struct custom_element;
 ///
@@ -83,8 +87,6 @@ pub struct AttributeSymbol;
 ///
 ///     impl GlobalAttributes for custom_element {}
 /// }
-///
-/// use hypertext::{Rendered, prelude::*};
 ///
 /// assert_eq!(
 ///     maud! { custom-element title="abc" { "Hello, world!" } }.render(),

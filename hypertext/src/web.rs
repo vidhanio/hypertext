@@ -1,12 +1,8 @@
 #[cfg(feature = "actix-web")]
 mod actix_web {
-    extern crate alloc;
-
-    use alloc::string::String;
-
     use actix_web::{HttpRequest, HttpResponse, Responder, web::Html};
 
-    use crate::{Lazy, Renderable, Rendered};
+    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
 
     impl<F: Fn(&mut String)> Responder for Lazy<F> {
         type Body = <Rendered<String> as Responder>::Body;
@@ -29,17 +25,13 @@ mod actix_web {
 
 #[cfg(feature = "axum")]
 mod axum {
-    extern crate alloc;
-
-    use alloc::string::String;
-
     use axum_core::{
         body::Body,
         response::{IntoResponse, Response},
     };
     use http::{HeaderName, HeaderValue, header};
 
-    use crate::{Lazy, Renderable, Rendered};
+    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
 
     const HEADER: (HeaderName, HeaderValue) = (
         header::CONTENT_TYPE,
@@ -63,14 +55,11 @@ mod axum {
 
 #[cfg(feature = "poem")]
 mod poem {
-    extern crate alloc;
-
-    use alloc::string::String;
     use core::marker::Send;
 
     use poem::{IntoResponse, Response, web::Html};
 
-    use crate::{Lazy, Renderable, Rendered};
+    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
 
     impl<F: Fn(&mut String) + Send> IntoResponse for Lazy<F> {
         #[inline]
@@ -89,16 +78,12 @@ mod poem {
 
 #[cfg(feature = "rocket")]
 mod rocket {
-    extern crate alloc;
-
-    use alloc::string::String;
-
     use rocket::{
         Request,
         response::{self, Responder, content::RawHtml},
     };
 
-    use crate::{Lazy, Renderable, Rendered};
+    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
 
     impl<'r, 'o: 'r, F: Fn(&mut String) + Send> Responder<'r, 'o> for Lazy<F> {
         #[inline]
@@ -117,13 +102,9 @@ mod rocket {
 
 #[cfg(feature = "salvo")]
 mod salvo {
-    extern crate alloc;
-
-    use alloc::string::String;
-
     use salvo_core::{Response, Scribe, writing::Text};
 
-    use crate::{Lazy, Renderable, Rendered};
+    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
 
     impl<F: Fn(&mut String)> Scribe for Lazy<F> {
         #[inline]
@@ -145,13 +126,9 @@ mod salvo {
 
 #[cfg(feature = "tide")]
 mod tide {
-    extern crate alloc;
-
-    use alloc::string::String;
-
     use tide::{Body, Response, http::mime};
 
-    use crate::{Lazy, Renderable, Rendered};
+    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
 
     impl<F: Fn(&mut String)> From<Lazy<F>> for Response {
         #[inline]
@@ -173,14 +150,10 @@ mod tide {
 
 #[cfg(feature = "warp")]
 mod warp {
-    extern crate alloc;
-
-    use alloc::string::String;
-
     use hyper::Body;
     use warp::reply::{Reply, Response};
 
-    use crate::{Lazy, Renderable, Rendered};
+    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
 
     impl<F: Fn(&mut String) + Send> Reply for Lazy<F> {
         #[inline]
@@ -202,13 +175,9 @@ mod warp {
 
 #[cfg(feature = "http")]
 mod http {
-    extern crate alloc;
-
-    use alloc::string::String;
-
     use http::Uri;
 
-    use crate::{AttributeRenderable, DisplayExt, Renderable};
+    use crate::{AttributeRenderable, DisplayExt, Renderable, proc_macros::String};
 
     impl Renderable for Uri {
         #[inline]

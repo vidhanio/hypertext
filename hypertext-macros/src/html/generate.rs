@@ -11,39 +11,31 @@ use syn::{
     token::{Brace, Paren},
 };
 
-use crate::node::{Document, Syntax, UnquotedName};
+use super::UnquotedName;
 
-pub fn closure<S: Syntax>(tokens: TokenStream, len_estimate: usize) -> syn::Result<TokenStream>
-where
-    Document<S>: Parse,
-{
+pub fn closure<T: Parse + Generate>(tokens: TokenStream) -> syn::Result<TokenStream> {
     let mut g = Generator::new_closure();
 
-    g.push(syn::parse2::<Document<S>>(tokens)?);
+    let len_estimate = tokens.to_string().len();
+
+    g.push(syn::parse2::<T>(tokens)?);
 
     let block = g.finish();
 
     let output_ident = Generator::output_ident();
 
     Ok(quote! {
-        {
-            extern crate alloc;
-
-            |#output_ident: &mut alloc::string::String| {
-                #output_ident.reserve(#len_estimate);
-                #block
-            }
+        |#output_ident: &mut ::hypertext::proc_macros::String| {
+            #output_ident.reserve(#len_estimate);
+            #block
         }
     })
 }
 
-pub fn literal<S: Syntax>(tokens: TokenStream) -> syn::Result<TokenStream>
-where
-    Document<S>: Parse,
-{
+pub fn literal<T: Parse + Generate>(tokens: TokenStream) -> syn::Result<TokenStream> {
     let mut g = Generator::new_static();
 
-    g.push(syn::parse2::<Document<S>>(tokens)?);
+    g.push(syn::parse2::<T>(tokens)?);
 
     Ok(g.finish().to_token_stream())
 }
@@ -269,8 +261,8 @@ impl ToTokens for Checks {
                 const _: () = {
                     #[doc(hidden)]
                     const fn check_element<
-                        T: ::hypertext::Element<Kind = K>,
-                        K: ::hypertext::ElementKind
+                        T: ::hypertext::validation::Element<Kind = K>,
+                        K: ::hypertext::validation::ElementKind
                     >() {}
 
                     #(#checks)*
@@ -314,8 +306,8 @@ impl ElementCheck {
         }
     }
 
-    pub fn set_closing_name(&mut self, el_name: &UnquotedName) {
-        self.closing_spans = el_name.spans();
+    pub fn set_closing_spans(&mut self, spans: Vec<Span>) {
+        self.closing_spans = spans;
     }
 
     pub fn push_attribute(&mut self, attr: AttributeCheck) {
@@ -374,8 +366,8 @@ pub enum ElementKind {
 impl ToTokens for ElementKind {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            Self::Normal => quote!(::hypertext::Normal),
-            Self::Void => quote!(::hypertext::Void),
+            Self::Normal => quote!(::hypertext::validation::Normal),
+            Self::Void => quote!(::hypertext::validation::Void),
         }
         .to_tokens(tokens);
     }
@@ -417,9 +409,9 @@ pub enum AttributeCheckKind {
 impl ToTokens for AttributeCheckKind {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            Self::Normal => quote!(::hypertext::Attribute),
-            Self::Namespace => quote!(::hypertext::AttributeNamespace),
-            Self::Symbol => quote!(::hypertext::AttributeSymbol),
+            Self::Normal => quote!(::hypertext::validation::Attribute),
+            Self::Namespace => quote!(::hypertext::validation::AttributeNamespace),
+            Self::Symbol => quote!(::hypertext::validation::AttributeSymbol),
         }
         .to_tokens(tokens);
     }

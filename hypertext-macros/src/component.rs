@@ -65,20 +65,16 @@ pub fn generate(fn_item: &ItemFn) -> syn::Result<TokenStream> {
             #(#fields),*
         }
 
-        const _: () = {
-            extern crate alloc;
-
-            impl #impl_generics ::hypertext::Renderable for #struct_name #ty_generics #where_clause {
-                fn render_to(&self, output: &mut alloc::string::String) {
-                    ::hypertext::Renderable::render_to(
-                        &#fn_name(#(
-                            #field_refs self.#field_names
-                        ),*),
-                        output,
-                    );
-                }
+        impl #impl_generics ::hypertext::Renderable for #struct_name #ty_generics #where_clause {
+            fn render_to(&self, output: &mut ::hypertext::proc_macros::String) {
+                ::hypertext::Renderable::render_to(
+                    &#fn_name(#(
+                        #field_refs self.#field_names
+                    ),*),
+                    output,
+                );
             }
-        };
+        }
     };
 
     Ok(output)

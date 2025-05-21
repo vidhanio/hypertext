@@ -15,15 +15,15 @@
 //! ```rust
 //! use hypertext::prelude::*;
 //!
-//! # assert_eq!(hypertext::Renderable::render(&
+//! # assert_eq!(
 //! maud! {
 //!     a hx-get="/about" { "About" }
 //! }
-//! # ), hypertext::Rendered(r#"<a hx-get="/about">About</a>"#));
+//! # .render(), Rendered(r#"<a hx-get="/about">About</a>"#));
 //! ```
 #![allow(non_upper_case_globals)]
 #[allow(unused_imports)]
-use crate::{Attribute, AttributeNamespace, AttributeSymbol, GlobalAttributes};
+use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol, GlobalAttributes};
 
 /// Attributes for use with [htmx](https://htmx.org/).
 #[cfg(feature = "htmx")]

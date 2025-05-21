@@ -1,6 +1,6 @@
 //! Tests for the `hypertext` crate.
 
-use hypertext::{Raw, Rendered, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
+use hypertext::{Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
 
 #[test]
 fn readme() {

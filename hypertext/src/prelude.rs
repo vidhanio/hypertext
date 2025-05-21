@@ -7,8 +7,6 @@
 //! the [`GlobalAttributes`] trait.
 #![allow(unused_imports)]
 
-pub use hypertext_macros::component;
-
 #[cfg(feature = "alloc")]
-pub use crate::{AttributeRenderable, Renderable, Rendered, maud, rsx};
-pub use crate::{GlobalAttributes, frameworks::*, html_elements};
+pub use crate::{AttributeRenderable, Renderable, Rendered, attribute, component, maud, rsx};
+pub use crate::{frameworks::*, html_elements, validation::GlobalAttributes};
