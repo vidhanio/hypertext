@@ -8,23 +8,7 @@ use syn::{
 
 use super::{AnyBlock, Generate, Generator, Node, Nodes};
 
-pub struct Control<N: Node>(ControlKind<N>);
-
-impl<N: Node + Parse> Parse for Control<N> {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        input.parse::<Token![@]>()?;
-
-        Ok(Self(input.parse()?))
-    }
-}
-
-impl<N: Node> Generate for Control<N> {
-    fn generate(&self, g: &mut Generator) {
-        g.push(&self.0);
-    }
-}
-
-pub enum ControlKind<N: Node> {
+pub enum Control<N: Node> {
     Let(Let),
     If(If<N>),
     For(For<N>),
@@ -32,8 +16,10 @@ pub enum ControlKind<N: Node> {
     Match(Match<N>),
 }
 
-impl<N: Node + Parse> Parse for ControlKind<N> {
+impl<N: Node + Parse> Parse for Control<N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
+        input.parse::<Token![@]>()?;
+
         let lookahead = input.lookahead1();
 
         if lookahead.peek(Token![let]) {
@@ -52,7 +38,7 @@ impl<N: Node + Parse> Parse for ControlKind<N> {
     }
 }
 
-impl<N: Node> Generate for ControlKind<N> {
+impl<N: Node> Generate for Control<N> {
     fn generate(&self, g: &mut Generator) {
         match self {
             Self::Let(let_) => g.push(let_),
