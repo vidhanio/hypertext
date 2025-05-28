@@ -34,7 +34,7 @@ http = { version = "1", default-features = false, optional = true }
 hyper = { version = "0.14", default-features = false, optional = true }
 poem = { version = "3", default-features = false, optional = true }
 rocket = { version = "0.5", default-features = false, optional = true }
-salvo_core = { version = "0.78", default-features = false, optional = true }
+salvo_core = { version = "0.79", default-features = false, optional = true }
 tide = { version = "0.16", default-features = false, optional = true }
 warp = { version = "0.3", default-features = false, optional = true }
 
