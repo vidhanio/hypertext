@@ -662,17 +662,23 @@ pub struct Toggle {
 
 impl Toggle {
     fn parenthesized(&self) -> TokenStream {
-        let paren_token = Paren {
-            span: self.bracket_token.span,
-        };
+        let mut expr_iter = self.expr.clone().into_iter();
 
-        let mut tokens = TokenStream::new();
+        if let (Some(first), None) = (expr_iter.next(), expr_iter.next()) {
+            first.into()
+        } else {
+            let paren_token = Paren {
+                span: self.bracket_token.span,
+            };
 
-        paren_token.surround(&mut tokens, |tokens| {
-            self.expr.to_tokens(tokens);
-        });
+            let mut tokens = TokenStream::new();
 
-        quote!((#[allow(unused_parens)] #tokens))
+            paren_token.surround(&mut tokens, |tokens| {
+                self.expr.to_tokens(tokens);
+            });
+
+            tokens
+        }
     }
 
     fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {
