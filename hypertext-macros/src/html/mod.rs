@@ -363,21 +363,7 @@ impl Generate for Attribute {
                 g.push_str("=\"");
 
                 for (i, class) in classes.iter().enumerate() {
-                    if let Some(toggle) = &class.toggle {
-                        g.push_conditional(toggle.parenthesized(), |g| {
-                            if i > 0 {
-                                g.push_str(" ");
-                            }
-
-                            g.push(&class.value);
-                        });
-                    } else {
-                        if i > 0 {
-                            g.push_str(" ");
-                        }
-
-                        g.push(&class.value);
-                    }
+                    class.generate(g, i);
                 }
 
                 g.push_str("\"");
@@ -610,18 +596,62 @@ impl Generate for AttributeValueNode {
     }
 }
 
-pub struct Class {
-    value: AttributeValueNode,
-    toggle: Option<Toggle>,
+pub enum Class {
+    Value {
+        value: AttributeValueNode,
+        toggle: Option<Toggle>,
+    },
+    Option(Toggle),
+}
+
+impl Class {
+    fn generate(&self, g: &mut Generator, index: usize) {
+        match self {
+            Self::Value { value, toggle } => {
+                if let Some(toggle) = toggle {
+                    g.push_conditional(toggle.parenthesized(), |g| {
+                        if index > 0 {
+                            g.push_str(" ");
+                        }
+                        g.push(value);
+                    });
+                } else {
+                    if index > 0 {
+                        g.push_str(" ");
+                    }
+                    g.push(value);
+                }
+            }
+            Self::Option(option) => {
+                let option_expr = &option.expr;
+                let value = Ident::new("value", Span::mixed_site());
+
+                g.push_conditional(
+                    quote!(let ::core::option::Option::Some(#value) = (#option_expr)),
+                    |g| {
+                        if index > 0 {
+                            g.push_str(" ");
+                        }
+                        g.push_attribute_expr(Paren::default(), &value);
+                    },
+                );
+            }
+        }
+    }
 }
 
 impl Parse for Class {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         input.parse::<Token![.]>()?;
-        Ok(Self {
-            value: input.call(AttributeValueNode::parse_unquoted)?,
-            toggle: input.call(Toggle::parse_optional)?,
-        })
+
+        if input.peek(Bracket) {
+            Ok(Self::Option(input.parse()?))
+        } else {
+            Ok(Self::Value {
+                value: input.call(AttributeValueNode::parse_unquoted)?,
+                toggle: input.call(Toggle::parse_optional)?,
+            })
+        }
     }
 }
 
@@ -642,7 +672,7 @@ impl Toggle {
             self.expr.to_tokens(tokens);
         });
 
-        tokens
+        quote!((#[allow(unused_parens)] #tokens))
     }
 
     fn parse_optional(input: ParseStream) -> syn::Result<Option<Self>> {

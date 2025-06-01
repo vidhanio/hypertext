@@ -204,7 +204,18 @@ impl Parse for Literal {
         let lookahead = input.lookahead1();
 
         if lookahead.peek(LitStr) {
-            input.parse().map(Self::Str)
+            let s = input.parse::<LitStr>()?;
+            if !s.suffix().is_empty() {
+                let suffix = s.suffix();
+                let next_quote = if input.peek(LitStr) { r#"\""# } else { "" };
+                return Err(syn::Error::new_spanned(
+                    &s,
+                    format!(
+                        r#"string suffixes are not allowed in literals (you probably meant `"...\"{suffix}{next_quote}..."` or `"..." {suffix}`)"#,
+                    ),
+                ));
+            }
+            Ok(Self::Str(s))
         } else if lookahead.peek(LitInt) {
             input.parse().map(Self::Int)
         } else if lookahead.peek(LitBool) {
