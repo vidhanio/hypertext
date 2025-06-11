@@ -1,15 +1,97 @@
 extern crate alloc;
 
+#[doc(hidden)]
+pub use alloc::string::String;
 use alloc::{
     borrow::{Cow, ToOwned},
     boxed::Box,
     rc::Rc,
-    string::String,
     sync::Arc,
     vec::Vec,
 };
 use core::fmt::{self, Debug, Display, Formatter, Write};
 
+/// Derive [`AttributeRenderable`] for a type via its [`Display`]
+/// implementation.
+///
+/// The implementation will automatically escape special characters for you.
+///
+/// You must also implement [`Renderable`] for the type, either manually or
+/// using [`#[derive(Renderable)]`](macro@Renderable).
+///
+/// # Example
+///
+/// ```
+/// use std::fmt::{self, Display, Formatter};
+///
+/// use hypertext::prelude::*;
+///
+/// #[derive(Renderable, AttributeRenderable)]
+/// pub struct Position {
+///     x: i32,
+///     y: i32,
+/// }
+///
+/// impl Display for Position {
+///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+///         write!(f, "{},{}", self.x, self.y)
+///     }
+/// }
+///
+/// assert_eq!(
+///     maud! { div title=(Position { x: 1, y: 2 }) {} }.render(),
+///     Rendered(r#"<div title="1,2"></div>"#),
+/// );
+/// ```
+pub use hypertext_macros::AttributeRenderable;
+/// Derive [`Renderable`] for a type via its [`Display`] implementation.
+///
+/// The implementation will automatically escape special characters for you.
+///
+/// # Example
+///
+/// ```
+/// use std::fmt::{self, Display, Formatter};
+///
+/// use hypertext::prelude::*;
+///
+/// #[derive(Renderable)]
+/// pub struct Person {
+///     name: String,
+/// }
+///
+/// impl Display for Person {
+///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+///         write!(f, "My name is {}!", self.name)
+///     }
+/// }
+///
+/// assert_eq!(
+///     maud! { div { (Person { name: "Alice".into() }) } }.render(),
+///     Rendered(r#"<div>My name is Alice!</div>"#),
+/// );
+/// ```
+pub use hypertext_macros::Renderable;
+/// Generate an HTML attribute, returning a [`LazyAttribute`].
+///
+/// # Example
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// assert_eq!(
+///     attribute! { "x" @for i in 0..5 { (i) } }.render(),
+///     Rendered("x01234"),
+/// );
+/// ```
+pub use hypertext_macros::attribute;
+/// Generate an HTML attribute, borrowing the environment.
+///
+/// This is identical to [`attribute!`], except that it does not take ownership
+/// of the environment. This is useful when you want to build a
+/// [`LazyAttribute`] using some captured variables, but you still want to be
+/// able to use the variables after the [`LazyAttribute`] is created.
+pub use hypertext_macros::attribute_borrow;
 /// Convert a function returning a [`Renderable`] into a component.
 ///
 /// This is a procedural macro that takes a function and generates a
@@ -50,70 +132,6 @@ use core::fmt::{self, Debug, Display, Formatter, Write};
 /// );
 /// ```
 pub use hypertext_macros::component;
-
-/// Derive [`AttributeRenderable`] for a type via its [`Display`]
-/// implementation.
-///
-/// The implementation will automatically escape special characters for you.
-///
-/// You must also implement [`Renderable`] for the type, either manually or
-/// using [`#[derive(Renderable)]`](macro@Renderable).
-///
-/// # Example
-///
-/// ```
-/// use std::fmt::{self, Display, Formatter};
-///
-/// use hypertext::prelude::*;
-///
-/// #[derive(Renderable, AttributeRenderable)]
-/// pub struct Position {
-///     x: i32,
-///     y: i32,
-/// }
-///
-/// impl Display for Position {
-///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-///         write!(f, "{},{}", self.x, self.y)
-///     }
-/// }
-///
-/// assert_eq!(
-///     maud! { div title=(Position { x: 1, y: 2 }) {} }.render(),
-///     Rendered(r#"<div title="1,2"></div>"#),
-/// );
-/// ```
-pub use crate::proc_macros::AttributeRenderable;
-/// Derive [`Renderable`] for a type via its [`Display`] implementation.
-///
-/// The implementation will automatically escape special characters for you.
-///
-/// # Example
-///
-/// ```
-/// use std::fmt::{self, Display, Formatter};
-///
-/// use hypertext::prelude::*;
-///
-/// #[derive(Renderable)]
-/// pub struct Person {
-///     name: String,
-/// }
-///
-/// impl Display for Person {
-///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-///         write!(f, "My name is {}!", self.name)
-///     }
-/// }
-///
-/// assert_eq!(
-///     maud! { div { (Person { name: "Alice".into() }) } }.render(),
-///     Rendered(r#"<div>My name is Alice!</div>"#),
-/// );
-/// ```
-pub use crate::proc_macros::Renderable;
-use crate::{Raw, RawAttribute, Rendered};
-
 /// Generate HTML using [`maud`] syntax, returning a [`Lazy`].
 ///
 /// Note that this is not a complete 1:1 port of [`maud`]'s syntax as it is
@@ -149,15 +167,7 @@ use crate::{Raw, RawAttribute, Rendered};
 /// [`maud`]: https://docs.rs/maud
 /// [`id`]: crate::validation::GlobalAttributes::id
 /// [`class`]: crate::validation::GlobalAttributes::class
-#[macro_export]
-macro_rules! maud {
-    ($($tokens:tt)*) => {
-        $crate::Lazy(move |output: &mut $crate::proc_macros::String| {
-            $crate::proc_macros::maud_closure!($($tokens)*)(output)
-        })
-    };
-}
-
+pub use hypertext_macros::maud;
 /// Generate HTML using [`maud!`] syntax, borrowing the environment.
 ///
 /// This is identical to [`maud!`], except that it does not take ownership of
@@ -166,13 +176,7 @@ macro_rules! maud {
 /// after the [`Lazy`] is created.
 ///
 /// [`maud!`]: crate::maud
-#[macro_export]
-macro_rules! maud_borrow {
-    ($($tokens:tt)*) => {
-        $crate::Lazy($crate::proc_macros::maud_closure!($($tokens)*))
-    };
-}
-
+pub use hypertext_macros::maud_borrow;
 /// Generate HTML using rsx syntax, returning a [`Lazy`].
 ///
 /// # Example
@@ -190,61 +194,16 @@ macro_rules! maud_borrow {
 ///     Rendered(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
 /// );
 /// ```
-#[macro_export]
-macro_rules! rsx {
-    ($($tokens:tt)*) => {
-        $crate::Lazy(move |output: &mut $crate::proc_macros::String| {
-            $crate::proc_macros::rsx_closure!($($tokens)*)(output)
-        })
-    };
-}
-
+pub use hypertext_macros::rsx;
 /// Generate HTML using [`rsx!`] syntax, borrowing the environment.
 ///
 /// This is identical to [`rsx!`], except that it does not take ownership of
 /// the environment. This is useful when you want to build a [`Lazy`] using
 /// some captured variables, but you still want to be able to use the variables
 /// after the [`Lazy`] is created.
-#[macro_export]
-macro_rules! rsx_borrow {
-    ($($tokens:tt)*) => {
-        $crate::Lazy($crate::proc_macros::rsx_closure!($($tokens)*))
-    };
-}
+pub use hypertext_macros::rsx_borrow;
 
-/// Generate an HTML attribute, returning a [`LazyAttribute`].
-///
-/// # Example
-///
-/// ```
-/// use hypertext::prelude::*;
-///
-/// assert_eq!(
-///     attribute! { "x" @for i in 0..5 { (i) } }.render(),
-///     Rendered("x01234"),
-/// );
-/// ```
-#[macro_export]
-macro_rules! attribute {
-    ($($tokens:tt)*) => {
-        $crate::LazyAttribute(move |output: &mut $crate::proc_macros::String| {
-            $crate::proc_macros::attribute_closure!($($tokens)*)(output)
-        })
-    };
-}
-
-/// Generate an HTML attribute, borrowing the environment.
-///
-/// This is identical to [`attribute!`], except that it does not take ownership
-/// of the environment. This is useful when you want to build a
-/// [`LazyAttribute`] using some captured variables, but you still want to be
-/// able to use the variables after the [`LazyAttribute`] is created.
-#[macro_export]
-macro_rules! attribute_borrow {
-    ($($tokens:tt)*) => {
-        $crate::LazyAttribute($crate::proc_macros::attribute_closure!($($tokens)*))
-    };
-}
+use crate::{Raw, RawAttribute, Rendered};
 
 impl<T: Into<Self>> From<Rendered<T>> for String {
     #[inline]

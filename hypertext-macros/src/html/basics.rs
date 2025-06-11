@@ -20,7 +20,7 @@ impl UnquotedName {
                 NameFragment::Ident(ident) => {
                     _ = write!(s, "{ident}");
                 }
-                NameFragment::Number(num) => {
+                NameFragment::Int(num) => {
                     _ = write!(s, "{num}");
                 }
                 NameFragment::Hyphen(_) => {
@@ -118,7 +118,7 @@ impl Parse for UnquotedName {
 #[derive(Clone, PartialEq, Eq)]
 enum NameFragment {
     Ident(Ident),
-    Number(LitInt),
+    Int(LitInt),
     Hyphen(Token![-]),
     Colon(Token![:]),
     Dot(Token![.]),
@@ -128,7 +128,7 @@ impl NameFragment {
     fn span(&self) -> Span {
         match self {
             Self::Ident(ident) => ident.span(),
-            Self::Number(num) => num.span(),
+            Self::Int(int) => int.span(),
             Self::Hyphen(hyphen) => hyphen.span(),
             Self::Colon(colon) => colon.span(),
             Self::Dot(dot) => dot.span(),
@@ -144,25 +144,16 @@ impl Parse for NameFragment {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(Ident::peek_any) {
-            input.call(Ident::parse_any).map(Self::Ident)
-        } else if lookahead.peek(LitInt) {
-            let int = input.parse::<LitInt>()?;
-
-            if !int.suffix().is_empty() {
-                return Err(syn::Error::new_spanned(
-                    &int,
-                    "integer suffixes are not allowed in names",
-                ));
-            }
-
-            Ok(Self::Number(int))
-        } else if lookahead.peek(Token![-]) {
+        if lookahead.peek(Token![-]) {
             input.parse().map(Self::Hyphen)
         } else if lookahead.peek(Token![:]) {
             input.parse().map(Self::Colon)
         } else if lookahead.peek(Token![.]) {
             input.parse().map(Self::Dot)
+        } else if lookahead.peek(Ident::peek_any) {
+            input.call(Ident::parse_any).map(Self::Ident)
+        } else if lookahead.peek(LitInt) {
+            input.parse().map(Self::Int)
         } else {
             Err(lookahead.error())
         }
@@ -173,7 +164,7 @@ impl Display for NameFragment {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::Ident(ident) => write!(f, "{ident}"),
-            Self::Number(num) => write!(f, "{num}"),
+            Self::Int(num) => write!(f, "{num}"),
             Self::Hyphen(_) => f.write_str("-"),
             Self::Colon(_) => f.write_str(":"),
             Self::Dot(_) => f.write_str("."),

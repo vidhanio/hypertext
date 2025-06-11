@@ -174,16 +174,30 @@
 mod alloc;
 pub mod frameworks;
 pub mod html_elements;
-#[doc(hidden)]
-pub mod proc_macros;
 pub mod validation;
 mod web;
 
 pub mod prelude;
 
-#[cfg(feature = "alloc")]
-pub use self::alloc::*;
-
+/// Render static HTML attributes.
+///
+/// This will return a [`RawAttribute<&str>`], which can be used in `const`
+/// contexts.
+///
+/// Note that the macro cannot process any dynamic content, so you cannot use
+/// any expressions inside the macro.
+///
+/// # Example
+///
+/// ```
+/// use hypertext::{RawAttribute, attribute_static, prelude::*};
+///
+/// assert_eq!(
+///     attribute_static! { "my attribute" },
+///     RawAttribute("my attribute")
+/// );
+/// ```
+pub use hypertext_macros::attribute_static;
 /// Render static HTML using [`maud`] syntax.
 ///
 /// For details about the syntax, see [`maud!`].
@@ -210,12 +224,7 @@ pub use self::alloc::*;
 /// ```
 ///
 /// [`maud`]: https://docs.rs/maud
-#[macro_export]
-macro_rules! maud_static {
-    ($($tokens:tt)*) => {
-        $crate::Raw($crate::proc_macros::maud_literal!($($tokens)*))
-    };
-}
+pub use hypertext_macros::maud_static;
 /// Render static HTML using rsx syntax.
 ///
 /// This will return a [`Raw<&str>`], which can be used in `const`
@@ -238,37 +247,10 @@ macro_rules! maud_static {
 ///     Raw(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
 /// );
 /// ```
-#[macro_export]
-macro_rules! rsx_static {
-    ($($tokens:tt)*) => {
-        $crate::Raw($crate::proc_macros::rsx_literal!($($tokens)*))
-    };
-}
+pub use hypertext_macros::rsx_static;
 
-/// Render static HTML attributes.
-///
-/// This will return a [`RawAttribute<&str>`], which can be used in `const`
-/// contexts.
-///
-/// Note that the macro cannot process any dynamic content, so you cannot use
-/// any expressions inside the macro.
-///
-/// # Example
-///
-/// ```
-/// use hypertext::{RawAttribute, attribute_static, prelude::*};
-///
-/// assert_eq!(
-///     attribute_static! { "my attribute" },
-///     RawAttribute("my attribute")
-/// );
-/// ```
-#[macro_export]
-macro_rules! attribute_static {
-    ($($tokens:tt)*) => {
-        $crate::RawAttribute($crate::proc_macros::attribute_literal!($($tokens)*))
-    };
-}
+#[cfg(feature = "alloc")]
+pub use self::alloc::*;
 
 /// A raw value that is rendered without escaping.
 ///

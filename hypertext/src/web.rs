@@ -2,7 +2,7 @@
 mod actix_web {
     use actix_web::{HttpRequest, HttpResponse, Responder, web::Html};
 
-    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
+    use crate::{Lazy, Renderable, Rendered, String};
 
     impl<F: Fn(&mut String)> Responder for Lazy<F> {
         type Body = <Rendered<String> as Responder>::Body;
@@ -31,7 +31,7 @@ mod axum {
     };
     use http::{HeaderName, HeaderValue, header};
 
-    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
+    use crate::{Lazy, Renderable, Rendered, String};
 
     const HEADER: (HeaderName, HeaderValue) = (
         header::CONTENT_TYPE,
@@ -59,7 +59,7 @@ mod poem {
 
     use poem::{IntoResponse, Response, web::Html};
 
-    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
+    use crate::{Lazy, Renderable, Rendered, String};
 
     impl<F: Fn(&mut String) + Send> IntoResponse for Lazy<F> {
         #[inline]
@@ -83,7 +83,7 @@ mod rocket {
         response::{self, Responder, content::RawHtml},
     };
 
-    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
+    use crate::{Lazy, Renderable, Rendered, String};
 
     impl<'r, 'o: 'r, F: Fn(&mut String) + Send> Responder<'r, 'o> for Lazy<F> {
         #[inline]
@@ -104,7 +104,7 @@ mod rocket {
 mod salvo {
     use salvo_core::{Response, Scribe, writing::Text};
 
-    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
+    use crate::{Lazy, Renderable, Rendered, String};
 
     impl<F: Fn(&mut String)> Scribe for Lazy<F> {
         #[inline]
@@ -128,7 +128,7 @@ mod salvo {
 mod tide {
     use tide::{Body, Response, http::mime};
 
-    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
+    use crate::{Lazy, Renderable, Rendered, String};
 
     impl<F: Fn(&mut String)> From<Lazy<F>> for Response {
         #[inline]
@@ -153,7 +153,7 @@ mod warp {
     use hyper::Body;
     use warp::reply::{Reply, Response};
 
-    use crate::{Lazy, Renderable, Rendered, proc_macros::String};
+    use crate::{Lazy, Renderable, Rendered, String};
 
     impl<F: Fn(&mut String) + Send> Reply for Lazy<F> {
         #[inline]
@@ -177,7 +177,7 @@ mod warp {
 mod http {
     use http::Uri;
 
-    use crate::{AttributeRenderable, DisplayExt, Renderable, proc_macros::String};
+    use crate::{AttributeRenderable, DisplayExt, Renderable, String};
 
     impl Renderable for Uri {
         #[inline]

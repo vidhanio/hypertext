@@ -66,7 +66,7 @@ pub fn generate(fn_item: &ItemFn) -> syn::Result<TokenStream> {
         }
 
         impl #impl_generics ::hypertext::Renderable for #struct_name #ty_generics #where_clause {
-            fn render_to(&self, output: &mut ::hypertext::proc_macros::String) {
+            fn render_to(&self, output: &mut ::hypertext::String) {
                 ::hypertext::Renderable::render_to(
                     &#fn_name(#(
                         #field_refs self.#field_names

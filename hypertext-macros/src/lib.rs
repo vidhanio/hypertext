@@ -16,54 +16,79 @@ use syn::{
 use self::html::{Document, Maud, Rsx, Syntax};
 
 #[proc_macro]
-pub fn maud_closure(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    closure::<Maud>(tokens)
+pub fn maud(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy::<Maud>(tokens, true)
 }
 
 #[proc_macro]
-pub fn maud_literal(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    literal::<Maud>(tokens)
+pub fn maud_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy::<Maud>(tokens, false)
 }
 
 #[proc_macro]
-pub fn rsx_closure(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    closure::<Rsx>(tokens)
+pub fn rsx(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy::<Rsx>(tokens, true)
 }
 
 #[proc_macro]
-pub fn rsx_literal(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    literal::<Rsx>(tokens)
+pub fn rsx_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy::<Rsx>(tokens, false)
 }
 
-fn closure<S: Syntax>(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream
+#[proc_macro]
+pub fn maud_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    static_::<Maud>(tokens)
+}
+
+#[proc_macro]
+pub fn rsx_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    static_::<Rsx>(tokens)
+}
+
+fn lazy<S: Syntax>(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::TokenStream
 where
     Document<S>: Parse,
 {
-    html::generate::closure::<Document<S>>(tokens.into())
+    html::generate::lazy::<Document<S>>(tokens.into(), move_)
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
 
-fn literal<S: Syntax>(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream
+fn static_<S: Syntax>(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream
 where
     Document<S>: Parse,
 {
     html::generate::literal::<Document<S>>(tokens.into())
+        .map_or_else(
+            |err| err.to_compile_error(),
+            |lit| quote!(::hypertext::Raw(#lit)),
+        )
+        .into()
+}
+
+#[proc_macro]
+pub fn attribute(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    attribute_lazy(tokens, true)
+}
+
+#[proc_macro]
+pub fn attribute_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    attribute_lazy(tokens, false)
+}
+
+fn attribute_lazy(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::TokenStream {
+    html::generate::lazy::<Nodes<AttributeValueNode>>(tokens.into(), move_)
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
 
 #[proc_macro]
-pub fn attribute_closure(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    html::generate::closure::<Nodes<AttributeValueNode>>(tokens.into())
-        .unwrap_or_else(|err| err.to_compile_error())
-        .into()
-}
-
-#[proc_macro]
-pub fn attribute_literal(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+pub fn attribute_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     html::generate::literal::<Nodes<AttributeValueNode>>(tokens.into())
-        .unwrap_or_else(|err| err.to_compile_error())
+        .map_or_else(
+            |err| err.to_compile_error(),
+            |lit| quote!(::hypertext::RawAttribute(#lit)),
+        )
         .into()
 }
 
@@ -76,7 +101,7 @@ pub fn derive_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStr
 
     quote! {
         impl<#impl_generics> ::hypertext::Renderable for #ident #ty_generics #where_clause {
-            fn render_to(&self, output: &mut ::hypertext::proc_macros::String) {
+            fn render_to(&self, output: &mut ::hypertext::String) {
                 ::hypertext::Renderable::render_to(
                     &::hypertext::Displayed(self),
                     output,
@@ -98,7 +123,7 @@ pub fn derive_attribute_renderable(input: proc_macro::TokenStream) -> proc_macro
         impl<#impl_generics> ::hypertext::AttributeRenderable for #ident #ty_generics #where_clause {
             fn render_attribute_to(
                 &self,
-                output: &mut ::hypertext::proc_macros::String,
+                output: &mut ::hypertext::String,
             ) {
                 ::hypertext::AttributeRenderable::render_attribute_to(
                     &::hypertext::Displayed(self),
