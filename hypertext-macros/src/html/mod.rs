@@ -389,12 +389,13 @@ pub enum AttributeName {
         rest: UnquotedName,
     },
     Normal(UnquotedName),
+    Unchecked(LitStr),
 }
 
 impl AttributeName {
     fn check(&self) -> Option<AttributeCheck> {
         match self {
-            Self::Data { .. } => None,
+            Self::Data { .. } | Self::Unchecked(_) => None,
             Self::Namespace { namespace, .. } => Some(AttributeCheck::new(
                 AttributeCheckKind::Namespace,
                 namespace.ident_string(),
@@ -440,6 +441,7 @@ impl AttributeName {
                 lits
             }
             Self::Normal(unquoted_name) => unquoted_name.lits(),
+            Self::Unchecked(lit) => vec![lit.clone()],
         }
     }
 }
@@ -470,6 +472,8 @@ impl Parse for AttributeName {
                 symbol: input.parse()?,
                 rest: input.call(UnquotedName::parse_any)?,
             })
+        } else if lookahead.peek(LitStr) {
+            input.parse().map(Self::Unchecked)
         } else {
             Err(lookahead.error())
         }
