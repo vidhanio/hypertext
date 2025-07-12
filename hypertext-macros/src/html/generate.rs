@@ -13,7 +13,11 @@ use syn::{
 
 use super::UnquotedName;
 
-pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Result<TokenStream> {
+pub fn lazy<T: Parse + Generate>(
+    tokens: TokenStream,
+    move_: bool,
+    lazy_ident: &str,
+) -> syn::Result<TokenStream> {
     let mut g = Generator::new_closure();
 
     let len_estimate = tokens.to_string().len();
@@ -26,8 +30,10 @@ pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Resul
 
     let move_token = move_.then(|| quote!(move));
 
+    let lazy_ident = Ident::new(lazy_ident, Span::mixed_site());
+
     Ok(quote! {
-        ::hypertext::Lazy(#move_token |#output_ident: &mut ::hypertext::String| {
+        ::hypertext::#lazy_ident(#move_token |#output_ident: &mut ::hypertext::String| {
             #output_ident.reserve(#len_estimate);
             #block
         })

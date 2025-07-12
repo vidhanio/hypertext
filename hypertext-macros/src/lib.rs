@@ -49,7 +49,7 @@ fn lazy<S: Syntax>(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::
 where
     Document<S>: Parse,
 {
-    html::generate::lazy::<Document<S>>(tokens.into(), move_)
+    html::generate::lazy::<Document<S>>(tokens.into(), move_, "Lazy")
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
@@ -77,7 +77,7 @@ pub fn attribute_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStr
 }
 
 fn attribute_lazy(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::TokenStream {
-    html::generate::lazy::<Nodes<AttributeValueNode>>(tokens.into(), move_)
+    html::generate::lazy::<Nodes<AttributeValueNode>>(tokens.into(), move_, "LazyAttribute")
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
