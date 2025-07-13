@@ -206,7 +206,8 @@ impl Parse for Literal {
                     ),
                 ));
             }
-            Ok(Self::Str(s))
+            let value = unindent(&s.value());
+            Ok(Self::Str(LitStr::new(&value, s.span())))
         } else if lookahead.peek(LitInt) {
             input.parse().map(Self::Int)
         } else if lookahead.peek(LitBool) {
@@ -217,4 +218,41 @@ impl Parse for Literal {
             Err(lookahead.error())
         }
     }
+}
+
+// from dtolnay/unindent
+fn unindent(s: &str) -> String {
+    const fn is_indent(c: char) -> bool {
+        c == ' ' || c == '\t'
+    }
+
+    let lines = s.lines().collect::<Vec<_>>();
+
+    let last_line = lines.len().saturating_sub(1);
+
+    let spaces = lines
+        .iter()
+        .skip(1) // skip same line as opening quote
+        .filter_map(|line| line.chars().position(|ch| !is_indent(ch)))
+        .min()
+        .unwrap_or_default();
+
+    let mut result = String::with_capacity(s.len());
+    for (i, line) in lines.iter().enumerate() {
+        if (1 < i && i < last_line)
+            || (i == 1 && !s.starts_with('\n'))
+            || (last_line != 0 && i == last_line && !line.chars().all(is_indent))
+        {
+            result.push('\n');
+        }
+        if i == 0 {
+            // Do not un-indent anything on same line as opening quote
+            result.push_str(line);
+        } else if line.len() > spaces {
+            // Whitespace-only lines may have fewer than the number of spaces
+            // being removed
+            result.push_str(&line[spaces..]);
+        }
+    }
+    result
 }

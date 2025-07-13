@@ -1,6 +1,0 @@
-[formatting]
-indent_string = "    "
-indent_tables = true
-reorder_arrays = true
-reorder_keys = true
-trailing_newline = true

@@ -578,3 +578,25 @@ fn component() {
         );
     }
 }
+
+#[test]
+fn unindent() {
+    let result = maud! {
+        div title="
+        multiline
+        title
+        " {
+            "
+            in
+                out
+            in
+            "
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result,
+        Rendered("<div title=\"multiline\ntitle\">in\n    out\nin</div>")
+    );
+}

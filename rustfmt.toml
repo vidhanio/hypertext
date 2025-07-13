@@ -1,5 +1,4 @@
 unstable_features = true
-
 format_code_in_doc_comments = true
 format_macro_matchers = true
 group_imports = "StdExternalCrate"

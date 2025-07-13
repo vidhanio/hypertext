@@ -1,58 +1,50 @@
 [package]
 name = "hypertext"
-
+version.workspace = true
 authors.workspace = true
-categories.workspace = true
+edition.workspace = true
 description.workspace = true
 documentation = "https://docs.rs/hypertext"
-edition.workspace = true
-homepage.workspace = true
-keywords.workspace = true
-license.workspace = true
 readme.workspace = true
+homepage.workspace = true
 repository.workspace = true
-version.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
-
-    [package.metadata.docs.rs]
-    all-features = true
-
-
-[lints]
-workspace = true
+[package.metadata.docs.rs]
+all-features = true
 
 [dependencies]
-hypertext-macros.workspace = true
-
-html-escape = { workspace = true, optional = true }
-itoa = { version = "1", optional = true }
-ryu = { version = "1", optional = true }
-
 actix-web = { version = "4", default-features = false, optional = true }
 axum-core = { version = "0.5", default-features = false, optional = true }
+html-escape = { workspace = true, optional = true }
 http = { version = "1", default-features = false, optional = true }
 hyper = { version = "0.14", default-features = false, optional = true }
+hypertext-macros.workspace = true
+itoa = { version = "1", optional = true }
 poem = { version = "3", default-features = false, optional = true }
 rocket = { version = "0.5", default-features = false, optional = true }
+ryu = { version = "1", optional = true }
 salvo_core = { version = "0.79", default-features = false, optional = true }
 tide = { version = "0.16", default-features = false, optional = true }
 warp = { version = "0.3", default-features = false, optional = true }
 
 [features]
-default = ["alloc"]
-
-alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
-
-http = ["alloc", "dep:http"]
-
 actix-web = ["alloc", "dep:actix-web"]
+alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
+alpine = []
 axum = ["alloc", "dep:axum-core", "http"]
+default = ["alloc"]
+htmx = []
+http = ["alloc", "dep:http"]
+hyperscript = []
 poem = ["alloc", "dep:poem"]
 rocket = ["alloc", "dep:rocket"]
 salvo = ["alloc", "dep:salvo_core"]
 tide = ["alloc", "dep:tide"]
 warp = ["alloc", "dep:hyper", "dep:warp"]
 
-alpine = []
-htmx = []
-hyperscript = []
+[lints]
+workspace = true
+
