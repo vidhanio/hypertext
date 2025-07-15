@@ -1,8 +1,9 @@
 use std::fmt::{self, Display, Formatter, Write};
 
-use proc_macro2::Span;
+use proc_macro2::{Span, TokenStream};
+use quote::ToTokens;
 use syn::{
-    Ident, LitBool, LitFloat, LitInt, LitStr, Token,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
     ext::IdentExt,
     parse::{Parse, ParseStream},
     spanned::Spanned,
@@ -177,6 +178,7 @@ pub enum Literal {
     Int(LitInt),
     Bool(LitBool),
     Float(LitFloat),
+    Char(LitChar),
 }
 
 impl Literal {
@@ -186,6 +188,25 @@ impl Literal {
             Self::Int(lit) => LitStr::new(&lit.to_string(), lit.span()),
             Self::Bool(lit) => LitStr::new(&lit.value.to_string(), lit.span()),
             Self::Float(lit) => LitStr::new(&lit.to_string(), lit.span()),
+            Self::Char(lit) => LitStr::new(&lit.value().to_string(), lit.span()),
+        }
+    }
+
+    pub fn parse_any(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        if lookahead.peek(LitStr) {
+            input.parse().map(Self::Str)
+        } else if lookahead.peek(LitInt) {
+            input.parse().map(Self::Int)
+        } else if lookahead.peek(LitBool) {
+            input.parse().map(Self::Bool)
+        } else if lookahead.peek(LitFloat) {
+            input.parse().map(Self::Float)
+        } else if lookahead.peek(LitChar) {
+            input.parse().map(Self::Char)
+        } else {
+            Err(lookahead.error())
         }
     }
 }
@@ -195,27 +216,62 @@ impl Parse for Literal {
         let lookahead = input.lookahead1();
 
         if lookahead.peek(LitStr) {
-            let s = input.parse::<LitStr>()?;
-            if !s.suffix().is_empty() {
-                let suffix = s.suffix();
+            let lit = input.parse::<LitStr>()?;
+            if !lit.suffix().is_empty() {
+                let suffix = lit.suffix();
                 let next_quote = if input.peek(LitStr) { r#"\""# } else { "" };
                 return Err(syn::Error::new_spanned(
-                    &s,
+                    &lit,
                     format!(
                         r#"string suffixes are not allowed in literals (you probably meant `"...\"{suffix}{next_quote}..."` or `"..." {suffix}`)"#,
                     ),
                 ));
             }
-            let value = unindent(&s.value());
-            Ok(Self::Str(LitStr::new(&value, s.span())))
+            let value = unindent(&lit.value());
+            Ok(Self::Str(LitStr::new(&value, lit.span())))
         } else if lookahead.peek(LitInt) {
-            input.parse().map(Self::Int)
+            let lit = input.parse::<LitInt>()?;
+            if !lit.suffix().is_empty() {
+                return Err(syn::Error::new_spanned(
+                    &lit,
+                    "integer literals cannot have suffixes",
+                ));
+            }
+            Ok(Self::Int(lit))
         } else if lookahead.peek(LitBool) {
             input.parse().map(Self::Bool)
         } else if lookahead.peek(LitFloat) {
-            input.parse().map(Self::Float)
+            let lit = input.parse::<LitFloat>()?;
+            if !lit.suffix().is_empty() {
+                return Err(syn::Error::new_spanned(
+                    &lit,
+                    "float literals cannot have suffixes",
+                ));
+            }
+            Ok(Self::Float(lit))
+        } else if lookahead.peek(LitChar) {
+            let lit = input.parse::<LitChar>()?;
+            if !lit.suffix().is_empty() {
+                return Err(syn::Error::new_spanned(
+                    &lit,
+                    "character literals cannot have suffixes",
+                ));
+            }
+            Ok(Self::Char(lit))
         } else {
             Err(lookahead.error())
+        }
+    }
+}
+
+impl ToTokens for Literal {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Str(lit) => lit.to_tokens(tokens),
+            Self::Int(lit) => lit.to_tokens(tokens),
+            Self::Bool(lit) => lit.to_tokens(tokens),
+            Self::Float(lit) => lit.to_tokens(tokens),
+            Self::Char(lit) => lit.to_tokens(tokens),
         }
     }
 }

@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use proc_macro2::Span;
 use syn::{
-    Ident, LitBool, LitFloat, LitInt, LitStr, Token, braced,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced,
     ext::IdentExt,
     parse::{Parse, ParseStream},
     token::{Brace, Paren},
@@ -33,6 +33,7 @@ impl Parse for ElementNode<Maud> {
             || lookahead.peek(LitInt)
             || lookahead.peek(LitBool)
             || lookahead.peek(LitFloat)
+            || lookahead.peek(LitChar)
         {
             input.parse().map(Self::Literal)
         } else if lookahead.peek(Token![@]) {

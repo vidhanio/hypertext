@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use syn::{
-    Ident, LitBool, LitFloat, LitInt, LitStr, Token, custom_punctuation,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, custom_punctuation,
     ext::IdentExt,
     parse::{Parse, ParseStream, discouraged::Speculative},
     parse_quote,
@@ -198,6 +198,7 @@ impl Parse for ElementNode<Rsx> {
             || lookahead.peek(LitInt)
             || lookahead.peek(LitBool)
             || lookahead.peek(LitFloat)
+            || lookahead.peek(LitChar)
         {
             input.parse().map(Self::Literal)
         } else if lookahead.peek(Ident::peek_any) {

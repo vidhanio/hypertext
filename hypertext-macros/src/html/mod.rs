@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
 use syn::{
-    Ident, LitBool, LitFloat, LitInt, LitStr, Token, braced, bracketed,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -572,6 +572,7 @@ impl Parse for AttributeValueNode {
             || lookahead.peek(LitInt)
             || lookahead.peek(LitBool)
             || lookahead.peek(LitFloat)
+            || lookahead.peek(LitChar)
         {
             input.parse().map(Self::Literal)
         } else if lookahead.peek(Brace) {

@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    Ident, LitBool, LitInt, LitStr, Token,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
     parse::{Parse, ParseStream},
     spanned::Spanned,
     token::{Brace, Paren},
@@ -77,12 +77,7 @@ pub struct ComponentAttribute {
 impl ComponentAttribute {
     fn value_expr(&self) -> TokenStream {
         match &self.value {
-            ComponentAttributeValue::Literal(lit) => match lit {
-                Literal::Str(lit) => lit.to_token_stream(),
-                Literal::Int(lit) => lit.to_token_stream(),
-                Literal::Bool(lit) => lit.to_token_stream(),
-                Literal::Float(lit) => lit.to_token_stream(),
-            },
+            ComponentAttributeValue::Literal(lit) => lit.to_token_stream(),
             ComponentAttributeValue::Ident(ident) => ident.to_token_stream(),
             ComponentAttributeValue::Expr(expr) => {
                 let mut tokens = TokenStream::new();
@@ -120,8 +115,13 @@ impl Parse for ComponentAttributeValue {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
 
-        if lookahead.peek(LitStr) || lookahead.peek(LitInt) || lookahead.peek(LitBool) {
-            input.parse().map(Self::Literal)
+        if lookahead.peek(LitStr)
+            || lookahead.peek(LitInt)
+            || lookahead.peek(LitBool)
+            || lookahead.peek(LitFloat)
+            || lookahead.peek(LitChar)
+        {
+            input.call(Literal::parse_any).map(Self::Literal)
         } else if lookahead.peek(Ident) {
             input.parse().map(Self::Ident)
         } else if lookahead.peek(Paren) {
