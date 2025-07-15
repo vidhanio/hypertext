@@ -592,11 +592,12 @@ fn unindent() {
             in
             "
         }
+        "\n"
     }
     .render();
 
     assert_eq!(
         result,
-        Rendered("<div title=\"multiline\ntitle\">in\n    out\nin</div>")
+        Rendered("<div title=\"multiline\ntitle\">in\n    out\nin</div>\n")
     );
 }

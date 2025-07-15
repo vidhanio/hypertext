@@ -226,7 +226,12 @@ fn unindent(s: &str) -> String {
         c == ' ' || c == '\t'
     }
 
-    let lines = s.lines().collect::<Vec<_>>();
+    let mut lines = s.lines().collect::<Vec<_>>();
+
+    // lines() does not include the last line if it ends with a newline
+    if s.ends_with('\n') {
+        lines.push("");
+    }
 
     let last_line = lines.len().saturating_sub(1);
 
@@ -239,9 +244,11 @@ fn unindent(s: &str) -> String {
 
     let mut result = String::with_capacity(s.len());
     for (i, line) in lines.iter().enumerate() {
-        if (1 < i && i < last_line)
-            || (i == 1 && !s.starts_with('\n'))
-            || (last_line != 0 && i == last_line && !line.chars().all(is_indent))
+        if (i == 1 && !lines[0].is_empty())
+            || (1 < i && i < last_line)
+            || (i == last_line
+                && last_line != 0
+                && (!line.chars().all(is_indent) || line.is_empty()))
         {
             result.push('\n');
         }
