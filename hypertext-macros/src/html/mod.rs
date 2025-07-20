@@ -636,6 +636,8 @@ pub enum AttributeValueNode {
     Group(Group<Self>),
     Control(Control<Self>),
     Expr(ParenExpr<Self>),
+    DisplayExpr(DisplayExpr<Self>),
+    DebugExpr(DebugExpr<Self>),
     Ident(Ident),
 }
 
@@ -679,6 +681,10 @@ impl Parse for AttributeValueNode {
             input.parse().map(Self::Control)
         } else if lookahead.peek(Paren) {
             input.parse().map(Self::Expr)
+        } else if lookahead.peek(Token![%]) {
+            input.parse().map(Self::DisplayExpr)
+        } else if lookahead.peek(Token![?]) {
+            input.parse().map(Self::DebugExpr)
         } else if lookahead.peek(Ident) {
             input.parse().map(Self::Ident)
         } else {
@@ -694,6 +700,8 @@ impl Generate for AttributeValueNode {
             Self::Group(block) => g.push(block),
             Self::Control(control) => g.push(control),
             Self::Expr(expr) => g.push(expr),
+            Self::DisplayExpr(display_expr) => g.push(display_expr),
+            Self::DebugExpr(debug_expr) => g.push(debug_expr),
             Self::Ident(ident) => g.push_attribute_expr(Paren::default(), ident),
         }
     }
