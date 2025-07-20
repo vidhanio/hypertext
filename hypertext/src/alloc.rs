@@ -360,59 +360,71 @@ impl<F: Fn(&mut String)> Debug for LazyAttribute<F> {
     }
 }
 
+struct ElementEscaper<'a>(&'a mut String);
+
+impl Write for ElementEscaper<'_> {
+    #[inline]
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        html_escape::encode_text_to_string(s, self.0);
+        Ok(())
+    }
+}
+
+struct AttributeEscaper<'a>(&'a mut String);
+
+impl Write for AttributeEscaper<'_> {
+    #[inline]
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        html_escape::encode_double_quoted_attribute_to_string(s, self.0);
+        Ok(())
+    }
+}
+
 /// A value rendered via its [`Display`] implementation.
 ///
 /// This will handle escaping special characters for you.
 ///
-/// This can be created more easily via the [`DisplayExt::renderable`] method.
+/// This can be created more easily via the `%(expr)` syntax in [`maud!`] and
+/// [`rsx!`], which will automatically wrap the expression in this type.
 #[derive(Debug, Clone, Copy)]
 pub struct Displayed<T: Display>(pub T);
 
 impl<T: Display> Renderable for Displayed<T> {
     #[inline]
     fn render_to(&self, output: &mut String) {
-        struct Escaper<'a>(&'a mut String);
-
-        impl fmt::Write for Escaper<'_> {
-            #[inline]
-            fn write_str(&mut self, s: &str) -> fmt::Result {
-                html_escape::encode_text_to_string(s, self.0);
-                Ok(())
-            }
-        }
-
-        _ = write!(Escaper(output), "{}", self.0);
+        _ = write!(ElementEscaper(output), "{}", self.0);
     }
 }
 
 impl<T: Display> AttributeRenderable for Displayed<T> {
     #[inline]
     fn render_attribute_to(&self, output: &mut String) {
-        struct Escaper<'a>(&'a mut String);
-
-        impl fmt::Write for Escaper<'_> {
-            #[inline]
-            fn write_str(&mut self, s: &str) -> fmt::Result {
-                html_escape::encode_double_quoted_attribute_to_string(s, self.0);
-                Ok(())
-            }
-        }
-
-        _ = write!(Escaper(output), "{}", self.0);
+        _ = write!(AttributeEscaper(output), "{}", self.0);
     }
 }
 
-/// An extension trait for [`Display`] types to allow them to be escaped and
-/// rendered as HTML.
-pub trait DisplayExt: Display {
-    /// Makes this value renderable and escapes it for use in HTML.
+/// A value rendered via its [`Debug`] implementation.
+///
+/// This will handle escaping special characters for you.
+///
+/// This can be created more easily via the `?(expr)` syntax in [`maud!`] and
+/// [`rsx!`], which will automatically wrap the expression in this type.
+#[derive(Debug, Clone, Copy)]
+pub struct Debugged<T: Debug>(pub T);
+
+impl<T: Debug> Renderable for Debugged<T> {
     #[inline]
-    fn renderable(&self) -> Displayed<&Self> {
-        Displayed(self)
+    fn render_to(&self, output: &mut String) {
+        _ = write!(ElementEscaper(output), "{:?}", self.0);
     }
 }
 
-impl<T: Display> DisplayExt for T {}
+impl<T: Debug> AttributeRenderable for Debugged<T> {
+    #[inline]
+    fn render_attribute_to(&self, output: &mut String) {
+        _ = write!(AttributeEscaper(output), "{:?}", self.0);
+    }
+}
 
 impl<T: AsRef<str>> Renderable for Raw<T> {
     #[inline]

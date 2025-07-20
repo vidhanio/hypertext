@@ -154,7 +154,7 @@ impl Generator {
         self.parts.push(Part::Static(LitStr::new(s, span)));
     }
 
-    pub fn push_text_lit(&mut self, lit: &LitStr) {
+    pub fn push_element_lit(&mut self, lit: &LitStr) {
         let value = lit.value();
         let escaped_value = html_escape::encode_text(&value);
 
@@ -176,7 +176,7 @@ impl Generator {
         }
     }
 
-    pub fn push_text_expr(&mut self, paren_token: Paren, expr: impl ToTokens) {
+    pub fn push_element_expr(&mut self, paren_token: Paren, expr: impl ToTokens) {
         let output_ident = &self.output_ident;
         let mut paren_expr = TokenStream::new();
         paren_token.surround(&mut paren_expr, |tokens| expr.to_tokens(tokens));

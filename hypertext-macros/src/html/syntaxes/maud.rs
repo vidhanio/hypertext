@@ -40,6 +40,10 @@ impl Parse for ElementNode<Maud> {
             input.parse().map(Self::Control)
         } else if lookahead.peek(Paren) {
             input.parse().map(Self::Expr)
+        } else if lookahead.peek(Token![%]) {
+            input.parse().map(Self::DisplayExpr)
+        } else if lookahead.peek(Token![?]) {
+            input.parse().map(Self::DebugExpr)
         } else if lookahead.peek(Brace) {
             input.parse().map(Self::Group)
         } else {

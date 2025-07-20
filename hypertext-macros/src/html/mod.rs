@@ -9,7 +9,7 @@ mod syntaxes;
 use std::marker::PhantomData;
 
 use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, quote};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
     Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced, bracketed,
     ext::IdentExt,
@@ -73,7 +73,9 @@ pub enum ElementNode<S: Syntax> {
     Component(Component<S>),
     Literal(Literal),
     Control(Control<Self>),
-    Expr(ParenExpr),
+    Expr(ParenExpr<Self>),
+    DisplayExpr(DisplayExpr<Self>),
+    DebugExpr(DebugExpr<Self>),
     Group(Group<Self>),
 }
 
@@ -89,9 +91,11 @@ impl<S: Syntax> Generate for ElementNode<S> {
             Self::Doctype(doctype) => g.push(doctype),
             Self::Element(element) => g.push(element),
             Self::Component(component) => g.push(component),
-            Self::Literal(lit) => g.push_text_lit(&lit.lit_str()),
+            Self::Literal(lit) => g.push_element_lit(&lit.lit_str()),
             Self::Control(control) => g.push(control),
-            Self::Expr(expr) => expr.generate_text(g),
+            Self::Expr(expr) => g.push(expr),
+            Self::DisplayExpr(display_expr) => g.push(display_expr),
+            Self::DebugExpr(debug_expr) => g.push(debug_expr),
             Self::Group(group) => g.push(group),
         }
     }
@@ -119,29 +123,111 @@ impl<S: Syntax> Generate for Doctype<S> {
     }
 }
 
-pub struct ParenExpr {
+pub struct ParenExpr<N: Node> {
     paren_token: Paren,
     expr: TokenStream,
+    phantom: PhantomData<N>,
 }
 
-impl ParenExpr {
-    fn generate_text(&self, g: &mut Generator) {
-        g.push_text_expr(self.paren_token, &self.expr);
-    }
-
-    fn generate_attribute(&self, g: &mut Generator) {
-        g.push_attribute_expr(self.paren_token, &self.expr);
-    }
-}
-
-impl Parse for ParenExpr {
+impl<N: Node> Parse for ParenExpr<N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let content;
 
         Ok(Self {
             paren_token: parenthesized!(content in input),
             expr: content.parse()?,
+            phantom: PhantomData,
         })
+    }
+}
+
+impl<S: Syntax> Generate for ParenExpr<ElementNode<S>> {
+    fn generate(&self, g: &mut Generator) {
+        g.push_element_expr(self.paren_token, &self.expr);
+    }
+}
+
+impl Generate for ParenExpr<AttributeValueNode> {
+    fn generate(&self, g: &mut Generator) {
+        g.push_attribute_expr(self.paren_token, &self.expr);
+    }
+}
+
+impl<N: Node> ToTokens for ParenExpr<N> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.paren_token.surround(tokens, |tokens| {
+            self.expr.to_tokens(tokens);
+        });
+    }
+}
+
+pub struct DisplayExpr<N: Node> {
+    percent_token: Token![%],
+    expr: ParenExpr<N>,
+}
+
+impl<N: Node> DisplayExpr<N> {
+    fn wrapped_expr(&self) -> TokenStream {
+        let wrapper = quote_spanned!(self.percent_token.span=> ::hypertext::Displayed);
+        let paren_expr = &self.expr;
+
+        quote!(#wrapper #paren_expr)
+    }
+}
+
+impl<N: Node> Parse for DisplayExpr<N> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            percent_token: input.parse()?,
+            expr: input.parse()?,
+        })
+    }
+}
+
+impl<S: Syntax> Generate for DisplayExpr<ElementNode<S>> {
+    fn generate(&self, g: &mut Generator) {
+        g.push_element_expr(self.expr.paren_token, self.wrapped_expr());
+    }
+}
+
+impl Generate for DisplayExpr<AttributeValueNode> {
+    fn generate(&self, g: &mut Generator) {
+        g.push_attribute_expr(self.expr.paren_token, self.wrapped_expr());
+    }
+}
+
+pub struct DebugExpr<N: Node> {
+    question_token: Token![?],
+    expr: ParenExpr<N>,
+}
+
+impl<N: Node> DebugExpr<N> {
+    fn wrapped_expr(&self) -> TokenStream {
+        let wrapper = quote_spanned!(self.question_token.span=> ::hypertext::Debugged);
+        let paren_expr = &self.expr;
+
+        quote!(#wrapper #paren_expr)
+    }
+}
+
+impl<N: Node> Parse for DebugExpr<N> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            question_token: input.parse()?,
+            expr: input.parse()?,
+        })
+    }
+}
+
+impl<S: Syntax> Generate for DebugExpr<ElementNode<S>> {
+    fn generate(&self, g: &mut Generator) {
+        g.push_element_expr(self.expr.paren_token, self.wrapped_expr());
+    }
+}
+
+impl Generate for DebugExpr<AttributeValueNode> {
+    fn generate(&self, g: &mut Generator) {
+        g.push_attribute_expr(self.expr.paren_token, self.wrapped_expr());
     }
 }
 
@@ -537,7 +623,7 @@ pub enum AttributeValueNode {
     Literal(Literal),
     Group(Group<Self>),
     Control(Control<Self>),
-    Expr(ParenExpr),
+    Expr(ParenExpr<Self>),
     Ident(Ident),
 }
 
@@ -595,7 +681,7 @@ impl Generate for AttributeValueNode {
             Self::Literal(lit) => g.push_attribute_lit(&lit.lit_str()),
             Self::Group(block) => g.push(block),
             Self::Control(control) => g.push(control),
-            Self::Expr(expr) => expr.generate_attribute(g),
+            Self::Expr(expr) => g.push(expr),
             Self::Ident(ident) => g.push_attribute_expr(Paren::default(), ident),
         }
     }

@@ -194,6 +194,10 @@ impl Parse for ElementNode<Rsx> {
             input.parse().map(Self::Control)
         } else if lookahead.peek(Paren) {
             input.parse().map(Self::Expr)
+        } else if lookahead.peek(Token![%]) {
+            input.parse().map(Self::DisplayExpr)
+        } else if lookahead.peek(Token![?]) {
+            input.parse().map(Self::DebugExpr)
         } else if lookahead.peek(LitStr)
             || lookahead.peek(LitInt)
             || lookahead.peek(LitBool)

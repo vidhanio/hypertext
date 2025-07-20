@@ -8,6 +8,7 @@ use syn::{
 };
 
 use super::{ElementBody, Generate, Generator, Literal, ParenExpr, Syntax};
+use crate::AttributeValueNode;
 
 pub struct Component<S: Syntax> {
     pub name: Ident,
@@ -65,7 +66,7 @@ impl<S: Syntax> Generate for Component<S> {
             }
         };
 
-        g.push_text_expr(Paren::default(), &init);
+        g.push_element_expr(Paren::default(), &init);
     }
 }
 
@@ -108,7 +109,7 @@ impl Parse for ComponentAttribute {
 pub enum ComponentAttributeValue {
     Literal(Literal),
     Ident(Ident),
-    Expr(ParenExpr),
+    Expr(ParenExpr<AttributeValueNode>),
 }
 
 impl Parse for ComponentAttributeValue {

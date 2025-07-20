@@ -177,19 +177,19 @@ mod warp {
 mod http {
     use http::Uri;
 
-    use crate::{AttributeRenderable, DisplayExt, Renderable, String};
+    use crate::{AttributeRenderable, Displayed, Renderable, String};
 
     impl Renderable for Uri {
         #[inline]
         fn render_to(&self, output: &mut String) {
-            self.renderable().render_to(output);
+            Displayed(&self).render_to(output);
         }
     }
 
     impl AttributeRenderable for Uri {
         #[inline]
         fn render_attribute_to(&self, output: &mut String) {
-            self.renderable().render_attribute_to(output);
+            Displayed(&self).render_attribute_to(output);
         }
     }
 }

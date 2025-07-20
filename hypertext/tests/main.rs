@@ -1,5 +1,7 @@
 //! Tests for the `hypertext` crate.
 
+use std::fmt::{self, Display, Formatter};
+
 use hypertext::{Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
 
 #[test]
@@ -600,4 +602,42 @@ fn unindent() {
         result,
         Rendered("<div title=\"multiline\ntitle\">in\n    out\nin</div>\n")
     );
+}
+
+#[test]
+fn displayed_debugged() {
+    #[derive(Debug)]
+    struct Name(&'static str);
+
+    impl Display for Name {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+            write!(f, "Hello, {}!", self.0)
+        }
+    }
+
+    let maud_result = maud! {
+        div {
+            %(Name("World"))
+        }
+        div {
+            ?(Name("World"))
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            %(Name("World"))
+        </div>
+        <div>
+            ?(Name("World"))
+        </div>
+    }
+    .render();
+
+    let expected = Rendered("<div>Hello, World!</div><div>Name(\"World\")</div>");
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(result, expected);
+    }
 }
