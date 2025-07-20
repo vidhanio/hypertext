@@ -711,6 +711,26 @@ impl<T: AttributeRenderable> AttributeRenderable for Option<T> {
     }
 }
 
+impl<T: Renderable, E: Renderable> Renderable for Result<T, E> {
+    #[inline]
+    fn render_to(&self, output: &mut String) {
+        match self {
+            Ok(value) => value.render_to(output),
+            Err(err) => err.render_to(output),
+        }
+    }
+}
+
+impl<T: AttributeRenderable, E: AttributeRenderable> AttributeRenderable for Result<T, E> {
+    #[inline]
+    fn render_attribute_to(&self, output: &mut String) {
+        match self {
+            Ok(value) => value.render_attribute_to(output),
+            Err(err) => err.render_attribute_to(output),
+        }
+    }
+}
+
 macro_rules! impl_tuple {
     () => {
         impl Renderable for () {

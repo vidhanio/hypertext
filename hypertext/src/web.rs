@@ -172,24 +172,3 @@ mod warp {
         }
     }
 }
-
-#[cfg(feature = "http")]
-mod http {
-    use http::Uri;
-
-    use crate::{AttributeRenderable, Displayed, Renderable, String};
-
-    impl Renderable for Uri {
-        #[inline]
-        fn render_to(&self, output: &mut String) {
-            Displayed(&self).render_to(output);
-        }
-    }
-
-    impl AttributeRenderable for Uri {
-        #[inline]
-        fn render_attribute_to(&self, output: &mut String) {
-            Displayed(&self).render_attribute_to(output);
-        }
-    }
-}
