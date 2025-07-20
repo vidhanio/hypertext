@@ -163,15 +163,21 @@ impl<N: Node> ToTokens for ParenExpr<N> {
 
 pub struct DisplayExpr<N: Node> {
     percent_token: Token![%],
-    expr: ParenExpr<N>,
+    paren_expr: ParenExpr<N>,
 }
 
 impl<N: Node> DisplayExpr<N> {
     fn wrapped_expr(&self) -> TokenStream {
         let wrapper = quote_spanned!(self.percent_token.span=> ::hypertext::Displayed);
-        let paren_expr = &self.expr;
+        let mut new_paren_expr = TokenStream::new();
+        self.paren_expr
+            .paren_token
+            .surround(&mut new_paren_expr, |tokens| {
+                quote_spanned!(self.paren_expr.paren_token.span=> &).to_tokens(tokens);
+                self.paren_expr.to_tokens(tokens);
+            });
 
-        quote!(#wrapper #paren_expr)
+        quote!(#wrapper #new_paren_expr)
     }
 }
 
@@ -179,20 +185,20 @@ impl<N: Node> Parse for DisplayExpr<N> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(Self {
             percent_token: input.parse()?,
-            expr: input.parse()?,
+            paren_expr: input.parse()?,
         })
     }
 }
 
 impl<S: Syntax> Generate for DisplayExpr<ElementNode<S>> {
     fn generate(&self, g: &mut Generator) {
-        g.push_element_expr(self.expr.paren_token, self.wrapped_expr());
+        g.push_element_expr(self.paren_expr.paren_token, self.wrapped_expr());
     }
 }
 
 impl Generate for DisplayExpr<AttributeValueNode> {
     fn generate(&self, g: &mut Generator) {
-        g.push_attribute_expr(self.expr.paren_token, self.wrapped_expr());
+        g.push_attribute_expr(self.paren_expr.paren_token, self.wrapped_expr());
     }
 }
 
@@ -204,9 +210,15 @@ pub struct DebugExpr<N: Node> {
 impl<N: Node> DebugExpr<N> {
     fn wrapped_expr(&self) -> TokenStream {
         let wrapper = quote_spanned!(self.question_token.span=> ::hypertext::Debugged);
-        let paren_expr = &self.expr;
+        let mut new_paren_expr = TokenStream::new();
+        self.expr
+            .paren_token
+            .surround(&mut new_paren_expr, |tokens| {
+                quote_spanned!(self.expr.paren_token.span=> &).to_tokens(tokens);
+                self.expr.to_tokens(tokens);
+            });
 
-        quote!(#wrapper #paren_expr)
+        quote!(#wrapper #new_paren_expr)
     }
 }
 
