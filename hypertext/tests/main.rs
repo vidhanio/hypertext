@@ -622,6 +622,9 @@ fn displayed_debugged() {
         div {
             ?(Name("World"))
         }
+        div {
+            (format_args!("{:#X}", 3_735_928_559_u32))
+        }
     }
     .render();
 
@@ -632,10 +635,14 @@ fn displayed_debugged() {
         <div>
             ?(Name("World"))
         </div>
+        <div>
+            (format_args!("{:#X}", 3_735_928_559_u32))
+        </div>
     }
     .render();
 
-    let expected = Rendered("<div>Hello, World!</div><div>Name(\"World\")</div>");
+    let expected =
+        Rendered("<div>Hello, World!</div><div>Name(\"World\")</div><div>0xDEADBEEF</div>");
 
     for result in [maud_result, rsx_result] {
         assert_eq!(result, expected);
