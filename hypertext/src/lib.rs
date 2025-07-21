@@ -334,7 +334,7 @@ impl<T: PartialEq<U>, U> PartialEq<RawAttribute<U>> for RawAttribute<T> {
 /// This type intentionally does **not** implement [`Renderable`] to discourage
 /// anti-patterns such as rendering to a string then embedding that HTML string
 /// into another page. To do this, you should use [`Raw`], or use
-/// [`Renderable::memoize`].
+/// [`RenderableExt::memoize`].
 #[derive(Debug, Clone, Copy, Eq, Hash)]
 pub struct Rendered<T>(pub T);
 

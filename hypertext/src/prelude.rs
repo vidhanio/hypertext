@@ -8,5 +8,7 @@
 #![allow(unused_imports)]
 
 #[cfg(feature = "alloc")]
-pub use crate::{AttributeRenderable, Renderable, Rendered, attribute, component, maud, rsx};
+pub use crate::{
+    AttributeRenderable, Renderable, RenderableExt, Rendered, attribute, component, maud, rsx,
+};
 pub use crate::{frameworks::*, html_elements, validation::GlobalAttributes};

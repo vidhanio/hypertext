@@ -253,47 +253,40 @@ pub trait Renderable {
     /// intended to be used for rendering raw HTML. If being implemented on a
     /// string-like type, this should escape `&` to `&amp;`, `<` to `&lt;`, and
     /// `>` to `&gt;`.
-    ///
-    /// This must match the implementation of [`render`] and [`memoize`].
-    ///
-    /// [`render`]: Renderable::render
-    /// [`memoize`]: Renderable::memoize
     fn render_to(&self, output: &mut String);
 
     /// Renders this value to a string. This is a convenience method that
     /// calls [`render_to`] on a new [`String`] and returns the result.
     ///
-    /// If overriding this method for performance reasons, you should prefer to
-    /// override [`memoize`] instead as the default implementation of this
-    /// method calls [`memoize`] then wraps it in a [`Rendered`].
-    ///
-    /// This must match the implementation of [`render_to`] and [`memoize`].
+    /// If overriden for performance reasons, this must match the implementation
+    /// of [`render_to`].
     ///
     /// [`render_to`]: Renderable::render_to
-    /// [`memoize`]: Renderable::memoize
     #[inline]
     fn render(&self) -> Rendered<String> {
-        Rendered(self.memoize().into_inner())
+        let mut output = String::new();
+        self.render_to(&mut output);
+        Rendered(output)
     }
+}
 
+/// An extension trait for [`Renderable`] types.
+///
+/// This trait provides additional methods for rendering and pre-rendering
+/// values.
+pub trait RenderableExt: Renderable {
     /// Pre-renders the value and stores it in a [`Raw`] so that it can be
     /// re-used among multiple renderings without re-computing the value.
     ///
     /// This should generally be avoided to avoid unnecessary allocations, but
-    /// may be useful if it is more expensive to compute the value multiple
-    /// times.
-    ///
-    /// This must match the implementation of [`render`] and [`render_to`].
-    ///
-    /// [`render`]: Renderable::render
-    /// [`render_to`]: Renderable::render_to
+    /// may be useful if it is more expensive to compute and render the value.
     #[inline]
     fn memoize(&self) -> Raw<String> {
-        let mut output = String::new();
-        self.render_to(&mut output);
-        Raw(output)
+        Raw(self.render().into_inner())
     }
 }
+
+impl<T: Renderable> RenderableExt for T {}
 
 /// A value that can be rendered as an HTML attribute.
 ///
@@ -433,8 +426,8 @@ impl<T: AsRef<str>> Renderable for Raw<T> {
     }
 
     #[inline]
-    fn memoize(&self) -> Raw<String> {
-        Raw(self.0.as_ref().into())
+    fn render(&self) -> Rendered<String> {
+        Rendered(self.0.as_ref().into())
     }
 }
 
@@ -445,8 +438,8 @@ impl<T: AsRef<str>> Renderable for RawAttribute<T> {
     }
 
     #[inline]
-    fn memoize(&self) -> Raw<String> {
-        Raw(self.0.as_ref().into())
+    fn render(&self) -> Rendered<String> {
+        Rendered(self.0.as_ref().into())
     }
 }
 
@@ -469,11 +462,12 @@ impl Renderable for char {
     }
 
     #[inline]
-    fn memoize(&self) -> Raw<String> {
-        Raw(match *self {
+    fn render(&self) -> Rendered<String> {
+        Rendered(match *self {
             '&' => "&amp;".into(),
             '<' => "&lt;".into(),
             '>' => "&gt;".into(),
+            '"' => "&quot;".into(),
             c => c.into(),
         })
     }
@@ -499,8 +493,8 @@ impl Renderable for str {
     }
 
     #[inline]
-    fn memoize(&self) -> Raw<String> {
-        Raw(html_escape::encode_text(self).into_owned())
+    fn render(&self) -> Rendered<String> {
+        Rendered(html_escape::encode_text(self).into_owned())
     }
 }
 
@@ -518,8 +512,8 @@ impl Renderable for String {
     }
 
     #[inline]
-    fn memoize(&self) -> Raw<String> {
-        self.as_str().memoize()
+    fn render(&self) -> Rendered<String> {
+        self.as_str().render()
     }
 }
 
@@ -537,8 +531,8 @@ impl Renderable for bool {
     }
 
     #[inline]
-    fn memoize(&self) -> Raw<String> {
-        Raw(if *self { "true" } else { "false" }.into())
+    fn render(&self) -> Rendered<String> {
+        Rendered(if *self { "true" } else { "false" }.into())
     }
 }
 
@@ -559,8 +553,8 @@ macro_rules! render_via_itoa {
                 }
 
                 #[inline]
-                fn memoize(&self) -> Raw<String> {
-                    Raw(itoa::Buffer::new().format(*self).into())
+                fn render(&self) -> Rendered<String> {
+                    Rendered(itoa::Buffer::new().format(*self).into())
                 }
             }
 
@@ -589,8 +583,8 @@ macro_rules! render_via_ryu {
                 }
 
                 #[inline]
-                fn memoize(&self) -> Raw<String> {
-                    Raw(ryu::Buffer::new().format(*self).into())
+                fn render(&self) -> Rendered<String> {
+                    Rendered(ryu::Buffer::new().format(*self).into())
                 }
             }
 
@@ -621,11 +615,6 @@ macro_rules! render_via_deref {
                 fn render(&self) -> Rendered<String> {
                     T::render(&**self)
                 }
-
-                #[inline]
-                fn memoize(&self) -> Raw<String> {
-                    T::memoize(&**self)
-                }
             }
 
             impl<T: AttributeRenderable + ?Sized> AttributeRenderable for $Ty {
@@ -655,11 +644,6 @@ impl<'a, B: 'a + Renderable + ToOwned + ?Sized> Renderable for Cow<'a, B> {
     #[inline]
     fn render(&self) -> Rendered<String> {
         B::render(&**self)
-    }
-
-    #[inline]
-    fn memoize(&self) -> Raw<String> {
-        B::memoize(&**self)
     }
 }
 
