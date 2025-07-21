@@ -537,7 +537,7 @@ fn void_elements() {
 
 #[test]
 fn component() {
-    struct Repeater<R: Renderable> {
+    struct Repeater<R> {
         count: usize,
         children: R,
     }

@@ -309,7 +309,7 @@ pub trait AttributeRenderable: Renderable {
 /// [`maud!`]: crate::maud
 #[derive(Clone, Copy)]
 #[must_use = "`Lazy` does nothing unless `.render()` or `.render_to()` is called"]
-pub struct Lazy<F: Fn(&mut String)>(pub F);
+pub struct Lazy<F>(pub F);
 
 impl<F: Fn(&mut String)> Renderable for Lazy<F> {
     #[inline]
@@ -318,7 +318,7 @@ impl<F: Fn(&mut String)> Renderable for Lazy<F> {
     }
 }
 
-impl<F: Fn(&mut String)> Debug for Lazy<F> {
+impl<F> Debug for Lazy<F> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Lazy").finish_non_exhaustive()
@@ -330,7 +330,7 @@ impl<F: Fn(&mut String)> Debug for Lazy<F> {
 /// This is the type returned by [`attribute!`] and [`attribute_borrow!`].
 #[derive(Clone, Copy)]
 #[must_use = "`LazyAttribute` does nothing unless `.render()` or `.render_to()` is called"]
-pub struct LazyAttribute<F: Fn(&mut String)>(pub F);
+pub struct LazyAttribute<F>(pub F);
 
 impl<F: Fn(&mut String)> Renderable for LazyAttribute<F> {
     #[inline]
@@ -346,7 +346,7 @@ impl<F: Fn(&mut String)> AttributeRenderable for LazyAttribute<F> {
     }
 }
 
-impl<F: Fn(&mut String)> Debug for LazyAttribute<F> {
+impl<F> Debug for LazyAttribute<F> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_tuple("LazyAttribute").finish_non_exhaustive()
@@ -380,7 +380,7 @@ impl Write for AttributeEscaper<'_> {
 /// This can be created more easily via the `%(expr)` syntax in [`maud!`] and
 /// [`rsx!`], which will automatically wrap the expression in this type.
 #[derive(Debug, Clone, Copy)]
-pub struct Displayed<T: Display>(pub T);
+pub struct Displayed<T>(pub T);
 
 impl<T: Display> Renderable for Displayed<T> {
     #[inline]
@@ -403,7 +403,7 @@ impl<T: Display> AttributeRenderable for Displayed<T> {
 /// This can be created more easily via the `?(expr)` syntax in [`maud!`] and
 /// [`rsx!`], which will automatically wrap the expression in this type.
 #[derive(Debug, Clone, Copy)]
-pub struct Debugged<T: Debug>(pub T);
+pub struct Debugged<T>(pub T);
 
 impl<T: Debug> Renderable for Debugged<T> {
     #[inline]
