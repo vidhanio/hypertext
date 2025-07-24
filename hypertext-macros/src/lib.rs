@@ -2,6 +2,7 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 mod component;
+mod derive;
 mod html;
 
 use html::{AttributeValueNode, Nodes};
@@ -92,47 +93,18 @@ pub fn attribute_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStr
         .into()
 }
 
-#[proc_macro_derive(Renderable)]
+#[proc_macro_derive(Renderable, attributes(maud, rsx))]
 pub fn derive_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let derive_input = parse_macro_input!(input as DeriveInput);
-
-    let ident = &derive_input.ident;
-    let (impl_generics, ty_generics, where_clause) = derive_input.generics.split_for_impl();
-
-    quote! {
-        impl<#impl_generics> ::hypertext::Renderable for #ident #ty_generics #where_clause {
-            fn render_to(&self, output: &mut ::hypertext::String) {
-                ::hypertext::Renderable::render_to(
-                    &::hypertext::Displayed(self),
-                    output,
-                )
-            }
-        }
-    }
-    .into()
+    derive::renderable(parse_macro_input!(input as DeriveInput))
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
 }
 
-#[proc_macro_derive(AttributeRenderable)]
+#[proc_macro_derive(AttributeRenderable, attributes(attribute))]
 pub fn derive_attribute_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let derive_input = parse_macro_input!(input as DeriveInput);
-
-    let ident = &derive_input.ident;
-    let (impl_generics, ty_generics, where_clause) = derive_input.generics.split_for_impl();
-
-    quote! {
-        impl<#impl_generics> ::hypertext::AttributeRenderable for #ident #ty_generics #where_clause {
-            fn render_attribute_to(
-                &self,
-                output: &mut ::hypertext::String,
-            ) {
-                ::hypertext::AttributeRenderable::render_attribute_to(
-                    &::hypertext::Displayed(self),
-                    output,
-                )
-            }
-        }
-    }
-    .into()
+    derive::attribute_renderable(parse_macro_input!(input as DeriveInput))
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
 }
 
 #[proc_macro_attribute]

@@ -22,48 +22,32 @@ use core::fmt::{self, Debug, Display, Formatter, Write};
 /// # Example
 ///
 /// ```
-/// use std::fmt::{self, Display, Formatter};
-///
 /// use hypertext::prelude::*;
 ///
-/// #[derive(Renderable, AttributeRenderable)]
+/// #[derive(AttributeRenderable)]
+/// #[attribute((self.x) ", " (self.y))]
 /// pub struct Position {
 ///     x: i32,
 ///     y: i32,
 /// }
 ///
-/// impl Display for Position {
-///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-///         write!(f, "{},{}", self.x, self.y)
-///     }
-/// }
-///
 /// assert_eq!(
-///     maud! { div title=(Position { x: 1, y: 2 }) {} }.render(),
-///     Rendered(r#"<div title="1,2"></div>"#),
+///     maud! { div title=(Position { x: 10, y: 20 }) {} }.render(),
+///     Rendered(r#"<div title="10, 20"></div>"#),
 /// );
 /// ```
 pub use hypertext_macros::AttributeRenderable;
-/// Derive [`Renderable`] for a type via its [`Display`] implementation.
-///
-/// The implementation will automatically escape special characters for you.
+/// Derive [`Renderable`] for a type.
 ///
 /// # Example
 ///
 /// ```
-/// use std::fmt::{self, Display, Formatter};
-///
 /// use hypertext::prelude::*;
 ///
 /// #[derive(Renderable)]
+/// #[maud("My name is " (self.name) "!")]
 /// pub struct Person {
 ///     name: String,
-/// }
-///
-/// impl Display for Person {
-///     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-///         write!(f, "My name is {}!", self.name)
-///     }
 /// }
 ///
 /// assert_eq!(
@@ -293,7 +277,7 @@ impl<T: Renderable> RenderableExt for T {}
 /// This is present to disallow accidentally rendering [`Renderable`] types
 /// to attributes, as [`Renderable`]s do not necessarily have to be escaped and
 /// can contain raw HTML.
-pub trait AttributeRenderable: Renderable {
+pub trait AttributeRenderable {
     /// Renders this value to the given string for use as an attribute value.
     ///
     /// This must escape `&` to `&amp;`, `<` to `&lt;`, `>` to `&gt;`, and `"`
