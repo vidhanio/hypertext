@@ -168,7 +168,7 @@ pub struct DisplayExpr<N: Node> {
 
 impl<N: Node> DisplayExpr<N> {
     fn wrapped_expr(&self) -> TokenStream {
-        let wrapper = quote_spanned!(self.percent_token.span=> ::hypertext::Displayed);
+        let wrapper = quote_spanned!(self.percent_token.span=> Displayed);
         let mut new_paren_expr = TokenStream::new();
         self.paren_expr
             .paren_token
@@ -177,7 +177,7 @@ impl<N: Node> DisplayExpr<N> {
                 self.paren_expr.to_tokens(tokens);
             });
 
-        quote!(#wrapper #new_paren_expr)
+        quote!(::hypertext::#wrapper #new_paren_expr)
     }
 }
 
@@ -209,7 +209,7 @@ pub struct DebugExpr<N: Node> {
 
 impl<N: Node> DebugExpr<N> {
     fn wrapped_expr(&self) -> TokenStream {
-        let wrapper = quote_spanned!(self.question_token.span=> ::hypertext::Debugged);
+        let wrapper = quote_spanned!(self.question_token.span=> Debugged);
         let mut new_paren_expr = TokenStream::new();
         self.expr
             .paren_token
@@ -218,7 +218,7 @@ impl<N: Node> DebugExpr<N> {
                 self.expr.to_tokens(tokens);
             });
 
-        quote!(#wrapper #new_paren_expr)
+        quote!(::hypertext::#wrapper #new_paren_expr)
     }
 }
 

@@ -607,20 +607,20 @@ fn unindent() {
 #[test]
 fn displayed_debugged() {
     #[derive(Debug)]
-    struct Name(&'static str);
+    struct Greeting(&'static str);
 
-    impl Display for Name {
+    impl Display for Greeting {
         fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-            write!(f, "Hello, {}!", self.0)
+            write!(f, "Hello, {}! <script>", self.0)
         }
     }
 
     let maud_result = maud! {
         div {
-            %(Name("World"))
+            %(Greeting("World"))
         }
         div {
-            ?(Name("World"))
+            ?(Greeting("World"))
         }
         div {
             (format_args!("{:#X}", 3_735_928_559_u32))
@@ -630,10 +630,10 @@ fn displayed_debugged() {
 
     let rsx_result = rsx! {
         <div>
-            %(Name("World"))
+            %(Greeting("World"))
         </div>
         <div>
-            ?(Name("World"))
+            ?(Greeting("World"))
         </div>
         <div>
             (format_args!("{:#X}", 3_735_928_559_u32))
@@ -641,8 +641,9 @@ fn displayed_debugged() {
     }
     .render();
 
-    let expected =
-        Rendered("<div>Hello, World!</div><div>Name(\"World\")</div><div>0xDEADBEEF</div>");
+    let expected = Rendered(
+        "<div>Hello, World! &lt;script&gt;</div><div>Greeting(\"World\")</div><div>0xDEADBEEF</div>",
+    );
 
     for result in [maud_result, rsx_result] {
         assert_eq!(result, expected);
