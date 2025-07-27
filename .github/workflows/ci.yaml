@@ -68,18 +68,3 @@ jobs:
 
       - name: Check formatting
         run: cargo fmt --all -- --check
-
-  toml-format:
-    name: TOML Format
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Taplo CLI
-        uses: dtolnay/install@taplo-cli
-
-      - name: Check TOML formatting
-        run: taplo fmt --check

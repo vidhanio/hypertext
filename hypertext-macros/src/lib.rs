@@ -7,10 +7,11 @@ mod html;
 
 use html::{AttributeValueNode, Nodes};
 use proc_macro::TokenStream;
+use proc_macro2::Ident;
 use quote::quote;
 use syn::{
     DeriveInput, ItemFn,
-    parse::{Nothing, Parse},
+    parse::{Parse, ParseStream},
     parse_macro_input,
 };
 
@@ -109,10 +110,17 @@ pub fn derive_attribute_renderable(input: proc_macro::TokenStream) -> proc_macro
 
 #[proc_macro_attribute]
 pub fn component(attr: TokenStream, item: TokenStream) -> TokenStream {
-    parse_macro_input!(attr as Nothing);
+    fn parse_optional_ident(input: ParseStream) -> syn::Result<Option<Ident>> {
+        if input.is_empty() {
+            Ok(None)
+        } else {
+            input.parse().map(Some)
+        }
+    }
+    let attr = parse_macro_input!(attr with parse_optional_ident);
     let item = parse_macro_input!(item as ItemFn);
 
-    component::generate(&item)
+    component::generate(attr, &item)
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }

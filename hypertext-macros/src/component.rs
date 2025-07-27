@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{FnArg, Ident, ItemFn, Pat, PatType, Type};
 
-pub fn generate(fn_item: &ItemFn) -> syn::Result<TokenStream> {
+pub fn generate(struct_name: Option<Ident>, fn_item: &ItemFn) -> syn::Result<TokenStream> {
     let vis = &fn_item.vis;
 
     let mut fields = Vec::new();
@@ -52,8 +52,8 @@ pub fn generate(fn_item: &ItemFn) -> syn::Result<TokenStream> {
 
     let fn_name = &fn_item.sig.ident;
 
-    let struct_name_str = to_pascal_case(&fn_name.to_string());
-    let struct_name = Ident::new(&struct_name_str, fn_name.span());
+    let struct_name = struct_name
+        .unwrap_or_else(|| Ident::new(&to_pascal_case(&fn_name.to_string()), fn_name.span()));
 
     let (impl_generics, ty_generics, where_clause) = fn_item.sig.generics.split_for_impl();
 

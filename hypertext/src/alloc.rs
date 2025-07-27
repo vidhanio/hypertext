@@ -83,9 +83,10 @@ pub use hypertext_macros::attribute_borrow;
 /// [`Renderable`] and can be used as a component.
 ///
 /// There are three types of parameters that are supported:
-/// - `T`: Stored as `T` in the struct, and is assumed to implement [`Copy`].
-/// - `&T`: Stored as `T` in the struct, and is given to the function as a
-///   reference.
+/// - `T`: Stored as `T` in the struct, and will use [`Copy`] to provide the
+///   value to the function.
+/// - `&T`: Stored as `T` in the struct, and will borrow the value from the
+///   struct when calling the function.
 /// - `&'a T`: Stored as `&'a T` in the struct, useful for borrowing unsized
 ///   types such as [`str`] or [`[T]`](slice) without needing to convert them to
 ///   their owned counterparts.
@@ -108,7 +109,7 @@ pub use hypertext_macros::attribute_borrow;
 /// assert_eq!(
 ///     maud! {
 ///          div {
-///              NavBar title="My Nav Bar" subtitle=("My Subtitle".into());
+///              NavBar title="My Nav Bar" subtitle=("My Subtitle".to_owned());
 ///          }
 ///     }
 ///     .render(),
