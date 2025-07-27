@@ -122,12 +122,27 @@
 //! );
 //! ```
 //!
+//! Wrapping an attribue name in quotes will bypass the type-checking, so you
+//! can use any attribute you want, even if it doesn't exist in the current
+//! context.
+//!
+//! ```rust
+//! use hypertext::prelude::*;
+//!
+//! assert_eq!(
+//!     maud! {
+//!         div "custom-attribute"="value" { "Hello, world!" }
+//!     }
+//!     .render(),
+//!     Rendered(r#"<div custom-attribute="value">Hello, world!</div>"#),
+//! );
+//! ```
+//!
 //! This library also supports component structs, which are simply structs that
 //! implement [`Renderable`] and can be used as HTML elements. If an element
 //! name is capitalized, it will be treated as a component, with attributes
 //! representing the struct fields. The [`component`] macro can be used to
 //! easily turn functions into components.
-//!
 //! ```rust
 //! use hypertext::prelude::*;
 //!
@@ -174,6 +189,8 @@
 mod alloc;
 pub mod frameworks;
 pub mod html_elements;
+#[cfg(feature = "mathml")]
+mod mathml;
 pub mod validation;
 mod web;
 

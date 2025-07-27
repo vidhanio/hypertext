@@ -649,3 +649,54 @@ fn displayed_debugged() {
         assert_eq!(result, expected);
     }
 }
+
+#[test]
+fn aria() {
+    let maud_result = maud! {
+        div aria-label="Hello, world!" {
+            "Hello, world!"
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div aria-label="Hello, world!">"Hello, world!"</div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result,
+            Rendered(r#"<div aria-label="Hello, world!">Hello, world!</div>"#)
+        );
+    }
+}
+
+#[test]
+#[cfg(feature = "mathml")]
+fn mathml() {
+    let maud_result = maud! {
+        math  {
+            mi { "x" }
+            mo { "+" }
+            mn { "1" }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <math>
+            <mi>x</mi>
+            <mo>"+"</mo>
+            <mn>1</mn>
+        </math>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result,
+            Rendered("<math><mi>x</mi><mo>+</mo><mn>1</mn></math>")
+        );
+    }
+}

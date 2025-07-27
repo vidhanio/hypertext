@@ -25,6 +25,66 @@
 #[allow(unused_imports)]
 use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol, GlobalAttributes};
 
+/// Attributes for use with [ARIA](https://www.w3.org/TR/wai-aria/).
+#[expect(missing_docs)]
+pub trait AriaAttributes: GlobalAttributes {
+    const aria_activedescendant: Attribute = Attribute;
+    const aria_atomic: Attribute = Attribute;
+    const aria_autocomplete: Attribute = Attribute;
+    const aria_braillelabel: Attribute = Attribute;
+    const aria_brailleroledescription: Attribute = Attribute;
+    const aria_busy: Attribute = Attribute;
+    const aria_checked: Attribute = Attribute;
+    const aria_colcount: Attribute = Attribute;
+    const aria_colindex: Attribute = Attribute;
+    const aria_colindextext: Attribute = Attribute;
+    const aria_colspan: Attribute = Attribute;
+    const aria_controls: Attribute = Attribute;
+    const aria_current: Attribute = Attribute;
+    const aria_describedby: Attribute = Attribute;
+    const aria_description: Attribute = Attribute;
+    const aria_details: Attribute = Attribute;
+    const aria_disabled: Attribute = Attribute;
+    const aria_dropeffect: Attribute = Attribute;
+    const aria_errormessage: Attribute = Attribute;
+    const aria_expanded: Attribute = Attribute;
+    const aria_flowto: Attribute = Attribute;
+    const aria_grabbed: Attribute = Attribute;
+    const aria_haspopup: Attribute = Attribute;
+    const aria_hidden: Attribute = Attribute;
+    const aria_invalid: Attribute = Attribute;
+    const aria_keyshortcuts: Attribute = Attribute;
+    const aria_label: Attribute = Attribute;
+    const aria_labelledby: Attribute = Attribute;
+    const aria_level: Attribute = Attribute;
+    const aria_live: Attribute = Attribute;
+    const aria_modal: Attribute = Attribute;
+    const aria_multiline: Attribute = Attribute;
+    const aria_multiselectable: Attribute = Attribute;
+    const aria_orientation: Attribute = Attribute;
+    const aria_owns: Attribute = Attribute;
+    const aria_placeholder: Attribute = Attribute;
+    const aria_posinset: Attribute = Attribute;
+    const aria_pressed: Attribute = Attribute;
+    const aria_readonly: Attribute = Attribute;
+    const aria_relevant: Attribute = Attribute;
+    const aria_required: Attribute = Attribute;
+    const aria_roledescription: Attribute = Attribute;
+    const aria_rowcount: Attribute = Attribute;
+    const aria_rowindex: Attribute = Attribute;
+    const aria_rowindextext: Attribute = Attribute;
+    const aria_rowspan: Attribute = Attribute;
+    const aria_selected: Attribute = Attribute;
+    const aria_setsize: Attribute = Attribute;
+    const aria_sort: Attribute = Attribute;
+    const aria_valuemax: Attribute = Attribute;
+    const aria_valuemin: Attribute = Attribute;
+    const aria_valuenow: Attribute = Attribute;
+    const aria_valuetext: Attribute = Attribute;
+}
+
+impl<T: GlobalAttributes> AriaAttributes for T {}
+
 /// Attributes for use with [htmx](https://htmx.org/).
 #[cfg(feature = "htmx")]
 pub trait HtmxAttributes: GlobalAttributes {

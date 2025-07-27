@@ -7,6 +7,9 @@
 //! [`elements!`]: crate::elements
 //! [`GlobalAttributes`]: crate::validation::GlobalAttributes
 
+#[cfg(feature = "mathml")]
+pub use crate::mathml::elements::*;
+
 /// Create a set of HTML elements.
 ///
 /// This macro should be called from within a module named `html_elements`.
