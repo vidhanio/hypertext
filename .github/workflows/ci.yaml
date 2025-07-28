@@ -24,10 +24,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Execute tests
-        run: cargo test --all-features --lib --bins --tests
-
-      - name: Execute documentation tests
-        run: cargo +nightly test --all-features --doc
+        run: cargo test --all-features
 
   check:
     name: Check
@@ -39,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
 
