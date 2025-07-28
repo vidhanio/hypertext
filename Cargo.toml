@@ -4,7 +4,7 @@ members = ["examples/*", "hypertext", "hypertext-macros"]
 default-members = ["hypertext", "hypertext-macros"]
 
 [workspace.package]
-version = "0.9.0"
+version = "0.10.0"
 authors = ["Vidhan Bhatt <me@vidhan.io>"]
 edition = "2024"
 description = "A blazing fast type-checked HTML macro crate."
@@ -17,8 +17,8 @@ categories = ["template-engine"]
 
 [workspace.dependencies]
 html-escape = { version = "0.2", default-features = false }
-hypertext = { version = "0.9.0", path = "./hypertext" }
-hypertext-macros = { version = "0.9.0", path = "./hypertext-macros" }
+hypertext = { version = "0.10.0", path = "./hypertext" }
+hypertext-macros = { version = "0.10.0", path = "./hypertext-macros" }
 
 [workspace.lints]
 [workspace.lints.clippy]
