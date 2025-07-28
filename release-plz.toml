@@ -15,7 +15,7 @@ git_release_enable = true
 [changelog]
 body = """
 
-## [{{ version }}]{%- if release_link -%}({{ release_link }}){% endif %} - {{ timestamp | date(format="%Y-%m-%d") }}
+## [{{ version }}]{% if release_link %}({{ release_link }}){% endif %} - {{ timestamp | date(format="%Y-%m-%d") }}
 {% for group, commits in commits | group_by(attribute="group") %}
     ### {{ group | striptags }}
     {% for commit in commits %}

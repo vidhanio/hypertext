@@ -1,4 +1,5 @@
 //! Tests for the `hypertext` crate.
+#![cfg(feature = "alloc")]
 
 use std::fmt::{self, Display, Formatter};
 
