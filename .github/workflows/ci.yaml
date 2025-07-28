@@ -23,7 +23,7 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Execute tests
+      - name: Run tests
         run: cargo test --all-features
 
   check:
@@ -64,4 +64,4 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Check formatting
-        run: cargo fmt --all -- --check
+        run: cargo fmt --all --check
