@@ -266,15 +266,13 @@ impl ToTokens for Checks {
                 #[allow(unused_imports)]
                 use html_elements::*;
 
-                const _: () = {
-                    #[doc(hidden)]
-                    const fn check_element<
-                        T: ::hypertext::validation::Element<Kind = K>,
-                        K: ::hypertext::validation::ElementKind
-                    >() {}
+                #[doc(hidden)]
+                const fn check_element<
+                    T: ::hypertext::validation::Element<Kind = K>,
+                    K: ::hypertext::validation::ElementKind
+                >() {}
 
-                    #(#checks)*
-                };
+                #(#checks)*
             };
         }
         .to_tokens(tokens);

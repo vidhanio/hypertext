@@ -11,4 +11,4 @@
 pub use crate::{
     AttributeRenderable, Renderable, RenderableExt, Rendered, attribute, component, maud, rsx,
 };
-pub use crate::{frameworks::*, html_elements, validation::GlobalAttributes};
+pub use crate::{frameworks::*, html_elements, validation::global_traits::*};

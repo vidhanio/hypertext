@@ -54,37 +54,40 @@
 //! # .render(),
 //!
 //! // expands to (roughly):
+//! hypertext::Lazy(move |hypertext_output: &mut hypertext::String| {
+//!     const _: () = {
+//!         use html_elements::*;
 //!
-//! {
-//!     const _: fn() = || {
-//!         html_elements::div;
-//!         html_elements::h1;
-//!         let _: hypertext::validation::Attribute = html_elements::div::id;
-//!         let _: hypertext::validation::Attribute = html_elements::div::title;
-//!         let _: hypertext::validation::Attribute = html_elements::h1::class;
-//!     };
-//!
-//!     hypertext::Lazy(|hypertext_output: &mut String| {
-//!         hypertext_output.push_str(
-//!             r#"<div id="main" title="Main Div"><h1 class="important">Hello, world!</h1>"#,
-//!         );
-//!
-//!         for i in 1..=3 {
-//!             const _: fn() = || {
-//!                 html_elements::p;
-//!                 let _: hypertext::validation::Attribute = html_elements::p::class;
-//!             };
-//!
-//!             hypertext_output.push_str(r#"<p class="p-"#);
-//!             i.render_to(hypertext_output);
-//!             hypertext_output.push_str(r#"">This is paragraph number "#);
-//!             i.render_to(hypertext_output);
-//!             hypertext_output.push_str("</p>");
+//!         #[doc(hidden)]
+//!         const fn check_element<
+//!             T: hypertext::validation::Element<Kind = K>,
+//!             K: hypertext::validation::ElementKind,
+//!         >() {
 //!         }
 //!
-//!         hypertext_output.push_str("</div>");
-//!     })
-//! }
+//!         check_element::<h1, hypertext::validation::Normal>();
+//!         let _: hypertext::validation::Attribute = h1::class;
+//!
+//!         check_element::<p, hypertext::validation::Normal>();
+//!         let _: hypertext::validation::Attribute = p::class;
+//!
+//!         check_element::<div, hypertext::validation::Normal>();
+//!         let _: hypertext::validation::Attribute = div::id;
+//!         let _: hypertext::validation::Attribute = div::title;
+//!     };
+//!     hypertext_output.push_str("<div id=\"main\" title=\"Main Div\">");
+//!     {
+//!         hypertext_output.push_str("<h1 class=\"important\">Hello, world!</h1>");
+//!         for i in 1..=3 {
+//!             hypertext_output.push_str("<p class=\"p-");
+//!             hypertext::AttributeRenderable::render_attribute_to(&i, hypertext_output);
+//!             hypertext_output.push_str("\">This is paragraph number ");
+//!             hypertext::Renderable::render_to(&i, hypertext_output);
+//!             hypertext_output.push_str("</p>");
+//!         }
+//!     }
+//!     hypertext_output.push_str("</div>");
+//! })
 //! # .render());
 //! ```
 //!
