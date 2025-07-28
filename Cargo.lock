@@ -1501,7 +1501,7 @@ dependencies = [
 
 [[package]]
 name = "hypertext"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "actix-web",
  "axum-core",
@@ -1520,7 +1520,7 @@ dependencies = [
 
 [[package]]
 name = "hypertext-macros"
-version = "0.9.0"
+version = "0.10.0"
 dependencies = [
  "html-escape",
  "proc-macro2",
@@ -2071,9 +2071,9 @@ dependencies = [
 
 [[package]]
 name = "poem"
-version = "3.1.11"
+version = "3.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ea63e9302279b1ca262d15342760f8d08f04fb974d4997e8baed7d034b94121"
+checksum = "9f977080932c87287147dca052951c3e2696f8759863f6b4e4c0c9ffe7a4cc8b"
 dependencies = [
  "bytes",
  "futures-util",
@@ -2104,9 +2104,9 @@ dependencies = [
 
 [[package]]
 name = "poem-derive"
-version = "3.1.11"
+version = "3.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "824e7fe35343b7fe354e5d4ac444ddbe674676ebba4b4e48565835661033d338"
+checksum = "056e2fea6de1cb240ffe23cfc4fc370b629f8be83b5f27e16b7acd5231a72de4"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
