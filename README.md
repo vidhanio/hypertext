@@ -7,6 +7,8 @@ A blazing fast type-checked HTML macro crate.
 - Type checking for element names/attributes
   - Completely extensible for use with non-standard elements/attributes, such as
     those used by [htmx](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/)
+  - MathML support
+  - Easy to use macros to create custom elements for use with Web Components
 - `#![no_std]` support
 - Automatic escaping
 - [Extremely fast](https://github.com/askama-rs/template-benchmark#benchmark-results),

@@ -18,13 +18,12 @@ body = """
 ## [{{ version }}]{%- if release_link -%}({{ release_link }}){% endif %} - {{ timestamp | date(format="%Y-%m-%d") }}
 {% for group, commits in commits | group_by(attribute="group") %}
     ### {{ group | striptags }}
-
     {% for commit in commits %}
         - {% if commit.scope %}*({{commit.scope}})* {% endif %}\
           {% if commit.breaking %}[**breaking**] {% endif %}\
           {{ commit.message }}\
           {% if commit.remote.pr_number %} (#{{ commit.remote.pr_number }}){% endif -%}
-    {% endfor -%}
+    {% endfor %}
 {% endfor %}
 """
 commit_parsers = [
