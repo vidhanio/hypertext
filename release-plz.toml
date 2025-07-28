@@ -1,0 +1,7 @@
+[workspace]
+changelog_update = false
+
+[[package]]
+name = "hypertext"
+changelog_update = true
+changelog_path = "CHANGELOG.md"
