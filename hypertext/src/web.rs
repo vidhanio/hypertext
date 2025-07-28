@@ -1,3 +1,5 @@
+const HTML_CONTENT_TYPE: &str = "text/html; charset=utf-8";
+
 #[cfg(feature = "actix-web")]
 mod actix_web {
     use actix_web::{HttpRequest, HttpResponse, Responder, web::Html};
@@ -35,7 +37,7 @@ mod axum {
 
     const HEADER: (HeaderName, HeaderValue) = (
         header::CONTENT_TYPE,
-        HeaderValue::from_static("text/html; charset=utf-8"),
+        HeaderValue::from_static(super::HTML_CONTENT_TYPE),
     );
 
     impl<F: Fn(&mut String)> IntoResponse for Lazy<F> {
@@ -49,6 +51,34 @@ mod axum {
         #[inline]
         fn into_response(self) -> Response {
             ([HEADER], self.0.into()).into_response()
+        }
+    }
+}
+
+#[cfg(feature = "ntex")]
+mod ntex {
+    #![allow(clippy::future_not_send)]
+
+    use ntex::{
+        http::Response,
+        web::{ErrorRenderer, HttpRequest, Responder},
+    };
+
+    use crate::{Lazy, Renderable, Rendered, String};
+
+    impl<F: Fn(&mut String), Err: ErrorRenderer> Responder<Err> for Lazy<F> {
+        #[inline]
+        async fn respond_to(self, req: &HttpRequest) -> Response {
+            <Rendered<_> as Responder<Err>>::respond_to(self.render(), req).await
+        }
+    }
+
+    impl<T: Into<String>, Err: ErrorRenderer> Responder<Err> for Rendered<T> {
+        #[inline]
+        async fn respond_to(self, _: &HttpRequest) -> Response {
+            Response::Ok()
+                .content_type(super::HTML_CONTENT_TYPE)
+                .body(self.0.into())
         }
     }
 }

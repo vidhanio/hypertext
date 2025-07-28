@@ -18,6 +18,7 @@ A blazing fast type-checked HTML macro crate.
 - Integration with all major web frameworks, enabled by their respective feature flags
   - [`actix-web`](https://actix.rs/)
   - [`axum`](https://github.com/tokio-rs/axum)
+  - [`ntex`](https://github.com/ntex-rs/ntex)
   - [`poem`](https://github.com/poem-web/poem)
   - [`rocket`](https://rocket.rs/)
   - [`salvo`](https://github.com/salvo-rs/salvo)

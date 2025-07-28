@@ -23,6 +23,7 @@ http = { version = "1", default-features = false, optional = true }
 hyper = { version = "0.14", default-features = false, optional = true }
 hypertext-macros.workspace = true
 itoa = { version = "1", optional = true }
+ntex = { version = "2", default-features = false, optional = true }
 poem = { version = "3", default-features = false, optional = true }
 rocket = { version = "0.5", default-features = false, optional = true }
 ryu = { version = "1", optional = true }
@@ -39,6 +40,7 @@ default = ["alloc"]
 htmx = []
 hyperscript = []
 mathml = []
+ntex = ["alloc", "dep:ntex"]
 poem = ["alloc", "dep:poem"]
 rocket = ["alloc", "dep:rocket"]
 salvo = ["alloc", "dep:salvo_core"]
