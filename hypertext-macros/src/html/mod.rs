@@ -11,7 +11,7 @@ use std::marker::PhantomData;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced, bracketed,
+    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
@@ -571,7 +571,34 @@ impl Parse for AttributeName {
                 rest: input.call(UnquotedName::parse_any)?,
             })
         } else if lookahead.peek(LitStr) {
-            input.parse().map(Self::Unchecked)
+            let s = input.parse::<LitStr>()?;
+            let value = s.value();
+
+            for c in value.chars() {
+                if c.is_whitespace() {
+                    return Err(Error::new_spanned(
+                        &s,
+                        "Attribute names cannot contain whitespace",
+                    ));
+                } else if c.is_control() {
+                    return Err(Error::new_spanned(
+                        &s,
+                        "Attribute names cannot contain control characters",
+                    ));
+                } else if c == '>' || c == '/' || c == '=' {
+                    return Err(Error::new_spanned(
+                        &s,
+                        format!("Attribute names cannot contain '{c}' characters"),
+                    ));
+                } else if c == '"' || c == '\'' {
+                    return Err(Error::new_spanned(
+                        &s,
+                        "Attribute names cannot contain quotes",
+                    ));
+                }
+            }
+
+            Ok(Self::Unchecked(s))
         } else {
             Err(lookahead.error())
         }
