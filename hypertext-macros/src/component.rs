@@ -1,13 +1,35 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::{FnArg, Ident, ItemFn, Pat, PatType, Type};
+use syn::{FnArg, Ident, ItemFn, Pat, PatType, Type, Visibility, parse::Parse};
 
-pub fn generate(struct_name: Option<Ident>, fn_item: &ItemFn) -> syn::Result<TokenStream> {
-    let vis = &fn_item.vis;
+pub struct ComponentArgs {
+    visibility: Visibility,
+    ident: Option<Ident>,
+}
 
+impl Parse for ComponentArgs {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        Ok(Self {
+            visibility: input.parse()?,
+            ident: if input.peek(Ident) {
+                Some(input.parse()?)
+            } else {
+                None
+            },
+        })
+    }
+}
+
+pub fn generate(args: ComponentArgs, fn_item: &ItemFn) -> syn::Result<TokenStream> {
     let mut fields = Vec::new();
     let mut field_names = Vec::new();
     let mut field_refs = Vec::new();
+
+    let vis = if args.visibility == Visibility::Inherited {
+        fn_item.vis.clone()
+    } else {
+        args.visibility
+    };
 
     for input in &fn_item.sig.inputs {
         if let FnArg::Typed(PatType { pat, ty, .. }) = input {
@@ -52,7 +74,8 @@ pub fn generate(struct_name: Option<Ident>, fn_item: &ItemFn) -> syn::Result<Tok
 
     let fn_name = &fn_item.sig.ident;
 
-    let struct_name = struct_name
+    let struct_name = args
+        .ident
         .unwrap_or_else(|| Ident::new(&to_pascal_case(&fn_name.to_string()), fn_name.span()));
 
     let (impl_generics, ty_generics, where_clause) = fn_item.sig.generics.split_for_impl();
@@ -65,6 +88,7 @@ pub fn generate(struct_name: Option<Ident>, fn_item: &ItemFn) -> syn::Result<Tok
             #(#fields),*
         }
 
+        #[automatically_derived]
         impl #impl_generics ::hypertext::Renderable for #struct_name #ty_generics #where_clause {
             fn render_to(&self, output: &mut ::hypertext::String) {
                 ::hypertext::Renderable::render_to(

@@ -1,3 +1,5 @@
+#![allow(clippy::doc_markdown)]
+
 extern crate alloc;
 
 #[doc(hidden)]
@@ -90,6 +92,18 @@ pub use hypertext_macros::attribute_borrow;
 /// - `&'a T`: Stored as `&'a T` in the struct, useful for borrowing unsized
 ///   types such as [`str`] or [`[T]`](slice) without needing to convert them to
 ///   their owned counterparts.
+///
+/// The name of the generated struct is derived from the function name by
+/// converting it to PascalCase. If you would like to set a different name,
+/// you can specify it as `#[component(MyComponentName)]` on the function.
+///
+/// The visibility of the generated struct is determined by the visibility of
+/// the function. If you would like to set a different visibility, you can
+/// specify it as `#[component(pub)]`, `#[component(pub(crate))]`, etc. on the
+/// function.
+///
+/// You can combine both of these by setting an attribute like `#[component(pub
+/// MyComponentName)]`.
 ///
 /// # Example
 ///

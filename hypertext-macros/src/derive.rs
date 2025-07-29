@@ -55,6 +55,7 @@ pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
     let name = input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let output = quote! {
+        #[automatically_derived]
         impl #impl_generics ::hypertext::Renderable for #name #ty_generics #where_clause {
             fn render_to(&self, output: &mut ::hypertext::String) {
                 ::hypertext::Renderable::render_to(&#lazy, output);
@@ -98,6 +99,7 @@ pub fn attribute_renderable(input: DeriveInput) -> syn::Result<TokenStream> {
     let name = input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let output = quote! {
+        #[automatically_derived]
         impl #impl_generics ::hypertext::AttributeRenderable for #name #ty_generics
             #where_clause {
             fn render_attribute_to(

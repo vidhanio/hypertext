@@ -463,7 +463,7 @@ fn control() {
 }
 
 #[test]
-fn components() {
+fn component_fns() {
     fn component() -> impl Renderable {
         maud! { span { "Hello, world!" } }
     }
@@ -700,4 +700,28 @@ fn mathml() {
             Rendered("<math><mi>x</mi><mo>+</mo><mn>1</mn></math>")
         );
     }
+}
+
+#[test]
+fn component_attr() {
+    #[component(HelloWorld)]
+    fn my_component() -> impl Renderable {
+        maud! { span { "Hi!" } }
+    }
+
+    mod component_module {
+        use hypertext::prelude::*;
+
+        #[component(pub)]
+        fn private_component() -> impl Renderable {
+            maud! { span { "secret..." } }
+        }
+    }
+
+    use component_module::PrivateComponent;
+
+    assert_eq!(
+        maud! { HelloWorld; PrivateComponent; }.render(),
+        Rendered("<span>Hi!</span><span>secret...</span>")
+    );
 }

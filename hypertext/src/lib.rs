@@ -184,7 +184,7 @@
 //! [`class`]: validation::GlobalAttributes::class
 //! [`title`]: validation::GlobalAttributes::title
 #![no_std]
-#![deny(clippy::missing_inline_in_public_items)]
+#![warn(clippy::missing_inline_in_public_items)]
 #![cfg_attr(docsrs, allow(internal_features))]
 #![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg, rustdoc_internals))]
 
