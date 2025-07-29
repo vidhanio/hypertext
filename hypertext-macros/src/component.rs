@@ -80,13 +80,19 @@ pub fn generate(args: ComponentArgs, fn_item: &ItemFn) -> syn::Result<TokenStrea
 
     let (impl_generics, ty_generics, where_clause) = fn_item.sig.generics.split_for_impl();
 
+    let struct_body = if fields.is_empty() {
+        quote!(;)
+    } else {
+        quote! {
+            { #(#fields),* }
+        }
+    };
+
     let output = quote! {
         #[allow(clippy::needless_lifetimes)]
         #fn_item
 
-        #vis struct #struct_name #ty_generics {
-            #(#fields),*
-        }
+        #vis struct #struct_name #ty_generics #struct_body
 
         #[automatically_derived]
         impl #impl_generics ::hypertext::Renderable for #struct_name #ty_generics #where_clause {
