@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 const HTML_CONTENT_TYPE: &str = "text/html; charset=utf-8";
 
 #[cfg(feature = "actix-web")]
