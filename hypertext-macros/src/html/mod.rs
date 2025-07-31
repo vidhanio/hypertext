@@ -800,22 +800,21 @@ pub struct Toggle {
 
 impl Toggle {
     fn parenthesized(&self) -> TokenStream {
-        let mut expr_iter = self.expr.clone().into_iter();
+        let brace_token = Brace {
+            span: self.bracket_token.span,
+        };
 
-        if let (Some(first), None) = (expr_iter.next(), expr_iter.next()) {
-            first.into()
-        } else {
-            let paren_token = Paren {
-                span: self.bracket_token.span,
-            };
+        let mut tokens = TokenStream::new();
 
-            let mut tokens = TokenStream::new();
+        brace_token.surround(&mut tokens, |tokens| {
+            self.expr.to_tokens(tokens);
+        });
 
-            paren_token.surround(&mut tokens, |tokens| {
-                self.expr.to_tokens(tokens);
-            });
-
-            tokens
+        quote! {
+            {
+                #[allow(unused_braces)]
+                #tokens
+            }
         }
     }
 
