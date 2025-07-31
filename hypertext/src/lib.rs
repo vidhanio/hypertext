@@ -11,7 +11,8 @@
 //! The entire crate is `#![no_std]` compatible, and allocation is completely
 //! optional if you don't use any dynamic content. Disabling the `alloc` feature
 //! and using [`maud_static!`]/[`rsx_static!`] will result in an
-//! [`Rendered<&str>`], which can even be used in `const` contexts!
+//! [`Raw<&'static str>`], (convertible to a [`Rendered<&'static str>`] via
+//! [`Raw::rendered`]) which can even be used in `const` contexts!
 //!
 //! The crate gives extreme importance to lazy rendering and minimizing
 //! allocation, so it will only render the HTML to a string when you finally
@@ -142,10 +143,11 @@
 //! ```
 //!
 //! This library also supports component structs, which are simply structs that
-//! implement [`Renderable`] and can be used as HTML elements. If an element
-//! name is capitalized, it will be treated as a component, with attributes
-//! representing the struct fields. The [`component`] macro can be used to
-//! easily turn functions into components.
+//! implement [`Renderable`] If an element name is capitalized, it will be
+//! treated as a component, with attributes representing the struct fields. The
+//! [`#[component]`](component) macro can be used to easily turn functions into
+//! components.
+//!
 //! ```rust
 //! use hypertext::prelude::*;
 //!
