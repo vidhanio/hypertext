@@ -13,7 +13,7 @@ use crate::html::{
     kw,
 };
 
-pub struct Maud;
+pub enum Maud {}
 
 impl Syntax for Maud {}
 

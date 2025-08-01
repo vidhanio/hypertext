@@ -673,7 +673,7 @@ impl AttributeValueNode {
         if input.peek(Ident::peek_any) || input.peek(LitInt) {
             Ok(Self::Group(Group(Nodes(
                 input
-                    .parse::<UnquotedName>()?
+                    .call(UnquotedName::parse_attr_value)?
                     .lits()
                     .into_iter()
                     .map(|lit| Self::Literal(Literal::Str(lit)))

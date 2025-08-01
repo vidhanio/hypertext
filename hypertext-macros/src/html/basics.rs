@@ -91,6 +91,28 @@ impl UnquotedName {
 
         Ok(Self(name))
     }
+
+    pub fn parse_attr_value(input: ParseStream) -> syn::Result<Self> {
+        let lookahead = input.lookahead1();
+
+        let mut name = Vec::new();
+
+        if lookahead.peek(Ident::peek_any) || lookahead.peek(LitInt) {
+            name.push(input.parse()?);
+
+            while input.peek(Token![-])
+                || input.peek(Token![:])
+                || (name.last().is_none_or(NameFragment::is_punct)
+                    && (input.peek(Ident::peek_any) || input.peek(LitInt)))
+            {
+                name.push(input.parse()?);
+            }
+
+            Ok(Self(name))
+        } else {
+            Err(lookahead.error())
+        }
+    }
 }
 
 impl Parse for UnquotedName {

@@ -13,7 +13,7 @@ use crate::html::{
     UnquotedName,
 };
 
-pub struct Rsx;
+pub enum Rsx {}
 
 impl Syntax for Rsx {}
 

@@ -52,6 +52,21 @@ fn readme() {
 }
 
 #[test]
+fn class_id_maud() {
+    let result = maud! {
+        div #profile .class:colon-dash {
+            h1 { "Hello, world!" }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result,
+        Rendered(r#"<div id="profile" class="class:colon-dash"><h1>Hello, world!</h1></div>"#)
+    );
+}
+
+#[test]
 #[cfg(feature = "htmx")]
 fn htmx() {
     let tests = [
