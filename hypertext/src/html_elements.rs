@@ -46,11 +46,11 @@ pub use crate::mathml::elements::*;
 ///
 /// assert_eq!(
 ///     maud! {
-///         simple_greeting name="Alice" {
+///         simple-greeting name="Alice" {
 ///             coordinate x=1 y=2 {}
 ///         }
 ///     }.render(),
-///     Rendered(r#"<simple_greeting name="Alice"><coordinate x="1" y="2"></coordinate></simple_greeting>"#),
+///     Rendered(r#"<simple-greeting name="Alice"><coordinate x="1" y="2"></coordinate></simple-greeting>"#),
 /// )
 /// ```
 #[macro_export]
@@ -924,6 +924,39 @@ elements! {
     }
 }
 
+/// Create a set of HTML void elements.
+///
+/// This macro should be called from within a module named `html_elements`.
+///
+/// # Example
+/// ```rust
+/// mod html_elements {
+///     // Re-export all standard HTML elements
+///     pub use hypertext::html_elements::*;
+///     use hypertext::void_elements;
+///
+///     void_elements! {
+///         /// A custom void element that greets the user.
+///         simple_greeting {
+///             /// The name of the person to greet.
+///             name
+///         }
+///     }
+/// }
+///
+/// // Now, you can use the custom elements like this:
+///
+/// use hypertext::prelude::*;
+///
+/// assert_eq!(
+///     maud! {
+///         simple-greeting name="Alice";
+///     }
+///     .render(),
+///     Rendered(r#"<simple-greeting name="Alice">"#),
+/// )
+/// ```
+#[macro_export]
 macro_rules! void_elements {
     {
         $(
