@@ -4,6 +4,7 @@ version.workspace = true
 authors.workspace = true
 edition.workspace = true
 description.workspace = true
+documentation = "https://docs.rs/hypertext-macros"
 readme.workspace = true
 homepage.workspace = true
 repository.workspace = true

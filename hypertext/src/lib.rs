@@ -181,10 +181,10 @@
 //! );
 //! ```
 //!
-//! [`GlobalAttributes`]: validation::GlobalAttributes
-//! [`id`]: validation::GlobalAttributes::id
-//! [`class`]: validation::GlobalAttributes::class
-//! [`title`]: validation::GlobalAttributes::title
+//! [`GlobalAttributes`]: attributes::GlobalAttributes
+//! [`id`]: attributes::GlobalAttributes::id
+//! [`class`]: attributes::GlobalAttributes::class
+//! [`title`]: attributes::GlobalAttributes::title
 #![no_std]
 #![warn(clippy::missing_inline_in_public_items)]
 #![cfg_attr(docsrs, allow(internal_features))]

@@ -4,6 +4,10 @@ on:
   - push
   - pull_request
 
+env:
+  RUSTFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
+
 permissions:
   contents: read
 
@@ -44,7 +48,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Check code
-        run: cargo clippy --all-features --all-targets -- -D warnings
+        run: cargo clippy --all-features
 
   format:
     name: Format

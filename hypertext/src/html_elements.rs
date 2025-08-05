@@ -5,7 +5,7 @@
 //! information.
 //!
 //! [`elements!`]: crate::elements
-//! [`GlobalAttributes`]: crate::validation::GlobalAttributes
+//! [`GlobalAttributes`]: crate::attributes::GlobalAttributes
 
 #[cfg(feature = "mathml")]
 pub use crate::mathml::elements::*;
