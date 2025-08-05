@@ -22,12 +22,144 @@
 //! # .render(), Rendered(r#"<a hx-get="/about">About</a>"#));
 //! ```
 #![allow(non_upper_case_globals)]
+#[cfg(feature = "mathml")]
+pub use crate::mathml::MathMlGlobalAttributes;
+use crate::validation::Element;
 #[allow(unused_imports)]
-use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol, GlobalAttributes};
+use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol};
 
-/// Attributes for use with [ARIA](https://www.w3.org/TR/wai-aria/).
+/// Global HTML attributes.
+///
+/// This trait must be in scope to use standard HTML attributes such as
+/// [`class`](Self::class) and [`id`](Self::id). This trait is implemented
+/// by every HTML element specified in [`crate::html_elements`].
+///
+/// # Usage With Custom Elements
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// mod html_elements {
+///     #![expect(non_camel_case_types)]
+///
+///     pub use hypertext::html_elements::*;
+///     use hypertext::{
+///         attributes::GlobalAttributes,
+///         validation::{Element, Normal},
+///     };
+///
+///     pub struct custom_element;
+///
+///     impl Element for custom_element {
+///         type Kind = Normal;
+///     }
+///
+///     impl GlobalAttributes for custom_element {}
+/// }
+///
+/// assert_eq!(
+///     maud! { custom-element #my-element title="abc" { "Hello, world!" } }.render(),
+///     Rendered(r#"<custom-element id="my-element" title="abc">Hello, world!</custom-element>"#),
+/// );
+/// ```
+pub trait GlobalAttributes: Element {
+    /// Used as a guide for creating a keyboard shortcut that activates or
+    /// focuses the element.
+    const access_key: Attribute = Attribute;
+
+    /// The autocapitalization behavior to use when the text is edited
+    /// through non-keyboard methods.
+    const autocapitalize: Attribute = Attribute;
+
+    /// Indicates whether the element should be automatically focused when
+    /// the page is loaded.
+    const autofocus: Attribute = Attribute;
+
+    /// The class of the element.
+    #[doc(alias = ".")]
+    const class: Attribute = Attribute;
+
+    /// Whether the element is editable.
+    const contenteditable: Attribute = Attribute;
+
+    /// The text directionality of the element.
+    const dir: Attribute = Attribute;
+
+    /// Whether the element is draggable.
+    const draggable: Attribute = Attribute;
+
+    /// A hint as to what the `enter` key should do.
+    const enterkeyhint: Attribute = Attribute;
+
+    /// Whether the element is hidden from view.
+    const hidden: Attribute = Attribute;
+
+    /// A unique identifier for the element.
+    #[doc(alias = "#")]
+    const id: Attribute = Attribute;
+
+    /// Mark an element and its children as inert, disabling interaction.
+    const inert: Attribute = Attribute;
+
+    /// Specifies what kind of input mechanism would be most helpful for
+    /// users entering content.
+    const inputmode: Attribute = Attribute;
+
+    /// Specify which element this is a custom variant of.
+    const is: Attribute = Attribute;
+
+    /// A global identifier for the item.
+    const itemid: Attribute = Attribute;
+
+    /// A property that the item has.
+    const itemprop: Attribute = Attribute;
+
+    /// A list of additional elements to crawl to find the name-value pairs
+    /// of the item.
+    const itemref: Attribute = Attribute;
+
+    /// Creates a new item, a group of name-value pairs.
+    const itemscope: Attribute = Attribute;
+
+    /// The item types of the item.
+    const itemtype: Attribute = Attribute;
+
+    /// The language of the element.
+    const lang: Attribute = Attribute;
+
+    /// A cryptographic nonce ("number used once") which can be used by
+    /// Content Security Policy to determine whether or not a given
+    /// fetch will be allowed to proceed.
+    const nonce: Attribute = Attribute;
+
+    /// When specified, the element won't be rendered until it becomes
+    /// shown, at which point it will be rendered on top of other
+    /// page content.
+    const popover: Attribute = Attribute;
+
+    /// The slot the element is inserted in.
+    const slot: Attribute = Attribute;
+
+    /// Whether the element is spellchecked or not.
+    const spellcheck: Attribute = Attribute;
+
+    /// The CSS styling to apply to the element.
+    const style: Attribute = Attribute;
+
+    /// Customize the index of the element for sequential focus navigation.
+    const tabindex: Attribute = Attribute;
+
+    /// A text description of the element.
+    const title: Attribute = Attribute;
+
+    /// Whether the element is to be translated when the page is localized.
+    const translate: Attribute = Attribute;
+}
+
+/// [ARIA](https://www.w3.org/TR/wai-aria/) attributes.
 #[expect(missing_docs)]
 pub trait AriaAttributes: GlobalAttributes {
+    const role: Attribute = Attribute;
     const aria_activedescendant: Attribute = Attribute;
     const aria_atomic: Attribute = Attribute;
     const aria_autocomplete: Attribute = Attribute;
@@ -84,6 +216,75 @@ pub trait AriaAttributes: GlobalAttributes {
 }
 
 impl<T: GlobalAttributes> AriaAttributes for T {}
+
+/// Event handler attributes.
+#[expect(missing_docs)]
+pub trait EventHandlerAttributes: GlobalAttributes {
+    const onabort: Attribute = Attribute;
+    const onautocomplete: Attribute = Attribute;
+    const onautocompleteerror: Attribute = Attribute;
+    const onblur: Attribute = Attribute;
+    const oncancel: Attribute = Attribute;
+    const oncanplay: Attribute = Attribute;
+    const oncanplaythrough: Attribute = Attribute;
+    const onchange: Attribute = Attribute;
+    const onclick: Attribute = Attribute;
+    const onclose: Attribute = Attribute;
+    const oncontextmenu: Attribute = Attribute;
+    const oncuechange: Attribute = Attribute;
+    const ondblclick: Attribute = Attribute;
+    const ondrag: Attribute = Attribute;
+    const ondragend: Attribute = Attribute;
+    const ondragenter: Attribute = Attribute;
+    const ondragleave: Attribute = Attribute;
+    const ondragover: Attribute = Attribute;
+    const ondragstart: Attribute = Attribute;
+    const ondrop: Attribute = Attribute;
+    const ondurationchange: Attribute = Attribute;
+    const onemptied: Attribute = Attribute;
+    const onended: Attribute = Attribute;
+    const onerror: Attribute = Attribute;
+    const onfocus: Attribute = Attribute;
+    const oninput: Attribute = Attribute;
+    const oninvalid: Attribute = Attribute;
+    const onkeydown: Attribute = Attribute;
+    const onkeypress: Attribute = Attribute;
+    const onkeyup: Attribute = Attribute;
+    const onload: Attribute = Attribute;
+    const onloadeddata: Attribute = Attribute;
+    const onloadedmetadata: Attribute = Attribute;
+    const onloadstart: Attribute = Attribute;
+    const onmousedown: Attribute = Attribute;
+    const onmouseenter: Attribute = Attribute;
+    const onmouseleave: Attribute = Attribute;
+    const onmousemove: Attribute = Attribute;
+    const onmouseout: Attribute = Attribute;
+    const onmouseover: Attribute = Attribute;
+    const onmouseup: Attribute = Attribute;
+    const onmousewheel: Attribute = Attribute;
+    const onpause: Attribute = Attribute;
+    const onplay: Attribute = Attribute;
+    const onplaying: Attribute = Attribute;
+    const onprogress: Attribute = Attribute;
+    const onratechange: Attribute = Attribute;
+    const onreset: Attribute = Attribute;
+    const onresize: Attribute = Attribute;
+    const onscroll: Attribute = Attribute;
+    const onseeked: Attribute = Attribute;
+    const onseeking: Attribute = Attribute;
+    const onselect: Attribute = Attribute;
+    const onshow: Attribute = Attribute;
+    const onsort: Attribute = Attribute;
+    const onstalled: Attribute = Attribute;
+    const onsubmit: Attribute = Attribute;
+    const onsuspend: Attribute = Attribute;
+    const ontimeupdate: Attribute = Attribute;
+    const ontoggle: Attribute = Attribute;
+    const onvolumechange: Attribute = Attribute;
+    const onwaiting: Attribute = Attribute;
+}
+
+impl<T: GlobalAttributes> EventHandlerAttributes for T {}
 
 /// Attributes for use with [htmx](https://htmx.org/).
 #[cfg(feature = "htmx")]
@@ -258,7 +459,8 @@ pub trait AlpineJsAttributes: GlobalAttributes {
     /// Run code when an element is initialized by Alpine
     const x_init: Attribute = Attribute;
 
-    /// Execute a script each time one of its dependencies change
+    /// Execute a script each time const one: Attribute = Attribute; of its
+    /// dependencies change
     const x_effect: Attribute = Attribute;
 
     /// Reference elements directly by their specified keys using the $refs

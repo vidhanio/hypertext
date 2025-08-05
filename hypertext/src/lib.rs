@@ -192,7 +192,7 @@
 
 #[cfg(feature = "alloc")]
 mod alloc;
-pub mod frameworks;
+pub mod attributes;
 pub mod html_elements;
 #[cfg(feature = "mathml")]
 mod mathml;

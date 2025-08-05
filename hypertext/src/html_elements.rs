@@ -91,7 +91,7 @@ macro_rules! elements {
                 type Kind = $crate::validation::Normal;
             }
 
-            impl $crate::validation::GlobalAttributes for $name {}
+            impl $crate::attributes::GlobalAttributes for $name {}
         )*
     }
 }
@@ -994,7 +994,7 @@ macro_rules! void_elements {
                 type Kind = $crate::validation::Void;
             }
 
-            impl $crate::validation::GlobalAttributes for $name {}
+            impl $crate::attributes::GlobalAttributes for $name {}
         )*
     }
 }
