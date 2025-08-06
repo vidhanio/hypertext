@@ -175,8 +175,10 @@ mod tide {
 
 #[cfg(feature = "warp")]
 mod warp {
-    use hyper::Body;
-    use warp::reply::{Reply, Response};
+    use warp::{
+        hyper::body::Bytes,
+        reply::{Reply, Response},
+    };
 
     use crate::{Lazy, Renderable, Rendered, String};
 
@@ -187,13 +189,10 @@ mod warp {
         }
     }
 
-    impl<T: Send> Reply for Rendered<T>
-    where
-        Body: From<T>,
-    {
+    impl<T: Send + Into<Bytes>> Reply for Rendered<T> {
         #[inline]
         fn into_response(self) -> Response {
-            warp::reply::html(self.0).into_response()
+            warp::reply::html(self.0.into()).into_response()
         }
     }
 }

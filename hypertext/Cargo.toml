@@ -19,7 +19,6 @@ all-features = true
 actix-web = { version = "4", default-features = false, optional = true }
 axum-core = { version = "0.5", default-features = false, optional = true }
 html-escape = { workspace = true, optional = true }
-hyper = { version = "0.14", default-features = false, optional = true }
 hypertext-macros.workspace = true
 itoa = { version = "1", optional = true }
 ntex = { version = "2", default-features = false, optional = true }
@@ -28,7 +27,7 @@ rocket = { version = "0.5", default-features = false, optional = true }
 ryu = { version = "1", optional = true }
 salvo_core = { version = "0.81", default-features = false, optional = true }
 tide = { version = "0.16", default-features = false, optional = true }
-warp = { version = "0.3", default-features = false, optional = true }
+warp = { version = "0.4", default-features = false, optional = true }
 
 [features]
 actix-web = ["alloc", "dep:actix-web"]
@@ -44,7 +43,7 @@ poem = ["alloc", "dep:poem"]
 rocket = ["alloc", "dep:rocket"]
 salvo = ["alloc", "dep:salvo_core"]
 tide = ["alloc", "dep:tide"]
-warp = ["alloc", "dep:hyper", "dep:warp"]
+warp = ["alloc", "dep:warp"]
 
 [lints]
 workspace = true
