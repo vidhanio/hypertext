@@ -32,14 +32,8 @@ mod axum {
         body::Body,
         response::{IntoResponse, Response},
     };
-    use http::{HeaderName, HeaderValue, header};
 
     use crate::{Lazy, Renderable, Rendered, String};
-
-    const HEADER: (HeaderName, HeaderValue) = (
-        header::CONTENT_TYPE,
-        HeaderValue::from_static(super::HTML_CONTENT_TYPE),
-    );
 
     impl<F: Fn(&mut String)> IntoResponse for Lazy<F> {
         #[inline]
@@ -51,7 +45,7 @@ mod axum {
     impl<T: Into<Body>> IntoResponse for Rendered<T> {
         #[inline]
         fn into_response(self) -> Response {
-            ([HEADER], self.0.into()).into_response()
+            ([("content-type", super::HTML_CONTENT_TYPE)], self.0.into()).into_response()
         }
     }
 }
