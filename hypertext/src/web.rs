@@ -175,8 +175,10 @@ mod tide {
 
 #[cfg(feature = "warp")]
 mod warp {
-    use hyper::body::Bytes;
-    use warp::reply::{Reply, Response};
+    use warp::{
+        hyper::body::Bytes,
+        reply::{Reply, Response},
+    };
 
     use crate::{Lazy, Renderable, Rendered, String};
 
