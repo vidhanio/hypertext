@@ -29,7 +29,7 @@ rocket = { version = "0.5", default-features = false, optional = true }
 ryu = { version = "1", optional = true }
 salvo_core = { version = "0.81", default-features = false, optional = true }
 tide = { version = "0.16", default-features = false, optional = true }
-warp = { version = "0.3", default-features = false, optional = true }
+warp = { version = "0.4", default-features = false, optional = true }
 
 [features]
 actix-web = ["alloc", "dep:actix-web"]
