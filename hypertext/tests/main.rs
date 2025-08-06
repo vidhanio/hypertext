@@ -740,3 +740,25 @@ fn component_attr() {
         Rendered("<span>Hi!</span><span>secret...</span>")
     );
 }
+
+#[test]
+fn toggles() {
+    let option_some = Some("value");
+    let option_none = None::<&str>;
+
+    let maud_result = maud! {
+        input id=[option_some] type="checkbox" checked;
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <input id=[option_none] type="checkbox" checked />
+    }
+    .render();
+
+    assert_eq!(
+        maud_result,
+        Rendered(r#"<input id="value" type="checkbox" checked>"#)
+    );
+    assert_eq!(rsx_result, Rendered(r#"<input type="checkbox" checked>"#));
+}
