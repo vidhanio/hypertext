@@ -181,8 +181,10 @@ mod tide {
 
 #[cfg(feature = "warp")]
 mod warp {
-    use hyper::Body;
-    use warp::reply::{Reply, Response};
+    use warp::{
+        bodyt::Body,
+        reply::{Reply, Response},
+    };
 
     use crate::{Lazy, Renderable, Rendered, String};
 
