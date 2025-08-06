@@ -746,7 +746,7 @@ macro_rules! impl_tuple {
         impl<$T: Renderable> Renderable for ($T,) {
             #[inline]
             fn render_to(&self, output: &mut String) {
-                self.$i.render_to(output);
+                Renderable::render_to(&self.$i, output);
             }
         }
 
@@ -755,7 +755,7 @@ macro_rules! impl_tuple {
         impl<$T: AttributeRenderable> AttributeRenderable for ($T,) {
             #[inline]
             fn render_attribute_to(&self, output: &mut String) {
-                self.$i.render_attribute_to(output);
+                AttributeRenderable::render_attribute_to(&self.$i, output);
             }
         }
     };
@@ -764,8 +764,8 @@ macro_rules! impl_tuple {
         impl<$T0: Renderable, $($T: Renderable),*> Renderable for ($T0, $($T,)*) {
             #[inline]
             fn render_to(&self, output: &mut String) {
-                self.$i0.render_to(output);
-                $(self.$i.render_to(output);)*
+                Renderable::render_to(&self.$i0, output);
+                $(Renderable::render_to(&self.$i, output);)*
             }
         }
 
@@ -773,8 +773,8 @@ macro_rules! impl_tuple {
         impl<$T0: AttributeRenderable, $($T: AttributeRenderable),*> AttributeRenderable for ($T0, $($T,)*) {
             #[inline]
             fn render_attribute_to(&self, output: &mut String) {
-                self.$i0.render_attribute_to(output);
-                $(self.$i.render_attribute_to(output);)*
+                AttributeRenderable::render_attribute_to(&self.$i0, output);
+                $(AttributeRenderable::render_attribute_to(&self.$i, output);)*
             }
         }
     }
