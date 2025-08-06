@@ -187,8 +187,8 @@
 //! [`title`]: attributes::GlobalAttributes::title
 #![no_std]
 #![warn(clippy::missing_inline_in_public_items)]
-#![cfg_attr(docsrs, allow(internal_features))]
-#![cfg_attr(docsrs, feature(doc_auto_cfg, doc_cfg, rustdoc_internals))]
+#![cfg_attr(docsrs, expect(internal_features))]
+#![cfg_attr(docsrs, feature(rustdoc_internals, doc_auto_cfg))]
 
 #[cfg(feature = "alloc")]
 mod alloc;

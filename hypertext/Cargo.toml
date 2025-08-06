@@ -19,7 +19,6 @@ all-features = true
 actix-web = { version = "4", default-features = false, optional = true }
 axum-core = { version = "0.5", default-features = false, optional = true }
 html-escape = { workspace = true, optional = true }
-http = { version = "1", default-features = false, optional = true }
 hyper = { version = "0.14", default-features = false, optional = true }
 hypertext-macros.workspace = true
 itoa = { version = "1", optional = true }
@@ -35,7 +34,7 @@ warp = { version = "0.4", default-features = false, optional = true }
 actix-web = ["alloc", "dep:actix-web"]
 alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
 alpine = []
-axum = ["alloc", "dep:axum-core", "dep:http"]
+axum = ["alloc", "dep:axum-core"]
 default = ["alloc"]
 htmx = []
 hyperscript = []
