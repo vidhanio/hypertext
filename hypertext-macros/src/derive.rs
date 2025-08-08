@@ -2,7 +2,10 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{DeriveInput, Error, spanned::Spanned};
 
-use crate::{AttributeValueNode, Document, Maud, Nodes, Rsx, html};
+use crate::{
+    AttributeValueNode, Document, Maud, Nodes, Rsx,
+    html::{self, generate::Generator},
+};
 
 pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
     let mut attrs = input
@@ -13,13 +16,13 @@ pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
                 Some((
                     attr,
                     html::generate::lazy::<Document<Maud>>
-                        as fn(TokenStream, bool, &str) -> syn::Result<TokenStream>,
+                        as fn(TokenStream, bool) -> syn::Result<TokenStream>,
                 ))
             } else if attr.path().is_ident("rsx") {
                 Some((
                     attr,
                     html::generate::lazy::<Document<Rsx>>
-                        as fn(TokenStream, bool, &str) -> syn::Result<TokenStream>,
+                        as fn(TokenStream, bool) -> syn::Result<TokenStream>,
                 ))
             } else {
                 None
@@ -50,15 +53,16 @@ pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
         }
     };
 
-    let lazy = lazy_fn(tokens, true, "Lazy")?;
+    let lazy = lazy_fn(tokens, true)?;
 
     let name = input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let buffer_ident = Generator::buffer_ident();
     let output = quote! {
         #[automatically_derived]
         impl #impl_generics ::hypertext::Renderable for #name #ty_generics #where_clause {
-            fn render_to(&self, output: &mut ::hypertext::String) {
-                ::hypertext::Renderable::render_to(&#lazy, output);
+            fn render_to(&self, #buffer_ident: &mut ::hypertext::Buffer) {
+                ::hypertext::Renderable::render_to(&#lazy, #buffer_ident);
             }
         }
     };
@@ -95,20 +99,21 @@ pub fn attribute_renderable(input: DeriveInput) -> syn::Result<TokenStream> {
         }
     };
 
-    let lazy = html::generate::lazy::<Nodes<AttributeValueNode>>(tokens, true, "LazyAttribute")?;
+    let lazy = html::generate::lazy::<Nodes<AttributeValueNode>>(tokens, true)?;
     let name = input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let buffer_ident = Generator::buffer_ident();
     let output = quote! {
         #[automatically_derived]
         impl #impl_generics ::hypertext::AttributeRenderable for #name #ty_generics
             #where_clause {
             fn render_attribute_to(
                 &self,
-                output: &mut ::hypertext::String,
+                #buffer_ident: &mut ::hypertext::AttributeBuffer,
             ) {
                 ::hypertext::AttributeRenderable::render_attribute_to(
                     &#lazy,
-                    output,
+                    #buffer_ident,
                 );
             }
         }

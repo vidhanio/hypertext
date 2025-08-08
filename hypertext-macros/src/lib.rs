@@ -11,7 +11,7 @@ use quote::quote;
 use syn::{DeriveInput, ItemFn, parse::Parse, parse_macro_input};
 
 use self::html::{Document, Maud, Rsx, Syntax};
-use crate::component::ComponentArgs;
+use crate::{component::ComponentArgs, html::generate::NodeType};
 
 #[proc_macro]
 pub fn maud(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -47,7 +47,7 @@ fn lazy<S: Syntax>(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::
 where
     Document<S>: Parse,
 {
-    html::generate::lazy::<Document<S>>(tokens.into(), move_, "Lazy")
+    html::generate::lazy::<Document<S>>(tokens.into(), move_)
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
@@ -59,7 +59,7 @@ where
     html::generate::literal::<Document<S>>(tokens.into())
         .map_or_else(
             |err| err.to_compile_error(),
-            |lit| quote!(::hypertext::Raw(#lit)),
+            |lit| quote!(::hypertext::Raw::dangerously_create(#lit)),
         )
         .into()
 }
@@ -75,7 +75,7 @@ pub fn attribute_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStr
 }
 
 fn attribute_lazy(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::TokenStream {
-    html::generate::lazy::<Nodes<AttributeValueNode>>(tokens.into(), move_, "LazyAttribute")
+    html::generate::lazy::<Nodes<AttributeValueNode>>(tokens.into(), move_)
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }

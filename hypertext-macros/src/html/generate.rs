@@ -6,19 +6,15 @@ use std::{
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    LitStr, Token, braced,
+    LitStr, braced,
     parse::Parse,
     token::{Brace, Paren},
 };
 
 use super::UnquotedName;
 
-pub fn lazy<T: Parse + Generate>(
-    tokens: TokenStream,
-    move_: bool,
-    lazy_ident: &str,
-) -> syn::Result<TokenStream> {
-    let mut g = Generator::new_closure();
+pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Result<TokenStream> {
+    let mut g = Generator::new_closure(T::NODE_TYPE);
 
     let len_estimate = tokens.to_string().len();
 
@@ -26,22 +22,23 @@ pub fn lazy<T: Parse + Generate>(
 
     let block = g.finish();
 
-    let output_ident = Generator::output_ident();
+    let buffer_ident = Generator::buffer_ident();
 
     let move_token = move_.then(|| quote!(move));
 
-    let lazy_ident = Ident::new(lazy_ident, Span::mixed_site());
+    let lazy_ident = T::NODE_TYPE.ident();
+    let buffer_type = T::NODE_TYPE.buffer_type();
 
     Ok(quote! {
-        ::hypertext::#lazy_ident(#move_token |#output_ident: &mut ::hypertext::String| {
-            #output_ident.reserve(#len_estimate);
+        ::hypertext::#lazy_ident(#move_token |#buffer_ident: &mut ::hypertext::#buffer_type| {
+            #buffer_ident.dangerously_get_string().reserve(#len_estimate);
             #block
         })
     })
 }
 
 pub fn literal<T: Parse + Generate>(tokens: TokenStream) -> syn::Result<TokenStream> {
-    let mut g = Generator::new_static();
+    let mut g = Generator::new_static(T::NODE_TYPE);
 
     g.push(syn::parse2::<T>(tokens)?);
 
@@ -49,28 +46,30 @@ pub fn literal<T: Parse + Generate>(tokens: TokenStream) -> syn::Result<TokenStr
 }
 
 pub struct Generator {
-    output_ident: Option<Ident>,
+    lazy: bool,
+    node_type: NodeType,
     brace_token: Brace,
     parts: Vec<Part>,
     checks: Checks,
 }
 
 impl Generator {
-    pub fn output_ident() -> Ident {
-        Ident::new("hypertext_output", Span::mixed_site())
+    pub fn buffer_ident() -> Ident {
+        Ident::new("__hypertext_buffer", Span::mixed_site())
     }
 
-    fn new_closure() -> Self {
-        Self::new_with_brace(Some(Self::output_ident()), Brace::default())
+    fn new_closure(node_type: NodeType) -> Self {
+        Self::new_with_brace(node_type, true, Brace::default())
     }
 
-    fn new_static() -> Self {
-        Self::new_with_brace(None, Brace::default())
+    fn new_static(node_type: NodeType) -> Self {
+        Self::new_with_brace(node_type, false, Brace::default())
     }
 
-    const fn new_with_brace(output_ident: Option<Ident>, brace_token: Brace) -> Self {
+    const fn new_with_brace(node_type: NodeType, lazy: bool, brace_token: Brace) -> Self {
         Self {
-            output_ident,
+            lazy,
+            node_type,
             brace_token,
             parts: Vec::new(),
             checks: Checks::new(),
@@ -80,7 +79,9 @@ impl Generator {
     fn finish(self) -> AnyBlock {
         let mut stmts = self.checks.to_token_stream();
 
-        if let Some(output_ident) = self.output_ident {
+        if self.lazy {
+            let buffer_ident = Self::buffer_ident();
+
             let mut parts = self.parts.into_iter();
 
             while let Some(part) = parts.next() {
@@ -97,7 +98,7 @@ impl Generator {
                             }));
 
                         stmts.extend(quote! {
-                            #output_ident.push_str(::core::concat!(#(#static_parts),*));
+                            #buffer_ident.dangerously_get_string().push_str(::core::concat!(#(#static_parts),*));
                         });
                         stmts.extend(dynamic_stmt);
                     }
@@ -132,7 +133,7 @@ impl Generator {
     }
 
     pub fn block_with(&mut self, brace_token: Brace, f: impl FnOnce(&mut Self)) -> AnyBlock {
-        let mut g = Self::new_with_brace(self.output_ident.clone(), brace_token);
+        let mut g = Self::new_with_brace(self.node_type, true, brace_token);
 
         f(&mut g);
 
@@ -154,17 +155,12 @@ impl Generator {
         self.parts.push(Part::Static(LitStr::new(s, span)));
     }
 
-    pub fn push_element_lit(&mut self, lit: &LitStr) {
+    pub fn push_escaped_lit(&mut self, node_type: NodeType, lit: &LitStr) {
         let value = lit.value();
-        let escaped_value = html_escape::encode_text(&value);
-
-        self.parts
-            .push(Part::Static(LitStr::new(&escaped_value, lit.span())));
-    }
-
-    pub fn push_attribute_lit(&mut self, lit: &LitStr) {
-        let value = lit.value();
-        let escaped_value = html_escape::encode_double_quoted_attribute(&value);
+        let escaped_value = match node_type {
+            NodeType::Element => html_escape::encode_text(&value),
+            NodeType::Attribute => html_escape::encode_double_quoted_attribute(&value),
+        };
 
         self.parts
             .push(Part::Static(LitStr::new(&escaped_value, lit.span())));
@@ -176,24 +172,32 @@ impl Generator {
         }
     }
 
-    pub fn push_element_expr(&mut self, paren_token: Paren, expr: impl ToTokens) {
-        let output_ident = &self.output_ident;
-        let mut paren_expr = TokenStream::new();
-        paren_token.surround(&mut paren_expr, |tokens| expr.to_tokens(tokens));
-        let reference = Token![&](paren_token.span.join());
-        self.push_stmt(
-            quote!(::hypertext::Renderable::render_to(#reference #paren_expr, #output_ident);),
-        );
-    }
+    pub fn push_expr(&mut self, paren_token: Paren, node_type: NodeType, expr: impl ToTokens) {
+        let buffer_ident = Self::buffer_ident();
+        let (fn_call, buffer_expr) = match (self.node_type, node_type) {
+            (NodeType::Element, NodeType::Element) => {
+                (quote!(Renderable::render_to), quote!(#buffer_ident))
+            }
+            (NodeType::Attribute, NodeType::Attribute) => (
+                quote!(AttributeRenderable::render_attribute_to),
+                quote!(#buffer_ident),
+            ),
+            (NodeType::Element, NodeType::Attribute) => (
+                quote!(AttributeRenderable::render_attribute_to),
+                quote!(&mut #buffer_ident.as_attribute_buffer()),
+            ),
+            (NodeType::Attribute, NodeType::Element) => unreachable!(),
+        };
 
-    pub fn push_attribute_expr(&mut self, paren_token: Paren, expr: impl ToTokens) {
-        let output_ident = &self.output_ident;
         let mut paren_expr = TokenStream::new();
         paren_token.surround(&mut paren_expr, |tokens| expr.to_tokens(tokens));
         let reference = quote_spanned!(paren_token.span=> &);
-        self.push_stmt(
-            quote!(::hypertext::AttributeRenderable::render_attribute_to(#reference #paren_expr, #output_ident);),
-        );
+        self.push_stmt(quote! {
+            ::hypertext::#fn_call(
+                #reference #paren_expr,
+                #buffer_expr
+            );
+        });
     }
 
     pub fn push_stmt(&mut self, stmt: impl ToTokens) {
@@ -227,11 +231,36 @@ enum Part {
     Dynamic(TokenStream),
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum NodeType {
+    Element,
+    Attribute,
+}
+
+impl NodeType {
+    fn ident(self) -> Ident {
+        match self {
+            Self::Element => Ident::new("Lazy", Span::mixed_site()),
+            Self::Attribute => Ident::new("LazyAttribute", Span::mixed_site()),
+        }
+    }
+
+    fn buffer_type(self) -> Ident {
+        match self {
+            Self::Element => Ident::new("Buffer", Span::mixed_site()),
+            Self::Attribute => Ident::new("AttributeBuffer", Span::mixed_site()),
+        }
+    }
+}
+
 pub trait Generate {
+    const NODE_TYPE: NodeType;
     fn generate(&self, g: &mut Generator);
 }
 
 impl<T: Generate> Generate for &T {
+    const NODE_TYPE: NodeType = T::NODE_TYPE;
+
     fn generate(&self, g: &mut Generator) {
         (*self).generate(g);
     }

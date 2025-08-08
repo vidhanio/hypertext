@@ -30,6 +30,7 @@ use self::{
         Generator,
     },
 };
+use crate::NodeType;
 
 mod kw {
     use syn::LitStr;
@@ -86,12 +87,14 @@ impl<S: Syntax> Node for ElementNode<S> {
 }
 
 impl<S: Syntax> Generate for ElementNode<S> {
+    const NODE_TYPE: NodeType = NodeType::Element;
+
     fn generate(&self, g: &mut Generator) {
         match self {
             Self::Doctype(doctype) => g.push(doctype),
             Self::Element(element) => g.push(element),
             Self::Component(component) => g.push(component),
-            Self::Literal(lit) => g.push_element_lit(&lit.lit_str()),
+            Self::Literal(lit) => g.push_escaped_lit(Self::NODE_TYPE, &lit.lit_str()),
             Self::Control(control) => g.push(control),
             Self::Expr(expr) => g.push(expr),
             Self::DisplayExpr(display_expr) => g.push(display_expr),
@@ -111,6 +114,8 @@ pub struct Doctype<S: Syntax> {
 }
 
 impl<S: Syntax> Generate for Doctype<S> {
+    const NODE_TYPE: NodeType = NodeType::Element;
+
     fn generate(&self, g: &mut Generator) {
         g.push_lits(vec![
             LitStr::new("<", self.lt_token.span),
@@ -141,15 +146,11 @@ impl<N: Node> Parse for ParenExpr<N> {
     }
 }
 
-impl<S: Syntax> Generate for ParenExpr<ElementNode<S>> {
-    fn generate(&self, g: &mut Generator) {
-        g.push_element_expr(self.paren_token, &self.expr);
-    }
-}
+impl<N: Node> Generate for ParenExpr<N> {
+    const NODE_TYPE: NodeType = N::NODE_TYPE;
 
-impl Generate for ParenExpr<AttributeValueNode> {
     fn generate(&self, g: &mut Generator) {
-        g.push_attribute_expr(self.paren_token, &self.expr);
+        g.push_expr(self.paren_token, Self::NODE_TYPE, &self.expr);
     }
 }
 
@@ -190,15 +191,15 @@ impl<N: Node> Parse for DisplayExpr<N> {
     }
 }
 
-impl<S: Syntax> Generate for DisplayExpr<ElementNode<S>> {
-    fn generate(&self, g: &mut Generator) {
-        g.push_element_expr(self.paren_expr.paren_token, self.wrapped_expr());
-    }
-}
+impl<N: Node> Generate for DisplayExpr<N> {
+    const NODE_TYPE: NodeType = N::NODE_TYPE;
 
-impl Generate for DisplayExpr<AttributeValueNode> {
     fn generate(&self, g: &mut Generator) {
-        g.push_attribute_expr(self.paren_expr.paren_token, self.wrapped_expr());
+        g.push_expr(
+            self.paren_expr.paren_token,
+            Self::NODE_TYPE,
+            self.wrapped_expr(),
+        );
     }
 }
 
@@ -231,15 +232,11 @@ impl<N: Node> Parse for DebugExpr<N> {
     }
 }
 
-impl<S: Syntax> Generate for DebugExpr<ElementNode<S>> {
-    fn generate(&self, g: &mut Generator) {
-        g.push_element_expr(self.expr.paren_token, self.wrapped_expr());
-    }
-}
+impl<N: Node> Generate for DebugExpr<N> {
+    const NODE_TYPE: NodeType = N::NODE_TYPE;
 
-impl Generate for DebugExpr<AttributeValueNode> {
     fn generate(&self, g: &mut Generator) {
-        g.push_attribute_expr(self.expr.paren_token, self.wrapped_expr());
+        g.push_expr(self.expr.paren_token, Self::NODE_TYPE, self.wrapped_expr());
     }
 }
 
@@ -255,6 +252,8 @@ impl Parse for Group<AttributeValueNode> {
 }
 
 impl<N: Node> Generate for Group<N> {
+    const NODE_TYPE: NodeType = N::NODE_TYPE;
+
     fn generate(&self, g: &mut Generator) {
         g.push(&self.0);
     }
@@ -285,6 +284,8 @@ impl<N: Node + Parse> Parse for Nodes<N> {
 }
 
 impl<N: Node> Generate for Nodes<N> {
+    const NODE_TYPE: NodeType = N::NODE_TYPE;
+
     fn generate(&self, g: &mut Generator) {
         if self.0.iter().any(Node::is_control) {
             g.push_in_block(Brace::default(), |g| g.push_all(&self.0));
@@ -301,6 +302,8 @@ pub struct Element<S: Syntax> {
 }
 
 impl<S: Syntax> Generate for Element<S> {
+    const NODE_TYPE: NodeType = NodeType::Element;
+
     fn generate(&self, g: &mut Generator) {
         let mut el_checks = ElementCheck::new(&self.name, self.body.kind());
 
@@ -410,6 +413,8 @@ impl Parse for Attribute {
 }
 
 impl Generate for Attribute {
+    const NODE_TYPE: NodeType = NodeType::Attribute;
+
     fn generate(&self, g: &mut Generator) {
         match &self.kind {
             AttributeKind::Value { value, toggle, .. } => {
@@ -440,7 +445,7 @@ impl Generate for Attribute {
                         g.push_str(" ");
                         g.push_lits(self.name.lits());
                         g.push_str("=\"");
-                        g.push_attribute_expr(Paren::default(), &value);
+                        g.push_expr(Paren::default(), Self::NODE_TYPE, &value);
                         g.push_str("\"");
                     },
                 );
@@ -721,15 +726,17 @@ impl Parse for AttributeValueNode {
 }
 
 impl Generate for AttributeValueNode {
+    const NODE_TYPE: NodeType = NodeType::Attribute;
+
     fn generate(&self, g: &mut Generator) {
         match self {
-            Self::Literal(lit) => g.push_attribute_lit(&lit.lit_str()),
+            Self::Literal(lit) => g.push_escaped_lit(Self::NODE_TYPE, &lit.lit_str()),
             Self::Group(block) => g.push(block),
             Self::Control(control) => g.push(control),
             Self::Expr(expr) => g.push(expr),
             Self::DisplayExpr(display_expr) => g.push(display_expr),
             Self::DebugExpr(debug_expr) => g.push(debug_expr),
-            Self::Ident(ident) => g.push_attribute_expr(Paren::default(), ident),
+            Self::Ident(ident) => g.push_expr(Paren::default(), Self::NODE_TYPE, ident),
         }
     }
 }
@@ -770,7 +777,7 @@ impl Class {
                         if index > 0 {
                             g.push_str(" ");
                         }
-                        g.push_attribute_expr(Paren::default(), &value);
+                        g.push_expr(Paren::default(), NodeType::Attribute, &value);
                     },
                 );
             }

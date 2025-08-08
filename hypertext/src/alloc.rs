@@ -2,12 +2,11 @@
 
 extern crate alloc;
 
-#[doc(hidden)]
-pub use alloc::string::String;
 use alloc::{
     borrow::{Cow, ToOwned},
     boxed::Box,
     rc::Rc,
+    string::String,
     sync::Arc,
     vec::Vec,
 };
@@ -34,8 +33,10 @@ use core::fmt::{self, Debug, Display, Formatter, Write};
 /// }
 ///
 /// assert_eq!(
-///     maud! { div title=(Position { x: 10, y: 20 }) {} }.render(),
-///     Rendered(r#"<div title="10, 20"></div>"#),
+///     maud! { div title=(Position { x: 10, y: 20 }) {} }
+///         .render()
+///         .as_inner(),
+///     r#"<div title="10, 20"></div>"#
 /// );
 /// ```
 pub use hypertext_macros::AttributeRenderable;
@@ -53,8 +54,10 @@ pub use hypertext_macros::AttributeRenderable;
 /// }
 ///
 /// assert_eq!(
-///     maud! { div { (Person { name: "Alice".into() }) } }.render(),
-///     Rendered(r#"<div>My name is Alice!</div>"#),
+///     maud! { div { (Person { name: "Alice".into() }) } }
+///         .render()
+///         .as_inner(),
+///     r#"<div>My name is Alice!</div>"#
 /// );
 /// ```
 pub use hypertext_macros::Renderable;
@@ -65,9 +68,11 @@ pub use hypertext_macros::Renderable;
 /// ```
 /// use hypertext::prelude::*;
 ///
+/// let attr = attribute! { "x" @for i in 0..5 { (i) } };
+///
 /// assert_eq!(
-///     attribute! { "x" @for i in 0..5 { (i) } }.render(),
-///     Rendered("x01234"),
+///     maud! { div title=attr { "Hi!" } }.render().as_inner(),
+///     "<div title=\"x01234\">Hi!</div>"
 /// );
 /// ```
 pub use hypertext_macros::attribute;
@@ -126,8 +131,9 @@ pub use hypertext_macros::attribute_borrow;
 ///              NavBar title="My Nav Bar" subtitle=("My Subtitle".to_owned());
 ///          }
 ///     }
-///     .render(),
-///     Rendered("<div><nav><h1>My Nav Bar</h1><h2>My Subtitle</h2></nav></div>"),
+///     .render()
+///     .as_inner(),
+///     "<div><nav><h1>My Nav Bar</h1><h2>My Subtitle</h2></nav></div>",
 /// );
 /// ```
 pub use hypertext_macros::component;
@@ -158,8 +164,9 @@ pub use hypertext_macros::component;
 ///             h1 { "Alice" }
 ///        }
 ///     }
-///     .render(),
-///     Rendered(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
+///     .render()
+///     .as_inner(),
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#
 /// );
 /// ```
 ///
@@ -189,8 +196,9 @@ pub use hypertext_macros::maud_borrow;
 ///             <h1>Alice</h1>
 ///         </div>
 ///     }
-///     .render(),
-///     Rendered(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
+///     .render()
+///     .as_inner(),
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#
 /// );
 /// ```
 pub use hypertext_macros::rsx;
@@ -204,10 +212,93 @@ pub use hypertext_macros::rsx_borrow;
 
 use crate::{Raw, RawAttribute, Rendered};
 
-impl<T: Into<Self>> From<Rendered<T>> for String {
+impl Raw<String> {
+    /// Converts the [`Raw<String>`] into a [`Rendered<String>`].
     #[inline]
-    fn from(Rendered(value): Rendered<T>) -> Self {
-        value.into()
+    #[must_use]
+    pub fn rendered(self) -> Rendered<String> {
+        Rendered(self.0)
+    }
+}
+
+/// The buffer used for rendering HTML.
+///
+/// This is a wrapper around [`String`] that prevents accidental XSS
+/// vulnerabilities by disallowing direct rendering of raw HTML into the buffer
+/// without clearly indicating the risk of doing so.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Buffer(String);
+
+impl Buffer {
+    /// Creates a new, empty [`Buffer`].
+    #[inline]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self(String::new())
+    }
+
+    /// Creates a new [`Buffer`] from the given [`String`].
+    ///
+    /// It is recommended to add a `// XSS Safety` comment above the usage of
+    /// this function to indicate why it is safe to directly use the
+    /// contained raw HTML.
+    #[inline]
+    #[must_use]
+    pub const fn dangerously_from_string(value: String) -> Self {
+        Self(value)
+    }
+
+    /// Get a mutable reference to the inner [`String`].
+    ///
+    /// This should only be needed in very specific cases, such as manually
+    /// constructing raw HTML, usually within a [`Renderable::render_to`]
+    /// implementation.
+    ///
+    /// It is recommended to add a `// XSS Safety` comment above the usage of
+    /// this method to indicate why it is safe to directly write to the
+    /// underlying buffer.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use hypertext::{Buffer, prelude::*};
+    ///
+    /// fn get_some_html() -> String {
+    ///     // get html from some source, such as a CMS
+    ///     "<h2>Some HTML from the CMS</h2>".into()
+    /// }
+    ///
+    /// let mut buffer = Buffer::new();
+    ///
+    /// maud! {
+    ///     h1 { "My Document!" }
+    /// }
+    /// .render_to(&mut buffer);
+    ///
+    /// // XSS Safety: The CMS sanitizes the HTML before returning it.
+    /// buffer.dangerously_get_string().push_str(&get_some_html());
+    ///
+    /// assert_eq!(
+    ///     buffer.rendered().as_inner(),
+    ///     "<h1>My Document!</h1><h2>Some HTML from the CMS</h2>"
+    /// )
+    /// ```
+    #[inline]
+    pub const fn dangerously_get_string(&mut self) -> &mut String {
+        &mut self.0
+    }
+
+    /// Turn this into an [`AttributeBuffer`].
+    #[inline]
+    pub const fn as_attribute_buffer(&mut self) -> AttributeBuffer<'_> {
+        AttributeBuffer(self)
+    }
+
+    /// Render the buffer to a [`Rendered<String>`].
+    #[inline]
+    #[must_use]
+    pub fn rendered(self) -> Rendered<String> {
+        Rendered(self.0)
     }
 }
 
@@ -216,7 +307,7 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// # Example
 ///
 /// ```
-/// use hypertext::prelude::*;
+/// use hypertext::{Buffer, prelude::*};
 ///
 /// pub struct Person {
 ///     name: String,
@@ -224,14 +315,14 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// }
 ///
 /// impl Renderable for Person {
-///     fn render_to(&self, output: &mut String) {
+///     fn render_to(&self, buffer: &mut Buffer) {
 ///         maud! {
 ///             div {
 ///                 h1 { (self.name) }
 ///                 p { "Age: " (self.age) }
 ///             }
 ///         }
-///         .render_to(output);
+///         .render_to(buffer);
 ///     }
 /// }
 ///
@@ -241,8 +332,8 @@ impl<T: Into<Self>> From<Rendered<T>> for String {
 /// };
 ///
 /// assert_eq!(
-///     maud! { main { (person) } }.render(),
-///     Rendered(r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#),
+///     maud! { main { (person) } }.render().as_inner(),
+///     r#"<main><div><h1>Alice</h1><p>Age: 20</p></div></main>"#,
 /// );
 /// ```
 pub trait Renderable {
@@ -252,7 +343,7 @@ pub trait Renderable {
     /// intended to be used for rendering raw HTML. If being implemented on a
     /// string-like type, this should escape `&` to `&amp;`, `<` to `&lt;`, and
     /// `>` to `&gt;`.
-    fn render_to(&self, output: &mut String);
+    fn render_to(&self, buffer: &mut Buffer);
 
     /// Renders this value to a string. This is a convenience method that
     /// calls [`render_to`] on a new [`String`] and returns the result.
@@ -263,9 +354,9 @@ pub trait Renderable {
     /// [`render_to`]: Renderable::render_to
     #[inline]
     fn render(&self) -> Rendered<String> {
-        let mut output = String::new();
-        self.render_to(&mut output);
-        Rendered(output)
+        let mut buffer = Buffer::new();
+        self.render_to(&mut buffer);
+        buffer.rendered()
     }
 }
 
@@ -281,11 +372,36 @@ pub trait RenderableExt: Renderable {
     /// may be useful if it is more expensive to compute and render the value.
     #[inline]
     fn memoize(&self) -> Raw<String> {
-        Raw(self.render().into_inner())
+        // XSS Safety: The value has already been rendered and escaped.
+        Raw::dangerously_create(self.render().into_inner())
     }
 }
 
 impl<T: Renderable> RenderableExt for T {}
+
+/// The buffer used for rendering HTML attribute values.
+///
+/// This is a wrapper around [`Buffer`] that prevents accidentally
+/// rendering node-level HTML into an attribute value, which would lead to XSS
+/// vulnerabilities.
+#[derive(Debug, PartialEq, Eq)]
+pub struct AttributeBuffer<'a>(&'a mut Buffer);
+
+impl AttributeBuffer<'_> {
+    /// Get a mutable reference to the inner [`String`].
+    ///
+    /// This should only be needed in very specific cases, such as manually
+    /// constructing pre-escaped HTML attributes, usually within a
+    /// [`AttributeRenderable::render_attribute_to`] implementation.
+    ///
+    /// It is recommended to add a `// XSS Safety` comment above the usage of
+    /// this method to indicate why it is safe to directly write to the
+    /// underlying buffer.
+    #[inline]
+    pub const fn dangerously_get_string(&mut self) -> &mut String {
+        self.0.dangerously_get_string()
+    }
+}
 
 /// A value that can be rendered as an HTML attribute.
 ///
@@ -297,7 +413,7 @@ pub trait AttributeRenderable {
     ///
     /// This must escape `&` to `&amp;`, `<` to `&lt;`, `>` to `&gt;`, and `"`
     /// to `&quot;`.
-    fn render_attribute_to(&self, output: &mut String);
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer);
 }
 
 /// A value lazily rendered via a closure.
@@ -310,10 +426,10 @@ pub trait AttributeRenderable {
 #[must_use = "`Lazy` does nothing unless `.render()` or `.render_to()` is called"]
 pub struct Lazy<F>(pub F);
 
-impl<F: Fn(&mut String)> Renderable for Lazy<F> {
+impl<F: Fn(&mut Buffer)> Renderable for Lazy<F> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        (self.0)(output);
+    fn render_to(&self, buffer: &mut Buffer) {
+        (self.0)(buffer);
     }
 }
 
@@ -331,17 +447,10 @@ impl<F> Debug for Lazy<F> {
 #[must_use = "`LazyAttribute` does nothing unless `.render()` or `.render_to()` is called"]
 pub struct LazyAttribute<F>(pub F);
 
-impl<F: Fn(&mut String)> Renderable for LazyAttribute<F> {
+impl<F: Fn(&mut AttributeBuffer)> AttributeRenderable for LazyAttribute<F> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        (self.0)(output);
-    }
-}
-
-impl<F: Fn(&mut String)> AttributeRenderable for LazyAttribute<F> {
-    #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
-        (self.0)(output);
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+        (self.0)(buffer);
     }
 }
 
@@ -354,7 +463,7 @@ impl<F> Debug for LazyAttribute<F> {
 
 impl Renderable for fmt::Arguments<'_> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
+    fn render_to(&self, buffer: &mut Buffer) {
         struct ElementEscaper<'a>(&'a mut String);
 
         impl Write for ElementEscaper<'_> {
@@ -365,13 +474,14 @@ impl Renderable for fmt::Arguments<'_> {
             }
         }
 
-        _ = ElementEscaper(output).write_fmt(*self);
+        // XSS Safety: `ElementEscaper` will escape special characters.
+        _ = ElementEscaper(buffer.dangerously_get_string()).write_fmt(*self);
     }
 }
 
 impl AttributeRenderable for fmt::Arguments<'_> {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
         struct AttributeEscaper<'a>(&'a mut String);
 
         impl Write for AttributeEscaper<'_> {
@@ -382,7 +492,8 @@ impl AttributeRenderable for fmt::Arguments<'_> {
             }
         }
 
-        _ = AttributeEscaper(output).write_fmt(*self);
+        // XSS Safety: `AttributeEscaper` will escape special characters.
+        _ = AttributeEscaper(buffer.dangerously_get_string()).write_fmt(*self);
     }
 }
 
@@ -397,15 +508,15 @@ pub struct Displayed<T>(pub T);
 
 impl<T: Display> Renderable for Displayed<T> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        format_args!("{}", self.0).render_to(output);
+    fn render_to(&self, buffer: &mut Buffer) {
+        format_args!("{}", self.0).render_to(buffer);
     }
 }
 
 impl<T: Display> AttributeRenderable for Displayed<T> {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
-        format_args!("{}", self.0).render_attribute_to(output);
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+        format_args!("{}", self.0).render_attribute_to(buffer);
     }
 }
 
@@ -420,22 +531,23 @@ pub struct Debugged<T>(pub T);
 
 impl<T: Debug> Renderable for Debugged<T> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        format_args!("{:?}", self.0).render_to(output);
+    fn render_to(&self, buffer: &mut Buffer) {
+        format_args!("{:?}", self.0).render_to(buffer);
     }
 }
 
 impl<T: Debug> AttributeRenderable for Debugged<T> {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
-        format_args!("{:?}", self.0).render_attribute_to(output);
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+        format_args!("{:?}", self.0).render_attribute_to(buffer);
     }
 }
 
 impl<T: AsRef<str>> Renderable for Raw<T> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        output.push_str(self.0.as_ref());
+    fn render_to(&self, buffer: &mut Buffer) {
+        // XSS Safety: `Raw` values are expected to be pre-escaped.
+        buffer.dangerously_get_string().push_str(self.0.as_ref());
     }
 
     #[inline]
@@ -446,8 +558,10 @@ impl<T: AsRef<str>> Renderable for Raw<T> {
 
 impl<T: AsRef<str>> Renderable for RawAttribute<T> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        output.push_str(self.0.as_ref());
+    fn render_to(&self, buffer: &mut Buffer) {
+        // XSS Safety: Anything safe to use as an attribute value should be
+        // safe to render as raw HTML.
+        buffer.dangerously_get_string().push_str(self.0.as_ref());
     }
 
     #[inline]
@@ -458,19 +572,21 @@ impl<T: AsRef<str>> Renderable for RawAttribute<T> {
 
 impl<T: AsRef<str>> AttributeRenderable for RawAttribute<T> {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
-        output.push_str(self.0.as_ref());
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+        // XSS Safety: `RawAttribute` values are expected to be pre-escaped.
+        buffer.dangerously_get_string().push_str(self.0.as_ref());
     }
 }
 
 impl Renderable for char {
     #[inline]
-    fn render_to(&self, output: &mut String) {
+    fn render_to(&self, buffer: &mut Buffer) {
+        let s = buffer.dangerously_get_string();
         match *self {
-            '&' => output.push_str("&amp;"),
-            '<' => output.push_str("&lt;"),
-            '>' => output.push_str("&gt;"),
-            c => output.push(c),
+            '&' => s.push_str("&amp;"),
+            '<' => s.push_str("&lt;"),
+            '>' => s.push_str("&gt;"),
+            c => s.push(c),
         }
     }
 
@@ -488,21 +604,22 @@ impl Renderable for char {
 
 impl AttributeRenderable for char {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+        let s = buffer.dangerously_get_string();
         match *self {
-            '&' => output.push_str("&amp;"),
-            '<' => output.push_str("&lt;"),
-            '>' => output.push_str("&gt;"),
-            '"' => output.push_str("&quot;"),
-            c => output.push(c),
+            '&' => s.push_str("&amp;"),
+            '<' => s.push_str("&lt;"),
+            '>' => s.push_str("&gt;"),
+            '"' => s.push_str("&quot;"),
+            c => s.push(c),
         }
     }
 }
 
 impl Renderable for str {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        html_escape::encode_text_to_string(self, output);
+    fn render_to(&self, buffer: &mut Buffer) {
+        html_escape::encode_text_to_string(self, buffer.dangerously_get_string());
     }
 
     #[inline]
@@ -513,15 +630,18 @@ impl Renderable for str {
 
 impl AttributeRenderable for str {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
-        html_escape::encode_double_quoted_attribute_to_string(self, output);
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+        html_escape::encode_double_quoted_attribute_to_string(
+            self,
+            buffer.dangerously_get_string(),
+        );
     }
 }
 
 impl Renderable for String {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        self.as_str().render_to(output);
+    fn render_to(&self, buffer: &mut Buffer) {
+        self.as_str().render_to(buffer);
     }
 
     #[inline]
@@ -532,15 +652,15 @@ impl Renderable for String {
 
 impl AttributeRenderable for String {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
-        self.as_str().render_attribute_to(output);
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+        self.as_str().render_attribute_to(buffer);
     }
 }
 
 impl Renderable for bool {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        output.push_str(if *self { "true" } else { "false" });
+    fn render_to(&self, buffer: &mut Buffer) {
+        self.render_attribute_to(&mut buffer.as_attribute_buffer());
     }
 
     #[inline]
@@ -551,8 +671,10 @@ impl Renderable for bool {
 
 impl AttributeRenderable for bool {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
-        self.render_to(output);
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+        buffer
+            .dangerously_get_string()
+            .push_str(if *self { "true" } else { "false" });
     }
 }
 
@@ -561,8 +683,8 @@ macro_rules! render_via_itoa {
         $(
             impl Renderable for $Ty {
                 #[inline]
-                fn render_to(&self, output: &mut String) {
-                    output.push_str(itoa::Buffer::new().format(*self));
+                fn render_to(&self, buffer: &mut Buffer) {
+                    self.render_attribute_to(&mut buffer.as_attribute_buffer());
                 }
 
                 #[inline]
@@ -573,8 +695,8 @@ macro_rules! render_via_itoa {
 
             impl AttributeRenderable for $Ty {
                 #[inline]
-                fn render_attribute_to(&self, output: &mut String) {
-                    self.render_to(output);
+                fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+                    buffer.dangerously_get_string().push_str(itoa::Buffer::new().format(*self));
                 }
             }
         )*
@@ -591,8 +713,8 @@ macro_rules! render_via_ryu {
         $(
             impl Renderable for $Ty {
                 #[inline]
-                fn render_to(&self, output: &mut String) {
-                    output.push_str(ryu::Buffer::new().format(*self));
+                fn render_to(&self, buffer: &mut Buffer) {
+                    self.render_attribute_to(&mut buffer.as_attribute_buffer());
                 }
 
                 #[inline]
@@ -603,8 +725,8 @@ macro_rules! render_via_ryu {
 
             impl AttributeRenderable for $Ty {
                 #[inline]
-                fn render_attribute_to(&self, output: &mut String) {
-                    self.render_to(output);
+                fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+                    buffer.dangerously_get_string().push_str(ryu::Buffer::new().format(*self));
                 }
             }
         )*
@@ -620,8 +742,8 @@ macro_rules! render_via_deref {
         $(
             impl<T: Renderable + ?Sized> Renderable for $Ty {
                 #[inline]
-                fn render_to(&self, output: &mut String) {
-                    T::render_to(&**self, output);
+                fn render_to(&self, buffer: &mut Buffer) {
+                    T::render_to(&**self, buffer);
                 }
 
                 #[inline]
@@ -632,8 +754,8 @@ macro_rules! render_via_deref {
 
             impl<T: AttributeRenderable + ?Sized> AttributeRenderable for $Ty {
                 #[inline]
-                fn render_attribute_to(&self, output: &mut String) {
-                    T::render_attribute_to(&**self, output);
+                fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+                    T::render_attribute_to(&**self, buffer);
                 }
             }
         )*
@@ -650,8 +772,8 @@ render_via_deref! {
 
 impl<'a, B: 'a + Renderable + ToOwned + ?Sized> Renderable for Cow<'a, B> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        B::render_to(&**self, output);
+    fn render_to(&self, buffer: &mut Buffer) {
+        B::render_to(&**self, buffer);
     }
 
     #[inline]
@@ -662,68 +784,68 @@ impl<'a, B: 'a + Renderable + ToOwned + ?Sized> Renderable for Cow<'a, B> {
 
 impl<'a, B: 'a + AttributeRenderable + ToOwned + ?Sized> AttributeRenderable for Cow<'a, B> {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
-        B::render_attribute_to(&**self, output);
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+        B::render_attribute_to(&**self, buffer);
     }
 }
 
 impl<T: Renderable> Renderable for [T] {
     #[inline]
-    fn render_to(&self, output: &mut String) {
+    fn render_to(&self, buffer: &mut Buffer) {
         for item in self {
-            item.render_to(output);
+            item.render_to(buffer);
         }
     }
 }
 
 impl<T: Renderable, const N: usize> Renderable for [T; N] {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        self.as_slice().render_to(output);
+    fn render_to(&self, buffer: &mut Buffer) {
+        self.as_slice().render_to(buffer);
     }
 }
 
 impl<T: Renderable> Renderable for Vec<T> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
-        self.as_slice().render_to(output);
+    fn render_to(&self, buffer: &mut Buffer) {
+        self.as_slice().render_to(buffer);
     }
 }
 
 impl<T: Renderable> Renderable for Option<T> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
+    fn render_to(&self, buffer: &mut Buffer) {
         if let Some(value) = self {
-            value.render_to(output);
+            value.render_to(buffer);
         }
     }
 }
 
 impl<T: AttributeRenderable> AttributeRenderable for Option<T> {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
         if let Some(value) = self {
-            value.render_attribute_to(output);
+            value.render_attribute_to(buffer);
         }
     }
 }
 
 impl<T: Renderable, E: Renderable> Renderable for Result<T, E> {
     #[inline]
-    fn render_to(&self, output: &mut String) {
+    fn render_to(&self, buffer: &mut Buffer) {
         match self {
-            Ok(value) => value.render_to(output),
-            Err(err) => err.render_to(output),
+            Ok(value) => value.render_to(buffer),
+            Err(err) => err.render_to(buffer),
         }
     }
 }
 
 impl<T: AttributeRenderable, E: AttributeRenderable> AttributeRenderable for Result<T, E> {
     #[inline]
-    fn render_attribute_to(&self, output: &mut String) {
+    fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
         match self {
-            Ok(value) => value.render_attribute_to(output),
-            Err(err) => err.render_attribute_to(output),
+            Ok(value) => value.render_attribute_to(buffer),
+            Err(err) => err.render_attribute_to(buffer),
         }
     }
 }
@@ -732,12 +854,12 @@ macro_rules! impl_tuple {
     () => {
         impl Renderable for () {
             #[inline]
-            fn render_to(&self, _: &mut String) {}
+            fn render_to(&self, _: &mut Buffer) {}
         }
 
         impl AttributeRenderable for () {
             #[inline]
-            fn render_attribute_to(&self, _: &mut String) {}
+            fn render_attribute_to(&self, _: &mut AttributeBuffer) {}
         }
     };
     (($i:tt $T:ident)) => {
@@ -745,8 +867,8 @@ macro_rules! impl_tuple {
         #[cfg_attr(docsrs, doc = "This trait is implemented for tuples up to twelve items long.")]
         impl<$T: Renderable> Renderable for ($T,) {
             #[inline]
-            fn render_to(&self, output: &mut String) {
-                Renderable::render_to(&self.$i, output);
+            fn render_to(&self, buffer: &mut Buffer) {
+                self.$i.render_to(buffer);
             }
         }
 
@@ -754,8 +876,8 @@ macro_rules! impl_tuple {
         #[cfg_attr(docsrs, doc = "This trait is implemented for tuples up to twelve items long.")]
         impl<$T: AttributeRenderable> AttributeRenderable for ($T,) {
             #[inline]
-            fn render_attribute_to(&self, output: &mut String) {
-                AttributeRenderable::render_attribute_to(&self.$i, output);
+            fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+                self.$i.render_attribute_to(buffer);
             }
         }
     };
@@ -763,18 +885,18 @@ macro_rules! impl_tuple {
         #[cfg_attr(docsrs, doc(hidden))]
         impl<$T0: Renderable, $($T: Renderable),*> Renderable for ($T0, $($T,)*) {
             #[inline]
-            fn render_to(&self, output: &mut String) {
-                Renderable::render_to(&self.$i0, output);
-                $(Renderable::render_to(&self.$i, output);)*
+            fn render_to(&self, buffer: &mut Buffer) {
+                self.$i0.render_to(buffer);
+                $(self.$i.render_to(buffer);)*
             }
         }
 
         #[cfg_attr(docsrs, doc(hidden))]
         impl<$T0: AttributeRenderable, $($T: AttributeRenderable),*> AttributeRenderable for ($T0, $($T,)*) {
             #[inline]
-            fn render_attribute_to(&self, output: &mut String) {
-                AttributeRenderable::render_attribute_to(&self.$i0, output);
-                $(AttributeRenderable::render_attribute_to(&self.$i, output);)*
+            fn render_attribute_to(&self, buffer: &mut AttributeBuffer) {
+                self.$i0.render_attribute_to(buffer);
+                $(self.$i.render_attribute_to(buffer);)*
             }
         }
     }

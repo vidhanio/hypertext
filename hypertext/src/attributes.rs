@@ -19,7 +19,7 @@
 //! maud! {
 //!     a hx-get="/about" { "About" }
 //! }
-//! # .render(), Rendered(r#"<a hx-get="/about">About</a>"#));
+//! # .render().as_inner(), r#"<a hx-get="/about">About</a>"#);
 //! ```
 #![allow(non_upper_case_globals)]
 #[cfg(feature = "mathml")]
@@ -58,8 +58,10 @@ use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol};
 /// }
 ///
 /// assert_eq!(
-///     maud! { custom-element #my-element title="abc" { "Hello, world!" } }.render(),
-///     Rendered(r#"<custom-element id="my-element" title="abc">Hello, world!</custom-element>"#),
+///     maud! { custom-element #my-element title="abc" { "Hello, world!" } }
+///         .render()
+///         .as_inner(),
+///     r#"<custom-element id="my-element" title="abc">Hello, world!</custom-element>"#
 /// );
 /// ```
 pub trait GlobalAttributes: Element {

@@ -55,7 +55,7 @@
 //! # .render(),
 //!
 //! // expands to (roughly):
-//! hypertext::Lazy(move |hypertext_output: &mut hypertext::String| {
+//! hypertext::Lazy(move |buffer: &mut hypertext::Buffer| {
 //!     const _: () = {
 //!         use html_elements::*;
 //!
@@ -76,18 +76,27 @@
 //!         let _: hypertext::validation::Attribute = div::id;
 //!         let _: hypertext::validation::Attribute = div::title;
 //!     };
-//!     hypertext_output.push_str("<div id=\"main\" title=\"Main Div\">");
+//!     buffer
+//!         .dangerously_get_string()
+//!         .push_str("<div id=\"main\" title=\"Main Div\">");
 //!     {
-//!         hypertext_output.push_str("<h1 class=\"important\">Hello, world!</h1>");
+//!         buffer
+//!             .dangerously_get_string()
+//!             .push_str("<h1 class=\"important\">Hello, world!</h1>");
 //!         for i in 1..=3 {
-//!             hypertext_output.push_str("<p class=\"p-");
-//!             hypertext::AttributeRenderable::render_attribute_to(&i, hypertext_output);
-//!             hypertext_output.push_str("\">This is paragraph number ");
-//!             hypertext::Renderable::render_to(&i, hypertext_output);
-//!             hypertext_output.push_str("</p>");
+//!             buffer.dangerously_get_string().push_str("<p class=\"p-");
+//!             hypertext::AttributeRenderable::render_attribute_to(
+//!                 &i,
+//!                 &mut buffer.as_attribute_buffer(),
+//!             );
+//!             buffer
+//!                 .dangerously_get_string()
+//!                 .push_str("\">This is paragraph number ");
+//!             hypertext::Renderable::render_to(&i, buffer);
+//!             buffer.dangerously_get_string().push_str("</p>");
 //!         }
 //!     }
-//!     hypertext_output.push_str("</div>");
+//!     buffer.dangerously_get_string().push_str("</div>");
 //! })
 //! # .render());
 //! ```
@@ -121,8 +130,9 @@
 //!             "Hello, world!"
 //!         }
 //!     }
-//!     .render(),
-//!     Rendered(r#"<div hx-get="/api/endpoint" hx-on:click="alert('Hello, world!')">Hello, world!</div>"#),
+//!     .render()
+//!     .as_inner(),
+//!     r#"<div hx-get="/api/endpoint" hx-on:click="alert('Hello, world!')">Hello, world!</div>"#,
 //! );
 //! ```
 //!
@@ -137,8 +147,9 @@
 //!     maud! {
 //!         div "custom-attribute"="value" { "Hello, world!" }
 //!     }
-//!     .render(),
-//!     Rendered(r#"<div custom-attribute="value">Hello, world!</div>"#),
+//!     .render()
+//!     .as_inner(),
+//!     r#"<div custom-attribute="value">Hello, world!</div>"#,
 //! );
 //! ```
 //!
@@ -149,7 +160,7 @@
 //! components.
 //!
 //! ```rust
-//! use hypertext::prelude::*;
+//! use hypertext::{Buffer, prelude::*};
 //!
 //! struct Repeater<R: Renderable> {
 //!     count: usize,
@@ -157,13 +168,13 @@
 //! }
 //!
 //! impl<R: Renderable> Renderable for Repeater<R> {
-//!     fn render_to(&self, output: &mut String) {
+//!     fn render_to(&self, buffer: &mut Buffer) {
 //!         maud! {
 //!             @for i in 0..self.count {
 //!                 (self.children)
 //!             }
 //!         }
-//!         .render_to(output);
+//!         .render_to(buffer);
 //!     }
 //! }
 //!
@@ -176,8 +187,9 @@
 //!            }
 //!         }
 //!     }
-//!     .render(),
-//!     Rendered("<div><p>Hi!</p><p>Hi!</p><p>Hi!</p></div>"),
+//!     .render()
+//!     .as_inner(),
+//!     "<div><p>Hi!</p><p>Hi!</p><p>Hi!</p></div>"
 //! );
 //! ```
 //!
@@ -240,8 +252,9 @@ pub use hypertext_macros::attribute_static;
 ///         div #profile title="Profile" {
 ///             h1 { "Alice" }
 ///        }
-///     },
-///     Raw(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
+///     }
+///     .into_inner(),
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
 ///
@@ -265,8 +278,9 @@ pub use hypertext_macros::maud_static;
 ///         <div id="profile" title="Profile">
 ///             <h1>Alice</h1>
 ///         </div>
-///     },
-///     Raw(r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#),
+///     }
+///     .into_inner(),
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
 pub use hypertext_macros::rsx_static;
@@ -277,16 +291,51 @@ pub use self::alloc::*;
 /// A raw value that is rendered without escaping.
 ///
 /// This is the type returned by [`maud_static!`] and [`rsx_static!`]
-/// ([`Raw<&str>`]).
+/// ([`Raw<&'static str>`]).
 ///
 /// This is useful for rendering raw HTML, but should be used with caution
 /// as it can lead to XSS vulnerabilities if used incorrectly. If you are
 /// unsure, render the string itself, as its [`Renderable`] implementation will
 /// escape any dangerous characters.
-#[derive(Debug, Clone, Copy, Eq, Hash)]
-pub struct Raw<T>(pub T);
+///
+/// It is recommended to add a `// XSS Safety` comment above the usage of this
+/// type to indicate why it is safe to directly use the contained raw HTML.
+///
+/// # Example
+///
+/// ```rust
+/// use hypertext::{Raw, prelude::*};
+///
+/// fn get_some_html() -> String {
+///     // get html from some source, such as a CMS
+///     "<h2>Some HTML from the CMS</h2>".into()
+/// }
+///
+/// assert_eq!(
+///     maud! {
+///         h1 { "My Document!" }
+///         // XSS Safety: The CMS sanitizes the HTML before returning it.
+///         (Raw::dangerously_create(get_some_html()))
+///     }
+///     .render()
+///     .as_inner(),
+///     "<h1>My Document!</h1><h2>Some HTML from the CMS</h2>"
+/// )
+/// ```
+#[derive(Debug, Clone, Copy, Default, Eq, Hash)]
+pub struct Raw<T>(T);
 
 impl<T> Raw<T> {
+    /// Creates a new [`Raw`] from the given value.
+    ///
+    /// It is recommended to add a `// XSS Safety` comment above the usage of
+    /// this function to indicate why it is safe to directly use the
+    /// contained raw HTML.
+    #[inline]
+    pub const fn dangerously_create(value: T) -> Self {
+        Self(value)
+    }
+
     /// Extracts the inner value.
     #[inline]
     pub fn into_inner(self) -> T {
@@ -358,7 +407,7 @@ impl<T: PartialEq<U>, U> PartialEq<RawAttribute<U>> for RawAttribute<T> {
 /// into another page. To do this, you should use [`Raw`], or use
 /// [`RenderableExt::memoize`].
 #[derive(Debug, Clone, Copy, Eq, Hash)]
-pub struct Rendered<T>(pub T);
+pub struct Rendered<T>(T);
 
 impl<T> Rendered<T> {
     /// Extracts the inner value.
@@ -371,21 +420,6 @@ impl<T> Rendered<T> {
     #[inline]
     pub const fn as_inner(&self) -> &T {
         &self.0
-    }
-}
-
-impl<T: AsRef<str>> Rendered<T> {
-    /// Returns the rendered HTML as an `&str`.
-    #[inline]
-    pub fn as_str(&self) -> &str {
-        self.as_ref()
-    }
-}
-
-impl<T: AsRef<U>, U: ?Sized> AsRef<U> for Rendered<T> {
-    #[inline]
-    fn as_ref(&self) -> &U {
-        self.0.as_ref()
     }
 }
 

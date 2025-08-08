@@ -96,12 +96,12 @@ pub fn generate(args: ComponentArgs, fn_item: &ItemFn) -> syn::Result<TokenStrea
 
         #[automatically_derived]
         impl #impl_generics ::hypertext::Renderable for #struct_name #ty_generics #where_clause {
-            fn render_to(&self, output: &mut ::hypertext::String) {
+            fn render_to(&self, buffer: &mut ::hypertext::Buffer) {
                 ::hypertext::Renderable::render_to(
                     &#fn_name(#(
                         #field_refs self.#field_names
                     ),*),
-                    output,
+                    buffer,
                 );
             }
         }

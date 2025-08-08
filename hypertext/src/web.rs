@@ -1,3 +1,8 @@
+extern crate alloc;
+
+#[allow(unused_imports)]
+use alloc::string::String;
+
 #[allow(dead_code)]
 const HTML_CONTENT_TYPE: &str = "text/html; charset=utf-8";
 
@@ -5,9 +10,10 @@ const HTML_CONTENT_TYPE: &str = "text/html; charset=utf-8";
 mod actix_web {
     use actix_web::{HttpRequest, HttpResponse, Responder, web::Html};
 
-    use crate::{Lazy, Renderable, Rendered, String};
+    use super::String;
+    use crate::{Buffer, Lazy, Renderable, Rendered};
 
-    impl<F: Fn(&mut String)> Responder for Lazy<F> {
+    impl<F: Fn(&mut Buffer)> Responder for Lazy<F> {
         type Body = <Rendered<String> as Responder>::Body;
 
         #[inline]
@@ -28,24 +34,31 @@ mod actix_web {
 
 #[cfg(feature = "axum")]
 mod axum {
-    use axum_core::{
-        body::Body,
-        response::{IntoResponse, Response},
-    };
+    use axum_core::response::{IntoResponse, Response};
 
-    use crate::{Lazy, Renderable, Rendered, String};
+    use super::String;
+    use crate::{Buffer, Lazy, Renderable, Rendered};
 
-    impl<F: Fn(&mut String)> IntoResponse for Lazy<F> {
+    const CONTENT_TYPE_HEADER: &str = "content-type";
+
+    impl<F: Fn(&mut Buffer)> IntoResponse for Lazy<F> {
         #[inline]
         fn into_response(self) -> Response {
             self.render().into_response()
         }
     }
 
-    impl<T: Into<Body>> IntoResponse for Rendered<T> {
+    impl IntoResponse for Rendered<&'static str> {
         #[inline]
         fn into_response(self) -> Response {
-            ([("content-type", super::HTML_CONTENT_TYPE)], self.0.into()).into_response()
+            ([(CONTENT_TYPE_HEADER, super::HTML_CONTENT_TYPE)], self.0).into_response()
+        }
+    }
+
+    impl IntoResponse for Rendered<String> {
+        #[inline]
+        fn into_response(self) -> Response {
+            ([(CONTENT_TYPE_HEADER, super::HTML_CONTENT_TYPE)], self.0).into_response()
         }
     }
 }
@@ -59,21 +72,31 @@ mod ntex {
         web::{ErrorRenderer, HttpRequest, Responder},
     };
 
-    use crate::{Lazy, Renderable, Rendered, String};
+    use super::String;
+    use crate::{Buffer, Lazy, Renderable, Rendered};
 
-    impl<F: Fn(&mut String), Err: ErrorRenderer> Responder<Err> for Lazy<F> {
+    impl<F: Fn(&mut Buffer), Err: ErrorRenderer> Responder<Err> for Lazy<F> {
         #[inline]
         async fn respond_to(self, req: &HttpRequest) -> Response {
-            <Rendered<_> as Responder<Err>>::respond_to(self.render(), req).await
+            Responder::<Err>::respond_to(self.render(), req).await
         }
     }
 
-    impl<T: Into<String>, Err: ErrorRenderer> Responder<Err> for Rendered<T> {
+    impl<Err: ErrorRenderer> Responder<Err> for Rendered<&'static str> {
         #[inline]
         async fn respond_to(self, _: &HttpRequest) -> Response {
             Response::Ok()
                 .content_type(super::HTML_CONTENT_TYPE)
-                .body(self.0.into())
+                .body(self.0)
+        }
+    }
+
+    impl<Err: ErrorRenderer> Responder<Err> for Rendered<String> {
+        #[inline]
+        async fn respond_to(self, _: &HttpRequest) -> Response {
+            Response::Ok()
+                .content_type(super::HTML_CONTENT_TYPE)
+                .body(self.0)
         }
     }
 }
@@ -84,9 +107,10 @@ mod poem {
 
     use poem::{IntoResponse, Response, web::Html};
 
-    use crate::{Lazy, Renderable, Rendered, String};
+    use super::String;
+    use crate::{Buffer, Lazy, Renderable, Rendered};
 
-    impl<F: Fn(&mut String) + Send> IntoResponse for Lazy<F> {
+    impl<F: Fn(&mut Buffer) + Send> IntoResponse for Lazy<F> {
         #[inline]
         fn into_response(self) -> Response {
             self.render().into_response()
@@ -105,21 +129,29 @@ mod poem {
 mod rocket {
     use rocket::{
         Request,
-        response::{self, Responder, content::RawHtml},
+        response::{Responder, Result, content::RawHtml},
     };
 
-    use crate::{Lazy, Renderable, Rendered, String};
+    use super::String;
+    use crate::{Buffer, Lazy, Renderable, Rendered};
 
-    impl<'r, 'o: 'r, F: Fn(&mut String) + Send> Responder<'r, 'o> for Lazy<F> {
+    impl<'r, 'o: 'r, F: Fn(&mut Buffer) + Send> Responder<'r, 'o> for Lazy<F> {
         #[inline]
-        fn respond_to(self, req: &'r Request<'_>) -> response::Result<'o> {
+        fn respond_to(self, req: &'r Request<'_>) -> Result<'o> {
             self.render().respond_to(req)
         }
     }
 
-    impl<'r, 'o: 'r, R: Responder<'r, 'o>> Responder<'r, 'o> for Rendered<R> {
+    impl<'r, 'o: 'r> Responder<'r, 'o> for Rendered<&'o str> {
         #[inline]
-        fn respond_to(self, req: &'r Request<'_>) -> response::Result<'o> {
+        fn respond_to(self, req: &'r Request<'_>) -> Result<'o> {
+            RawHtml(self.0).respond_to(req)
+        }
+    }
+
+    impl<'r, 'o: 'r> Responder<'r, 'o> for Rendered<String> {
+        #[inline]
+        fn respond_to(self, req: &'r Request<'_>) -> Result<'o> {
             RawHtml(self.0).respond_to(req)
         }
     }
@@ -129,19 +161,24 @@ mod rocket {
 mod salvo {
     use salvo_core::{Response, Scribe, writing::Text};
 
-    use crate::{Lazy, Renderable, Rendered, String};
+    use super::String;
+    use crate::{Buffer, Lazy, Renderable, Rendered};
 
-    impl<F: Fn(&mut String)> Scribe for Lazy<F> {
+    impl<F: Fn(&mut Buffer)> Scribe for Lazy<F> {
         #[inline]
         fn render(self, res: &mut Response) {
             Renderable::render(&self).render(res);
         }
     }
 
-    impl<T> Scribe for Rendered<T>
-    where
-        Text<T>: Scribe,
-    {
+    impl Scribe for Rendered<&'static str> {
+        #[inline]
+        fn render(self, res: &mut Response) {
+            Text::Html(self.0).render(res);
+        }
+    }
+
+    impl Scribe for Rendered<String> {
         #[inline]
         fn render(self, res: &mut Response) {
             Text::Html(self.0).render(res);
@@ -151,22 +188,23 @@ mod salvo {
 
 #[cfg(feature = "tide")]
 mod tide {
-    use tide::{Body, Response, http::mime};
 
-    use crate::{Lazy, Renderable, Rendered, String};
+    use tide::{Response, http::mime};
 
-    impl<F: Fn(&mut String)> From<Lazy<F>> for Response {
+    use super::String;
+    use crate::{Buffer, Lazy, Renderable, Rendered};
+
+    impl<F: Fn(&mut Buffer)> From<Lazy<F>> for Response {
         #[inline]
         fn from(lazy: Lazy<F>) -> Self {
             lazy.render().into()
         }
     }
 
-    impl<T: Into<Body>> From<Rendered<T>> for Response {
+    impl<T: Into<String>> From<Rendered<T>> for Response {
         #[inline]
-        fn from(rendered: Rendered<T>) -> Self {
-            let body = rendered.0.into();
-            let mut resp = Self::from(body);
+        fn from(Rendered(value): Rendered<T>) -> Self {
+            let mut resp = Self::from(value.into());
             resp.set_content_type(mime::HTML);
             resp
         }
@@ -175,24 +213,29 @@ mod tide {
 
 #[cfg(feature = "warp")]
 mod warp {
-    use warp::{
-        hyper::body::Bytes,
-        reply::{Reply, Response},
-    };
+    use warp::reply::{self, Reply, Response};
 
-    use crate::{Lazy, Renderable, Rendered, String};
+    use super::String;
+    use crate::{Buffer, Lazy, Renderable, Rendered};
 
-    impl<F: Fn(&mut String) + Send> Reply for Lazy<F> {
+    impl<F: Fn(&mut Buffer) + Send> Reply for Lazy<F> {
         #[inline]
         fn into_response(self) -> Response {
             self.render().into_response()
         }
     }
 
-    impl<T: Send + Into<Bytes>> Reply for Rendered<T> {
+    impl Reply for Rendered<&'static str> {
         #[inline]
         fn into_response(self) -> Response {
-            warp::reply::html(self.0.into()).into_response()
+            reply::html(self.0).into_response()
+        }
+    }
+
+    impl Reply for Rendered<String> {
+        #[inline]
+        fn into_response(self) -> Response {
+            reply::html(self.0).into_response()
         }
     }
 }

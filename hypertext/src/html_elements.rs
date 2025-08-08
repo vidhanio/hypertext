@@ -49,8 +49,10 @@ pub use crate::mathml::elements::*;
 ///         simple-greeting name="Alice" {
 ///             coordinate x=1 y=2 {}
 ///         }
-///     }.render(),
-///     Rendered(r#"<simple-greeting name="Alice"><coordinate x="1" y="2"></coordinate></simple-greeting>"#),
+///     }
+///     .render()
+///     .as_inner(),
+///     r#"<simple-greeting name="Alice"><coordinate x="1" y="2"></coordinate></simple-greeting>"#,
 /// )
 /// ```
 #[macro_export]
@@ -952,8 +954,9 @@ elements! {
 ///     maud! {
 ///         simple-greeting name="Alice";
 ///     }
-///     .render(),
-///     Rendered(r#"<simple-greeting name="Alice">"#),
+///     .render()
+///     .as_inner(),
+///     r#"<simple-greeting name="Alice">"#,
 /// )
 /// ```
 #[macro_export]

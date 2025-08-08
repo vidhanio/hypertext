@@ -3,7 +3,7 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use hypertext::{Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
+use hypertext::{Buffer, Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
 
 #[test]
 fn readme() {
@@ -43,10 +43,8 @@ fn readme() {
 
     for result in [shopping_list_maud, shopping_list_rsx] {
         assert_eq!(
-            result,
-            Rendered(
-                r#"<div><h1>Shopping List</h1><ul><li class="item"><input id="item-1" type="checkbox"><label for="item-1">milk</label></li><li class="item"><input id="item-2" type="checkbox"><label for="item-2">eggs</label></li><li class="item"><input id="item-3" type="checkbox"><label for="item-3">bread</label></li></ul></div>"#
-            )
+            result.as_inner(),
+            r#"<div><h1>Shopping List</h1><ul><li class="item"><input id="item-1" type="checkbox"><label for="item-1">milk</label></li><li class="item"><input id="item-2" type="checkbox"><label for="item-2">eggs</label></li><li class="item"><input id="item-3" type="checkbox"><label for="item-3">bread</label></li></ul></div>"#
         );
     }
 }
@@ -61,8 +59,8 @@ fn class_id_maud() {
     .render();
 
     assert_eq!(
-        result,
-        Rendered(r#"<div id="profile" class="class:colon-dash"><h1>Hello, world!</h1></div>"#)
+        result.as_inner(),
+        r#"<div id="profile" class="class:colon-dash"><h1>Hello, world!</h1></div>"#
     );
 }
 
@@ -124,7 +122,7 @@ fn htmx() {
     ];
 
     for (result, expected) in tests {
-        assert_eq!(result, Rendered(expected));
+        assert_eq!(result.as_inner(), expected);
     }
 }
 
@@ -312,7 +310,7 @@ fn alpine() {
     ];
 
     for (test, expected) in tests {
-        assert_eq!(test, Rendered(expected.to_string()));
+        assert_eq!(test.as_inner(), expected);
     }
 }
 
@@ -338,10 +336,8 @@ fn hyperscript() {
 
     for result in results {
         assert_eq!(
-            result,
-            Rendered(
-                r#"<button _="on click increment :x then put result into the next &lt;output/&gt;">Click Me</button><output>--</output>"#,
-            )
+            result.as_inner(),
+            r#"<button _="on click increment :x then put result into the next &lt;output/&gt;">Click Me</button><output>--</output>"#,
         );
     }
 }
@@ -359,8 +355,8 @@ fn can_render_vec() {
     .render();
 
     assert_eq!(
-        result,
-        Rendered("<ul><li>milk</li><li>eggs</li><li>bread</li></ul>")
+        result.as_inner(),
+        "<ul><li>milk</li><li>eggs</li><li>bread</li></ul>"
     );
 }
 
@@ -374,8 +370,8 @@ fn correct_attr_escape() {
     .render();
 
     assert_eq!(
-        result,
-        Rendered(r#"<div data-code="&quot;alert('XSS')"></div>"#)
+        result.as_inner(),
+        r#"<div data-code="&quot;alert('XSS')"></div>"#
     );
 }
 
@@ -398,11 +394,11 @@ fn statics() {
     const EXPECTED: &str = r#"<div id="profile" title="Profile"><h1>Hello, world!</h1></div>"#;
 
     for result in [MAUD_RAW_RESULT, RSX_RAW_RESULT] {
-        assert_eq!(result, Raw(EXPECTED));
+        assert_eq!(result.into_inner(), EXPECTED);
     }
 
     for result in [MAUD_RENDERED_RESULT, RSX_RENDERED_RESULT] {
-        assert_eq!(result, Rendered(EXPECTED));
+        assert_eq!(result.into_inner(), EXPECTED);
     }
 }
 
@@ -469,10 +465,8 @@ fn control() {
 
     for result in [maud_result, rsx_result] {
         assert_eq!(
-            result,
-            Rendered(
-                "<div><span>branch 1</span><span>branch 2</span><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>"
-            )
+            result.as_inner(),
+            "<div><span>branch 1</span><span>branch 2</span><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>"
         );
     }
 }
@@ -501,10 +495,8 @@ fn component_fns() {
     .render();
 
     assert_eq!(
-        result,
-        Rendered(
-            r"<div><span>Hello, world!</span><div><span>Hello, world!</span></div><div><span>Hello, world!</span></div></div>"
-        )
+        result.as_inner(),
+        r"<div><span>Hello, world!</span><div><span>Hello, world!</span></div><div><span>Hello, world!</span></div></div>"
     );
 }
 
@@ -515,10 +507,10 @@ fn borrow() {
     let rsx_result = rsx_borrow! { <span>(s)</span> };
     // still able to use `s` after the borrow, as we use `maud_borrow!` and
     // `rsx_borrow!`
-    let expected = Rendered(format!("<span>{s}</span>"));
+    let expected = format!("<span>{s}</span>");
 
-    assert_eq!(maud_result.render(), expected);
-    assert_eq!(rsx_result.render(), expected);
+    assert_eq!(maud_result.render().into_inner(), expected);
+    assert_eq!(rsx_result.render().into_inner(), expected);
 }
 
 #[test]
@@ -543,10 +535,8 @@ fn void_elements() {
 
     for result in [maud_result, rsx_result] {
         assert_eq!(
-            result,
-            Rendered(
-                r#"<div><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></div>"#
-            )
+            result.as_inner(),
+            r#"<div><input type="text" name="username"><input type="password" name="password"><input type="submit" value="Login"></div>"#
         );
     }
 }
@@ -559,13 +549,13 @@ fn component() {
     }
 
     impl<R: Renderable> Renderable for Repeater<R> {
-        fn render_to(&self, output: &mut String) {
+        fn render_to(&self, buffer: &mut Buffer) {
             maud! {
                 @for _ in 0..self.count {
                     (self.children)
                 }
             }
-            .render_to(output);
+            .render_to(buffer);
         }
     }
 
@@ -589,10 +579,8 @@ fn component() {
 
     for result in [maud_result, rsx_result] {
         assert_eq!(
-            result,
-            Rendered(
-                "<div><span>Hello, world!</span><span>Hello, world!</span><span>Hello, world!</span></div>"
-            )
+            result.as_inner(),
+            "<div><span>Hello, world!</span><span>Hello, world!</span><span>Hello, world!</span></div>"
         );
     }
 }
@@ -615,8 +603,8 @@ fn unindent() {
     .render();
 
     assert_eq!(
-        result,
-        Rendered("<div title=\"multiline\ntitle\">in\n    out\nin</div>\n")
+        result.as_inner(),
+        "<div title=\"multiline\ntitle\">in\n    out\nin</div>\n"
     );
 }
 
@@ -657,12 +645,11 @@ fn displayed_debugged() {
     }
     .render();
 
-    let expected = Rendered(
-        "<div>Hello, World! &lt;script&gt;</div><div>Greeting(\"World\")</div><div>0xDEADBEEF</div>",
-    );
-
     for result in [maud_result, rsx_result] {
-        assert_eq!(result, expected);
+        assert_eq!(
+            result.as_inner(),
+            "<div>Hello, World! &lt;script&gt;</div><div>Greeting(\"World\")</div><div>0xDEADBEEF</div>"
+        );
     }
 }
 
@@ -682,8 +669,8 @@ fn aria() {
 
     for result in [maud_result, rsx_result] {
         assert_eq!(
-            result,
-            Rendered(r#"<div aria-label="Hello, world!">Hello, world!</div>"#)
+            result.as_inner(),
+            r#"<div aria-label="Hello, world!">Hello, world!</div>"#
         );
     }
 }
@@ -711,8 +698,8 @@ fn mathml() {
 
     for result in [maud_result, rsx_result] {
         assert_eq!(
-            result,
-            Rendered("<math><mi>x</mi><mo>+</mo><mn>1</mn></math>")
+            result.as_inner(),
+            "<math><mi>x</mi><mo>+</mo><mn>1</mn></math>"
         );
     }
 }
@@ -736,8 +723,8 @@ fn component_attr() {
     use component_module::PrivateComponent;
 
     assert_eq!(
-        maud! { HelloWorld; PrivateComponent; }.render(),
-        Rendered("<span>Hi!</span><span>secret...</span>")
+        maud! { HelloWorld; PrivateComponent; }.render().as_inner(),
+        "<span>Hi!</span><span>secret...</span>"
     );
 }
 
@@ -757,8 +744,8 @@ fn toggles() {
     .render();
 
     assert_eq!(
-        maud_result,
-        Rendered(r#"<input id="value" type="checkbox" checked>"#)
+        maud_result.as_inner(),
+        r#"<input id="value" type="checkbox" checked>"#
     );
-    assert_eq!(rsx_result, Rendered(r#"<input type="checkbox" checked>"#));
+    assert_eq!(rsx_result.as_inner(), r#"<input type="checkbox" checked>"#);
 }
