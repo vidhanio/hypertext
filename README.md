@@ -4,32 +4,11 @@ A blazing fast type-checked HTML macro crate.
 
 ## Features
 
-- Type checking for element names/attributes
-  - Completely extensible for use with non-standard elements/attributes, such as
-    those used by [htmx](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/)
-  - MathML support
-  - Easy to use macros to create custom elements for use with Web Components
+- Type checking for element names/attributes, including extensible support for custom frameworks like [htmx](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/)
 - `#![no_std]` support
-- Automatic escaping
 - [Extremely fast](https://github.com/askama-rs/template-benchmark#benchmark-results),
-  using lazy rendering by default to avoid unnecessary allocations
-- Support for two well-known HTML macro syntaxes, `maud` and `rsx`
-- `#![forbid(unsafe_code)]` across the entire codebase
-- Integration with all major web frameworks, enabled by their respective feature flags
-  - [`actix-web`](https://actix.rs/)
-  - [`axum`](https://github.com/tokio-rs/axum)
-  - [`ntex`](https://github.com/ntex-rs/ntex)
-  - [`poem`](https://github.com/poem-web/poem)
-  - [`rocket`](https://rocket.rs/)
-  - [`salvo`](https://github.com/salvo-rs/salvo)
-  - [`tide`](https://github.com/http-rs/tide)
-  - [`warp`](https://github.com/seanmonstar/warp)
-
-## Projects Using `hypertext`
-
-- [vidhan.io](https://github.com/vidhanio/site) (my website!)
-
-Make a pull request to list your project here!
+  using lazy rendering to minimize allocation
+- Integration with all major web frameworks
 
 ## Example
 
@@ -70,3 +49,11 @@ let shopping_list_rsx = rsx! {
 }
 .render();
 ```
+
+## Projects Using `hypertext`
+
+- [vidhan.io](https://github.com/vidhanio/site) (my website!)
+- [The Brainmade Mark](https://github.com/0atman/BrainMade-org)
+- [Lipstick on a pig -- a website for hosting volunteer-built tarballs for KISS Linux](https://github.com/kiedtl/loap)
+
+Make a pull request to list your project here!

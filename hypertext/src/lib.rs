@@ -9,10 +9,7 @@
 //! into one if there is no dynamic content between them.
 //!
 //! The entire crate is `#![no_std]` compatible, and allocation is completely
-//! optional if you don't use any dynamic content. Disabling the `alloc` feature
-//! and using [`maud_static!`]/[`rsx_static!`] will result in an
-//! [`Raw<&'static str>`], (convertible to a [`Rendered<&'static str>`] via
-//! [`Raw::rendered`]) which can even be used in `const` contexts!
+//! optional if you don't use any dynamic content.
 //!
 //! The crate gives extreme importance to lazy rendering and minimizing
 //! allocation, so it will only render the HTML to a string when you finally
@@ -95,11 +92,14 @@
 //! This approach is also extremely extensible, as you can define your own
 //! traits to add attributes for your favourite libraries! In fact, this is
 //! exactly what [`GlobalAttributes`] does, and why it is required in the above
-//! example. [`GlobalAttributes`] defines all the global attributes that can be
-//! used on any element, for example [`id`], [`class`], and [`title`].
+//! example, as it defines the attributes that can be used on any element, for
+//! example [`id`], [`class`], and [`title`]. This library comes with built-in
+//! support for many popular frontend attribute-based frameworks in
+//! [`attributes`], such as [`HtmxAttributes`] and [`AlpineJsAttributes`]
 //!
 //! Here's an example of how you could define your own attributes for use with
 //! the wonderful frontend library [htmx](https://htmx.org):
+//!
 //! ```rust
 //! use hypertext::{
 //!     prelude::*,
@@ -143,7 +143,7 @@
 //! ```
 //!
 //! This library also supports component structs, which are simply structs that
-//! implement [`Renderable`] If an element name is capitalized, it will be
+//! implement [`Renderable`]. If an element name is capitalized, it will be
 //! treated as a component, with attributes representing the struct fields. The
 //! [`#[component]`](component) macro can be used to easily turn functions into
 //! components.
@@ -185,6 +185,8 @@
 //! [`id`]: attributes::GlobalAttributes::id
 //! [`class`]: attributes::GlobalAttributes::class
 //! [`title`]: attributes::GlobalAttributes::title
+//! [`HtmxAttributes`]: attributes::HtmxAttributes
+//! [`AlpineJsAttributes`]: attributes::AlpineJsAttributes
 #![no_std]
 #![warn(clippy::missing_inline_in_public_items)]
 #![cfg_attr(docsrs, expect(internal_features))]
