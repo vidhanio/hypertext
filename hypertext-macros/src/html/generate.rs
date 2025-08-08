@@ -30,7 +30,7 @@ pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Resul
     let buffer_type = T::NODE_TYPE.buffer_type();
 
     Ok(quote! {
-        ::hypertext::#lazy_ident(#move_token |#buffer_ident: &mut ::hypertext::#buffer_type| {
+        ::hypertext::#lazy_ident::dangerously_create(#move_token |#buffer_ident: &mut ::hypertext::#buffer_type| {
             #buffer_ident.dangerously_get_string().reserve(#len_estimate);
             #block
         })

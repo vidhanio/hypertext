@@ -424,7 +424,31 @@ pub trait AttributeRenderable {
 /// [`maud!`]: crate::maud
 #[derive(Clone, Copy)]
 #[must_use = "`Lazy` does nothing unless `.render()` or `.render_to()` is called"]
-pub struct Lazy<F>(pub F);
+pub struct Lazy<F>(F);
+
+impl<F> Lazy<F> {
+    /// Creates a new [`Lazy`] from the given closure.
+    ///
+    /// It is recommended to add a `// XSS Safety` comment above the usage of
+    /// this function to indicate why it is safe to assume that the closure will
+    /// not write possibly unsafe HTML to the buffer.
+    #[inline]
+    pub const fn dangerously_create(f: F) -> Self {
+        Self(f)
+    }
+
+    /// Extracts the inner closure.
+    #[inline]
+    pub fn into_inner(self) -> F {
+        self.0
+    }
+
+    /// Gets a reference to the inner closure.
+    #[inline]
+    pub const fn as_inner(&self) -> &F {
+        &self.0
+    }
+}
 
 impl<F: Fn(&mut Buffer)> Renderable for Lazy<F> {
     #[inline]
@@ -445,7 +469,31 @@ impl<F> Debug for Lazy<F> {
 /// This is the type returned by [`attribute!`] and [`attribute_borrow!`].
 #[derive(Clone, Copy)]
 #[must_use = "`LazyAttribute` does nothing unless `.render()` or `.render_to()` is called"]
-pub struct LazyAttribute<F>(pub F);
+pub struct LazyAttribute<F>(F);
+
+impl<F> LazyAttribute<F> {
+    /// Creates a new [`LazyAttribute`] from the given closure.
+    ///
+    /// It is recommended to add a `// XSS Safety` comment above the usage of
+    /// this function to indicate why it is safe to assume that the closure will
+    /// not write possibly unsafe HTML to the buffer.
+    #[inline]
+    pub const fn dangerously_create(f: F) -> Self {
+        Self(f)
+    }
+
+    /// Extracts the inner closure.
+    #[inline]
+    pub fn into_inner(self) -> F {
+        self.0
+    }
+
+    /// Gets a reference to the inner closure.
+    #[inline]
+    pub const fn as_inner(&self) -> &F {
+        &self.0
+    }
+}
 
 impl<F: Fn(&mut AttributeBuffer)> AttributeRenderable for LazyAttribute<F> {
     #[inline]

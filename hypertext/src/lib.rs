@@ -55,7 +55,7 @@
 //! # .render(),
 //!
 //! // expands to (roughly):
-//! hypertext::Lazy(move |buffer: &mut hypertext::Buffer| {
+//! hypertext::Lazy::dangerously_create(move |buffer: &mut hypertext::Buffer| {
 //!     const _: () = {
 //!         use html_elements::*;
 //!

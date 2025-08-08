@@ -37,7 +37,7 @@ impl<S: Syntax> Generate for Component<S> {
                 });
 
                 let lazy = quote! {
-                    ::hypertext::Lazy(
+                    ::hypertext::Lazy::dangerously_create(
                         |#buffer_ident: &mut ::hypertext::Buffer|
                             #block
                     )
