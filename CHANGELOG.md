@@ -11,18 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- giant rewrite ([#139](https://github.com/vidhanio/hypertext/pull/139))
-
-### Fixed
-
-- use parens instead of brace
-
-### Other
-
-- cleanup
-
-### Added
-
 - [**breaking**] unify all duplicated `Attribute` versions of types/traits with the `Context` trait
 - [**breaking**] make it harder to accidentally make your code vulnerable to XSS via `Buffer`, hiding
   constructors, and `dangerously_*` functions
