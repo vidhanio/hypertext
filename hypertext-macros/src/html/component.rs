@@ -8,7 +8,7 @@ use syn::{
 };
 
 use super::{ElementBody, Generate, Generator, Literal, ParenExpr, Syntax};
-use crate::{AttributeValueNode, NodeType};
+use crate::{AttributeValueNode, Context};
 
 pub struct Component<S: Syntax> {
     pub name: Ident,
@@ -18,7 +18,7 @@ pub struct Component<S: Syntax> {
 }
 
 impl<S: Syntax> Generate for Component<S> {
-    const NODE_TYPE: NodeType = NodeType::Element;
+    const CONTEXT: Context = Context::Node;
 
     fn generate(&self, g: &mut Generator) {
         let fields = self.attrs.iter().map(|attr| {
@@ -68,7 +68,7 @@ impl<S: Syntax> Generate for Component<S> {
             }
         };
 
-        g.push_expr(Paren::default(), Self::NODE_TYPE, &init);
+        g.push_expr(Paren::default(), Self::CONTEXT, &init);
     }
 }
 

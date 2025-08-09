@@ -9,10 +9,7 @@
 //! into one if there is no dynamic content between them.
 //!
 //! The entire crate is `#![no_std]` compatible, and allocation is completely
-//! optional if you don't use any dynamic content. Disabling the `alloc` feature
-//! and using [`maud_static!`]/[`rsx_static!`] will result in an
-//! [`Raw<&'static str>`], (convertible to a [`Rendered<&'static str>`] via
-//! [`Raw::rendered`]) which can even be used in `const` contexts!
+//! optional if you don't use any dynamic content.
 //!
 //! The crate gives extreme importance to lazy rendering and minimizing
 //! allocation, so it will only render the HTML to a string when you finally
@@ -55,6 +52,7 @@
 //! # .render(),
 //!
 //! // expands to (roughly):
+//!
 //! hypertext::Lazy::dangerously_create(move |buffer: &mut hypertext::Buffer| {
 //!     const _: () = {
 //!         use html_elements::*;
@@ -85,10 +83,7 @@
 //!             .push_str("<h1 class=\"important\">Hello, world!</h1>");
 //!         for i in 1..=3 {
 //!             buffer.dangerously_get_string().push_str("<p class=\"p-");
-//!             hypertext::AttributeRenderable::render_attribute_to(
-//!                 &i,
-//!                 &mut buffer.as_attribute_buffer(),
-//!             );
+//!             hypertext::Renderable::render_to(&i, &mut buffer.as_attribute_buffer());
 //!             buffer
 //!                 .dangerously_get_string()
 //!                 .push_str("\">This is paragraph number ");
@@ -104,11 +99,14 @@
 //! This approach is also extremely extensible, as you can define your own
 //! traits to add attributes for your favourite libraries! In fact, this is
 //! exactly what [`GlobalAttributes`] does, and why it is required in the above
-//! example. [`GlobalAttributes`] defines all the global attributes that can be
-//! used on any element, for example [`id`], [`class`], and [`title`].
+//! example, as it defines the attributes that can be used on any element, for
+//! example [`id`], [`class`], and [`title`]. This library comes with built-in
+//! support for many popular frontend attribute-based frameworks in
+//! [`attributes`], such as [`HtmxAttributes`] and [`AlpineJsAttributes`]
 //!
 //! Here's an example of how you could define your own attributes for use with
 //! the wonderful frontend library [htmx](https://htmx.org):
+//!
 //! ```rust
 //! use hypertext::{
 //!     prelude::*,
@@ -197,6 +195,8 @@
 //! [`id`]: attributes::GlobalAttributes::id
 //! [`class`]: attributes::GlobalAttributes::class
 //! [`title`]: attributes::GlobalAttributes::title
+//! [`HtmxAttributes`]: attributes::HtmxAttributes
+//! [`AlpineJsAttributes`]: attributes::HtmxAttributes
 #![no_std]
 #![warn(clippy::missing_inline_in_public_items)]
 #![cfg_attr(docsrs, expect(internal_features))]
@@ -213,6 +213,8 @@ mod web;
 
 pub mod prelude;
 
+use core::{fmt::Debug, marker::PhantomData};
+
 /// Render static HTML attributes.
 ///
 /// This will return a [`RawAttribute<&str>`], which can be used in `const`
@@ -227,8 +229,8 @@ pub mod prelude;
 /// use hypertext::{RawAttribute, attribute_static, prelude::*};
 ///
 /// assert_eq!(
-///     attribute_static! { "my attribute" },
-///     RawAttribute("my attribute")
+///     attribute_static! { "my attribute " 1 }.into_inner(),
+///     "my attribute 1"
 /// );
 /// ```
 pub use hypertext_macros::attribute_static;
@@ -288,18 +290,67 @@ pub use hypertext_macros::rsx_static;
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;
 
-/// A raw value that is rendered without escaping.
+/// The context that the value is being rendered to.
+///
+/// This can be either [`Node`] or an [`AttributeValue`]. A [`Node`]
+/// represents an HTML node, while an [`AttributeValue`] represents an attribute
+/// value which will eventually be surrounded by double quotes.
+///
+/// This is used to ensure that the correct rendering methods are called
+/// for each context, and to prevent errors such as accidentally rendering
+/// an HTML element into an attribute value.
+pub trait Context: sealed::Sealed {}
+
+/// An HTML element node.
+///
+/// All types and traits that are generic over [`Context`] use [`Node`]
+/// as the default for the generic type parameter.
+///
+/// Traits and types with this marker type expect complete HTML nodes. The
+/// value/implementation must escape `&` to `&amp;`, `<` to `&lt;`, and `>` to
+/// `&gt;` if rendering string-like types.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Node {}
+
+impl Context for Node {}
+
+/// An HTML attribute value.
+///
+/// Traits and types with this marker type expect an attribute value which will
+/// eventually be surrounded by double quotes. The value/implementation must
+/// escape `&` to `&amp;`, `<` to `&lt;`, `>` to `&gt;`, and `"` to `&quot;`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum AttributeValue {}
+
+impl Context for AttributeValue {}
+
+mod sealed {
+    use super::{AttributeValue, Node};
+
+    pub trait Sealed {}
+    impl Sealed for Node {}
+    impl Sealed for AttributeValue {}
+}
+
+/// A raw pre-escaped value.
+///
+/// For [`Raw<T, Node>`] (a.k.a. [`Raw<T>`]), this must contain complete HTML
+/// nodes. The value must escape `&` to `&amp;`, `<` to `&lt;`, and `>` to
+/// `&gt;` if rendering string-like types.
+///
+/// For [`Raw<T, AttributeValue>`] (a.k.a. [`RawAttribute<T>`]), this must
+/// contain an attribute value which will eventually be surrounded by double
+/// quotes. The value must escape `&` to `&amp;`, `<` to `&lt;`, `>` to `&gt;`,
+/// and `"` to `&quot;`.
 ///
 /// This is the type returned by [`maud_static!`] and [`rsx_static!`]
-/// ([`Raw<&'static str>`]).
+/// ([`Raw<&'static str>`]), as well as [`attribute_static!`]
+/// ([`RawAttribute<&'static str>`]).
 ///
 /// This is useful for rendering raw HTML, but should be used with caution
 /// as it can lead to XSS vulnerabilities if used incorrectly. If you are
-/// unsure, render the string itself, as its [`Renderable`] implementation will
+/// unsure, render the value itself, as its [`Renderable`] implementation will
 /// escape any dangerous characters.
-///
-/// It is recommended to add a `// XSS Safety` comment above the usage of this
-/// type to indicate why it is safe to directly use the contained raw HTML.
 ///
 /// # Example
 ///
@@ -314,7 +365,7 @@ pub use self::alloc::*;
 /// assert_eq!(
 ///     maud! {
 ///         h1 { "My Document!" }
-///         // XSS Safety: The CMS sanitizes the HTML before returning it.
+///         // XSS SAFETY: The CMS sanitizes the HTML before returning it.
 ///         (Raw::dangerously_create(get_some_html()))
 ///     }
 ///     .render()
@@ -322,30 +373,36 @@ pub use self::alloc::*;
 ///     "<h1>My Document!</h1><h2>Some HTML from the CMS</h2>"
 /// )
 /// ```
-#[derive(Debug, Clone, Copy, Default, Eq, Hash)]
-pub struct Raw<T>(T);
+#[derive(Clone, Copy, Default, Eq, Hash)]
+pub struct Raw<T, C = Node> {
+    inner: T,
+    phantom: PhantomData<C>,
+}
 
-impl<T> Raw<T> {
+impl<T, C> Raw<T, C> {
     /// Creates a new [`Raw`] from the given value.
     ///
-    /// It is recommended to add a `// XSS Safety` comment above the usage of
+    /// It is recommended to add a `// XSS SAFETY` comment above the usage of
     /// this function to indicate why it is safe to directly use the
     /// contained raw HTML.
     #[inline]
     pub const fn dangerously_create(value: T) -> Self {
-        Self(value)
+        Self {
+            inner: value,
+            phantom: PhantomData,
+        }
     }
 
     /// Extracts the inner value.
     #[inline]
     pub fn into_inner(self) -> T {
-        self.0
+        self.inner
     }
 
     /// Gets a reference to the inner value.
     #[inline]
     pub const fn as_inner(&self) -> &T {
-        &self.0
+        &self.inner
     }
 }
 
@@ -354,48 +411,28 @@ impl<'a> Raw<&'a str> {
     #[inline]
     #[must_use]
     pub const fn rendered(self) -> Rendered<&'a str> {
-        Rendered(self.0)
+        Rendered(self.inner)
     }
 }
 
-impl<T: PartialEq<U>, U> PartialEq<Raw<U>> for Raw<T> {
+impl<T: PartialEq<U>, C, U> PartialEq<Raw<U, C>> for Raw<T, C> {
     #[inline]
-    fn eq(&self, other: &Raw<U>) -> bool {
-        self.0 == other.0
+    fn eq(&self, other: &Raw<U, C>) -> bool {
+        self.inner == other.inner
     }
 }
 
-/// A raw attribute value that is rendered without escaping.
+impl<T: Debug, C> Debug for Raw<T, C> {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_tuple("Raw").field(&self.inner).finish()
+    }
+}
+
+/// A raw pre-escaped attribute value.
 ///
-/// This is the type returned by [`attribute_static!`].
-///
-/// This is useful for rendering pre-escaped HTML attributes, but should be used
-/// with caution as it can lead to XSS vulnerabilities if used incorrectly. If
-/// you are unsure, render the string itself, as its [`AttributeRenderable`]
-/// implementation will escape any dangerous characters.
-#[derive(Debug, Clone, Copy, Eq, Hash)]
-pub struct RawAttribute<T>(pub T);
-
-impl<T> RawAttribute<T> {
-    /// Extracts the inner value.
-    #[inline]
-    pub fn into_inner(self) -> T {
-        self.0
-    }
-
-    /// Gets a reference to the inner value.
-    #[inline]
-    pub const fn as_inner(&self) -> &T {
-        &self.0
-    }
-}
-
-impl<T: PartialEq<U>, U> PartialEq<RawAttribute<U>> for RawAttribute<T> {
-    #[inline]
-    fn eq(&self, other: &RawAttribute<U>) -> bool {
-        self.0 == other.0
-    }
-}
+/// This is a type alias for [`Raw<T, Attribute>`].
+pub type RawAttribute<T> = Raw<T, AttributeValue>;
 
 /// A rendered HTML string.
 ///

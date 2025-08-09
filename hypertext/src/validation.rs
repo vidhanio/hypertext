@@ -24,7 +24,7 @@ pub trait ElementKind: sealed::Sealed {}
 /// </div>
 /// ```
 #[derive(Debug, Clone, Copy)]
-pub struct Normal;
+pub enum Normal {}
 
 impl ElementKind for Normal {}
 
@@ -38,7 +38,7 @@ impl ElementKind for Normal {}
 /// <img src="image.png" alt="An image">
 /// ```
 #[derive(Debug, Clone, Copy)]
-pub struct Void;
+pub enum Void {}
 
 impl ElementKind for Void {}
 

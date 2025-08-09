@@ -7,7 +7,7 @@ use syn::{
 };
 
 use super::{AnyBlock, Generate, Generator, Node, Nodes};
-use crate::NodeType;
+use crate::Context;
 
 pub enum Control<N: Node> {
     Let(Let),
@@ -40,7 +40,7 @@ impl<N: Node + Parse> Parse for Control<N> {
 }
 
 impl<N: Node> Generate for Control<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
         match self {
@@ -67,7 +67,7 @@ impl Parse for Let {
 }
 
 impl Generate for Let {
-    const NODE_TYPE: NodeType = NodeType::Element;
+    const CONTEXT: Context = Context::Node;
 
     fn generate(&self, g: &mut Generator) {
         g.push_stmt(&self.0);
@@ -121,7 +121,7 @@ impl<N: Node + Parse> Parse for If<N> {
 }
 
 impl<N: Node> Generate for If<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
         fn to_expr<N: Node>(if_: &If<N>, g: &mut Generator) -> TokenStream {
@@ -192,7 +192,7 @@ impl<N: Node + Parse> Parse for For<N> {
 }
 
 impl<N: Node> Generate for For<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
         let for_token = self.for_token;
@@ -225,7 +225,7 @@ impl<N: Node + Parse> Parse for While<N> {
 }
 
 impl<N: Node> Generate for While<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
         let while_token = self.while_token;
@@ -268,7 +268,7 @@ impl<N: Node + Parse> Parse for Match<N> {
 }
 
 impl<N: Node> Generate for Match<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
         let arms = self

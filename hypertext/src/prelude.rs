@@ -6,7 +6,5 @@
 //! attribute traits](crate::attributes) that have been enabled, as well as
 //! the [`GlobalAttributes`] trait.
 #[cfg(feature = "alloc")]
-pub use crate::{
-    AttributeRenderable, Renderable, RenderableExt, Rendered, attribute, component, maud, rsx,
-};
+pub use crate::{Renderable, RenderableExt as _, Rendered, attribute, component, maud, rsx};
 pub use crate::{attributes::*, html_elements};

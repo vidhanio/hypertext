@@ -14,7 +14,7 @@ use syn::{
 use super::UnquotedName;
 
 pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Result<TokenStream> {
-    let mut g = Generator::new_closure(T::NODE_TYPE);
+    let mut g = Generator::new_closure(T::CONTEXT);
 
     let len_estimate = tokens.to_string().len();
 
@@ -26,28 +26,35 @@ pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Resul
 
     let move_token = move_.then(|| quote!(move));
 
-    let lazy_ident = T::NODE_TYPE.ident();
-    let buffer_type = T::NODE_TYPE.buffer_type();
+    let marker_ident = T::CONTEXT.marker_type();
 
     Ok(quote! {
-        ::hypertext::#lazy_ident::dangerously_create(#move_token |#buffer_ident: &mut ::hypertext::#buffer_type| {
-            #buffer_ident.dangerously_get_string().reserve(#len_estimate);
-            #block
-        })
+        ::hypertext::Lazy::<_, #marker_ident>::dangerously_create(
+            #move_token |#buffer_ident: &mut ::hypertext::Buffer<#marker_ident>| {
+                #buffer_ident.dangerously_get_string().reserve(#len_estimate);
+                #block
+            }
+        )
     })
 }
 
 pub fn literal<T: Parse + Generate>(tokens: TokenStream) -> syn::Result<TokenStream> {
-    let mut g = Generator::new_static(T::NODE_TYPE);
+    let mut g = Generator::new_static(T::CONTEXT);
 
     g.push(syn::parse2::<T>(tokens)?);
 
-    Ok(g.finish().to_token_stream())
+    let literal = g.finish().to_token_stream();
+
+    let marker_ident = T::CONTEXT.marker_type();
+
+    Ok(quote! {
+        ::hypertext::Raw::<_, #marker_ident>::dangerously_create(#literal)
+    })
 }
 
 pub struct Generator {
     lazy: bool,
-    node_type: NodeType,
+    context: Context,
     brace_token: Brace,
     parts: Vec<Part>,
     checks: Checks,
@@ -58,18 +65,18 @@ impl Generator {
         Ident::new("__hypertext_buffer", Span::mixed_site())
     }
 
-    fn new_closure(node_type: NodeType) -> Self {
-        Self::new_with_brace(node_type, true, Brace::default())
+    fn new_closure(context: Context) -> Self {
+        Self::new_with_brace(context, true, Brace::default())
     }
 
-    fn new_static(node_type: NodeType) -> Self {
-        Self::new_with_brace(node_type, false, Brace::default())
+    fn new_static(context: Context) -> Self {
+        Self::new_with_brace(context, false, Brace::default())
     }
 
-    const fn new_with_brace(node_type: NodeType, lazy: bool, brace_token: Brace) -> Self {
+    const fn new_with_brace(context: Context, lazy: bool, brace_token: Brace) -> Self {
         Self {
             lazy,
-            node_type,
+            context,
             brace_token,
             parts: Vec::new(),
             checks: Checks::new(),
@@ -133,7 +140,7 @@ impl Generator {
     }
 
     pub fn block_with(&mut self, brace_token: Brace, f: impl FnOnce(&mut Self)) -> AnyBlock {
-        let mut g = Self::new_with_brace(self.node_type, true, brace_token);
+        let mut g = Self::new_with_brace(self.context, true, brace_token);
 
         f(&mut g);
 
@@ -155,11 +162,11 @@ impl Generator {
         self.parts.push(Part::Static(LitStr::new(s, span)));
     }
 
-    pub fn push_escaped_lit(&mut self, node_type: NodeType, lit: &LitStr) {
+    pub fn push_escaped_lit(&mut self, context: Context, lit: &LitStr) {
         let value = lit.value();
-        let escaped_value = match node_type {
-            NodeType::Element => html_escape::encode_text(&value),
-            NodeType::Attribute => html_escape::encode_double_quoted_attribute(&value),
+        let escaped_value = match context {
+            Context::Node => html_escape::encode_text(&value),
+            Context::AttributeValue => html_escape::encode_double_quoted_attribute(&value),
         };
 
         self.parts
@@ -172,28 +179,23 @@ impl Generator {
         }
     }
 
-    pub fn push_expr(&mut self, paren_token: Paren, node_type: NodeType, expr: impl ToTokens) {
+    pub fn push_expr(&mut self, paren_token: Paren, context: Context, expr: impl ToTokens) {
         let buffer_ident = Self::buffer_ident();
-        let (fn_call, buffer_expr) = match (self.node_type, node_type) {
-            (NodeType::Element, NodeType::Element) => {
-                (quote!(Renderable::render_to), quote!(#buffer_ident))
+        let buffer_expr = match (self.context, context) {
+            (Context::Node, Context::Node) | (Context::AttributeValue, Context::AttributeValue) => {
+                quote!(#buffer_ident)
             }
-            (NodeType::Attribute, NodeType::Attribute) => (
-                quote!(AttributeRenderable::render_attribute_to),
-                quote!(#buffer_ident),
-            ),
-            (NodeType::Element, NodeType::Attribute) => (
-                quote!(AttributeRenderable::render_attribute_to),
-                quote!(&mut #buffer_ident.as_attribute_buffer()),
-            ),
-            (NodeType::Attribute, NodeType::Element) => unreachable!(),
+            (Context::Node, Context::AttributeValue) => {
+                quote!(&mut #buffer_ident.as_attribute_buffer())
+            }
+            (Context::AttributeValue, Context::Node) => unreachable!(),
         };
 
         let mut paren_expr = TokenStream::new();
         paren_token.surround(&mut paren_expr, |tokens| expr.to_tokens(tokens));
         let reference = quote_spanned!(paren_token.span=> &);
         self.push_stmt(quote! {
-            ::hypertext::#fn_call(
+            ::hypertext::Renderable::render_to(
                 #reference #paren_expr,
                 #buffer_expr
             );
@@ -232,34 +234,29 @@ enum Part {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum NodeType {
-    Element,
-    Attribute,
+pub enum Context {
+    Node,
+    AttributeValue,
 }
 
-impl NodeType {
-    fn ident(self) -> Ident {
-        match self {
-            Self::Element => Ident::new("Lazy", Span::mixed_site()),
-            Self::Attribute => Ident::new("LazyAttribute", Span::mixed_site()),
-        }
-    }
+impl Context {
+    pub fn marker_type(self) -> TokenStream {
+        let ident = match self {
+            Self::Node => Ident::new("Node", Span::mixed_site()),
+            Self::AttributeValue => Ident::new("AttributeValue", Span::mixed_site()),
+        };
 
-    fn buffer_type(self) -> Ident {
-        match self {
-            Self::Element => Ident::new("Buffer", Span::mixed_site()),
-            Self::Attribute => Ident::new("AttributeBuffer", Span::mixed_site()),
-        }
+        quote!(::hypertext::#ident)
     }
 }
 
 pub trait Generate {
-    const NODE_TYPE: NodeType;
+    const CONTEXT: Context;
     fn generate(&self, g: &mut Generator);
 }
 
 impl<T: Generate> Generate for &T {
-    const NODE_TYPE: NodeType = T::NODE_TYPE;
+    const CONTEXT: Context = T::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
         (*self).generate(g);

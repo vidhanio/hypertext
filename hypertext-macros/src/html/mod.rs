@@ -30,7 +30,7 @@ use self::{
         Generator,
     },
 };
-use crate::NodeType;
+use crate::Context;
 
 mod kw {
     use syn::LitStr;
@@ -87,14 +87,14 @@ impl<S: Syntax> Node for ElementNode<S> {
 }
 
 impl<S: Syntax> Generate for ElementNode<S> {
-    const NODE_TYPE: NodeType = NodeType::Element;
+    const CONTEXT: Context = Context::Node;
 
     fn generate(&self, g: &mut Generator) {
         match self {
             Self::Doctype(doctype) => g.push(doctype),
             Self::Element(element) => g.push(element),
             Self::Component(component) => g.push(component),
-            Self::Literal(lit) => g.push_escaped_lit(Self::NODE_TYPE, &lit.lit_str()),
+            Self::Literal(lit) => g.push_escaped_lit(Self::CONTEXT, &lit.lit_str()),
             Self::Control(control) => g.push(control),
             Self::Expr(expr) => g.push(expr),
             Self::DisplayExpr(display_expr) => g.push(display_expr),
@@ -114,7 +114,7 @@ pub struct Doctype<S: Syntax> {
 }
 
 impl<S: Syntax> Generate for Doctype<S> {
-    const NODE_TYPE: NodeType = NodeType::Element;
+    const CONTEXT: Context = Context::Node;
 
     fn generate(&self, g: &mut Generator) {
         g.push_lits(vec![
@@ -147,10 +147,10 @@ impl<N: Node> Parse for ParenExpr<N> {
 }
 
 impl<N: Node> Generate for ParenExpr<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
-        g.push_expr(self.paren_token, Self::NODE_TYPE, &self.expr);
+        g.push_expr(self.paren_token, Self::CONTEXT, &self.expr);
     }
 }
 
@@ -192,12 +192,12 @@ impl<N: Node> Parse for DisplayExpr<N> {
 }
 
 impl<N: Node> Generate for DisplayExpr<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
         g.push_expr(
             self.paren_expr.paren_token,
-            Self::NODE_TYPE,
+            Self::CONTEXT,
             self.wrapped_expr(),
         );
     }
@@ -233,10 +233,10 @@ impl<N: Node> Parse for DebugExpr<N> {
 }
 
 impl<N: Node> Generate for DebugExpr<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
-        g.push_expr(self.expr.paren_token, Self::NODE_TYPE, self.wrapped_expr());
+        g.push_expr(self.expr.paren_token, Self::CONTEXT, self.wrapped_expr());
     }
 }
 
@@ -252,7 +252,7 @@ impl Parse for Group<AttributeValueNode> {
 }
 
 impl<N: Node> Generate for Group<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
         g.push(&self.0);
@@ -284,7 +284,7 @@ impl<N: Node + Parse> Parse for Nodes<N> {
 }
 
 impl<N: Node> Generate for Nodes<N> {
-    const NODE_TYPE: NodeType = N::NODE_TYPE;
+    const CONTEXT: Context = N::CONTEXT;
 
     fn generate(&self, g: &mut Generator) {
         if self.0.iter().any(Node::is_control) {
@@ -302,7 +302,7 @@ pub struct Element<S: Syntax> {
 }
 
 impl<S: Syntax> Generate for Element<S> {
-    const NODE_TYPE: NodeType = NodeType::Element;
+    const CONTEXT: Context = Context::Node;
 
     fn generate(&self, g: &mut Generator) {
         let mut el_checks = ElementCheck::new(&self.name, self.body.kind());
@@ -413,7 +413,7 @@ impl Parse for Attribute {
 }
 
 impl Generate for Attribute {
-    const NODE_TYPE: NodeType = NodeType::Attribute;
+    const CONTEXT: Context = Context::AttributeValue;
 
     fn generate(&self, g: &mut Generator) {
         match &self.kind {
@@ -445,7 +445,7 @@ impl Generate for Attribute {
                         g.push_str(" ");
                         g.push_lits(self.name.lits());
                         g.push_str("=\"");
-                        g.push_expr(Paren::default(), Self::NODE_TYPE, &value);
+                        g.push_expr(Paren::default(), Self::CONTEXT, &value);
                         g.push_str("\"");
                     },
                 );
@@ -726,17 +726,17 @@ impl Parse for AttributeValueNode {
 }
 
 impl Generate for AttributeValueNode {
-    const NODE_TYPE: NodeType = NodeType::Attribute;
+    const CONTEXT: Context = Context::AttributeValue;
 
     fn generate(&self, g: &mut Generator) {
         match self {
-            Self::Literal(lit) => g.push_escaped_lit(Self::NODE_TYPE, &lit.lit_str()),
+            Self::Literal(lit) => g.push_escaped_lit(Self::CONTEXT, &lit.lit_str()),
             Self::Group(block) => g.push(block),
             Self::Control(control) => g.push(control),
             Self::Expr(expr) => g.push(expr),
             Self::DisplayExpr(display_expr) => g.push(display_expr),
             Self::DebugExpr(debug_expr) => g.push(debug_expr),
-            Self::Ident(ident) => g.push_expr(Paren::default(), Self::NODE_TYPE, ident),
+            Self::Ident(ident) => g.push_expr(Paren::default(), Self::CONTEXT, ident),
         }
     }
 }
@@ -777,7 +777,7 @@ impl Class {
                         if index > 0 {
                             g.push_str(" ");
                         }
-                        g.push_expr(Paren::default(), NodeType::Attribute, &value);
+                        g.push_expr(Paren::default(), Context::AttributeValue, &value);
                     },
                 );
             }

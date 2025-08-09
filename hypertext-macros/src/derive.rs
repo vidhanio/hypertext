@@ -3,14 +3,33 @@ use quote::quote;
 use syn::{DeriveInput, Error, spanned::Spanned};
 
 use crate::{
-    AttributeValueNode, Document, Maud, Nodes, Rsx,
+    AttributeValueNode, Context, Document, Maud, Nodes, Rsx,
     html::{self, generate::Generator},
 };
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
+    match (renderable_element(&input), attribute_renderable(&input)) {
+        (Ok(None), Ok(None)) => Err(Error::new(
+            Span::call_site(),
+            "expected at least one of `maud`, `rsx`, or `attribute` attributes",
+        )),
+        (Ok(element), Ok(attribute)) => Ok(quote! {
+            #element
+            #attribute
+        }),
+        (Ok(_), Err(e)) | (Err(e), Ok(_)) => Err(e),
+        (Err(mut e1), Err(e2)) => {
+            e1.combine(e2);
+            Err(e1)
+        }
+    }
+}
+
+fn renderable_element(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
     let mut attrs = input
         .attrs
-        .into_iter()
+        .iter()
         .filter_map(|attr| {
             if attr.path().is_ident("maud") {
                 Some((
@@ -46,16 +65,13 @@ pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
             return Err(error);
         }
         (None, _) => {
-            return Err(Error::new(
-                Span::call_site(),
-                "missing `maud` or `rsx` attribute",
-            ));
+            return Ok(None);
         }
     };
 
     let lazy = lazy_fn(tokens, true)?;
 
-    let name = input.ident;
+    let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let buffer_ident = Generator::buffer_ident();
     let output = quote! {
@@ -66,13 +82,13 @@ pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
             }
         }
     };
-    Ok(output)
+    Ok(Some(output))
 }
 
-pub fn attribute_renderable(input: DeriveInput) -> syn::Result<TokenStream> {
+fn attribute_renderable(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
     let mut attrs = input
         .attrs
-        .into_iter()
+        .iter()
         .filter(|attr| attr.path().is_ident("attribute"))
         .peekable();
 
@@ -92,26 +108,24 @@ pub fn attribute_renderable(input: DeriveInput) -> syn::Result<TokenStream> {
             return Err(error);
         }
         (None, _) => {
-            return Err(Error::new(
-                Span::call_site(),
-                "missing `attribute` attribute",
-            ));
+            return Ok(None);
         }
     };
 
     let lazy = html::generate::lazy::<Nodes<AttributeValueNode>>(tokens, true)?;
-    let name = input.ident;
+    let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let buffer_ident = Generator::buffer_ident();
+    let context_marker = Context::AttributeValue.marker_type();
     let output = quote! {
         #[automatically_derived]
-        impl #impl_generics ::hypertext::AttributeRenderable for #name #ty_generics
+        impl #impl_generics ::hypertext::Renderable<#context_marker> for #name #ty_generics
             #where_clause {
-            fn render_attribute_to(
+            fn render_to(
                 &self,
                 #buffer_ident: &mut ::hypertext::AttributeBuffer,
             ) {
-                ::hypertext::AttributeRenderable::render_attribute_to(
+                ::hypertext::Renderable::render_to(
                     &#lazy,
                     #buffer_ident,
                 );
@@ -119,5 +133,5 @@ pub fn attribute_renderable(input: DeriveInput) -> syn::Result<TokenStream> {
         }
     };
 
-    Ok(output)
+    Ok(Some(output))
 }
