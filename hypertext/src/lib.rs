@@ -197,6 +197,7 @@
 //! [`title`]: attributes::GlobalAttributes::title
 //! [`HtmxAttributes`]: attributes::HtmxAttributes
 //! [`AlpineJsAttributes`]: attributes::AlpineJsAttributes
+
 #![no_std]
 #![warn(clippy::missing_inline_in_public_items)]
 #![cfg_attr(docsrs, expect(internal_features))]
