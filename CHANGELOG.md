@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0](https://github.com/vidhanio/hypertext/compare/hypertext-v0.11.0...hypertext-v0.12.0) - 2025-08-09
+
 ### Added
 
 - [**breaking**] unify all duplicated `Attribute` versions of types/traits with the `Context` trait
