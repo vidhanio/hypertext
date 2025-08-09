@@ -388,8 +388,8 @@ fn statics() {
         </div>
     };
 
-    const MAUD_RENDERED_RESULT: Rendered<&str> = MAUD_RAW_RESULT.const_rendered();
-    const RSX_RENDERED_RESULT: Rendered<&str> = RSX_RAW_RESULT.const_rendered();
+    const MAUD_RENDERED_RESULT: Rendered<&str> = MAUD_RAW_RESULT.rendered();
+    const RSX_RENDERED_RESULT: Rendered<&str> = RSX_RAW_RESULT.rendered();
 
     const EXPECTED: &str = r#"<div id="profile" title="Profile"><h1>Hello, world!</h1></div>"#;
 

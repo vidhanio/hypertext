@@ -13,7 +13,7 @@ use core::{
 };
 
 pub use self::macros::*;
-use crate::{AttributeValue, Context, Node, Raw, Rendered};
+use crate::{AttributeValue, Context, Node, Raw, Rendered, const_precise_live_drops_hack};
 
 /// The buffer used for rendering HTML.
 ///
@@ -32,11 +32,15 @@ pub struct Buffer<C: Context = Node> {
 /// This is a type alias for [`Buffer<AttributeValue>`].
 pub type AttributeBuffer = Buffer<AttributeValue>;
 
+#[expect(
+    clippy::missing_const_for_fn,
+    reason = "`Buffer` does not make sense in `const` contexts"
+)]
 impl Buffer {
     /// Creates a new, empty [`Buffer`].
     #[inline]
     #[must_use]
-    pub const fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             inner: String::new(),
             phantom: PhantomData,
@@ -50,16 +54,16 @@ impl Buffer {
     /// contained raw HTML.
     #[inline]
     #[must_use]
-    pub const fn dangerously_from_string(value: String) -> Self {
+    pub fn dangerously_from_string(string: String) -> Self {
         Self {
-            inner: value,
+            inner: string,
             phantom: PhantomData,
         }
     }
 
     /// Turn this into an [`&mut AttributeBuffer`](AttributeBuffer).
     #[inline]
-    pub const fn as_attribute_buffer(&mut self) -> &mut AttributeBuffer {
+    pub fn as_attribute_buffer(&mut self) -> &mut AttributeBuffer {
         // SAFETY:
         // - Both `Buffer<C>` and `AttributeBuffer` are `#[repr(transparent)]` wrappers
         //   around `String`, differing only in the zero-sized `PhantomData` marker
@@ -81,6 +85,10 @@ impl Buffer {
     }
 }
 
+#[expect(
+    clippy::missing_const_for_fn,
+    reason = "`Buffer` does not make sense in `const` contexts"
+)]
 impl<C: Context> Buffer<C> {
     /// Get a mutable reference to the inner [`String`].
     ///
@@ -127,7 +135,7 @@ impl<C: Context> Buffer<C> {
     /// )
     /// ```
     #[inline]
-    pub const fn dangerously_get_string(&mut self) -> &mut String {
+    pub fn dangerously_get_string(&mut self) -> &mut String {
         &mut self.inner
     }
 }
@@ -263,8 +271,9 @@ impl<F: Fn(&mut Buffer<C>), C: Context> Lazy<F, C> {
 
     /// Extracts the inner closure.
     #[inline]
-    pub fn into_inner(self) -> F {
-        self.f
+    pub const fn into_inner(self) -> F {
+        // SAFETY: `Lazy<F, C>` has exactly one non-zero-sized field, which is `f`.
+        unsafe { const_precise_live_drops_hack!(self.f) }
     }
 
     /// Gets a reference to the inner closure.

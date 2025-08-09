@@ -396,11 +396,18 @@ impl<T: AsRef<str>, C: Context> Raw<T, C> {
 
     /// Extracts the inner value.
     #[inline]
-    pub fn into_inner(self) -> T {
-        self.inner
+    pub const fn into_inner(self) -> T {
+        // SAFETY: `Raw<T, C>` has exactly one non-zero-sized field, which is `inner`.
+        unsafe { const_precise_live_drops_hack!(self.inner) }
     }
 
     /// Gets a reference to the inner value.
+    #[inline]
+    pub const fn as_inner(&self) -> &T {
+        &self.inner
+    }
+
+    /// Gets a reference to the inner value as an [`&str`][str].
     #[inline]
     pub fn as_str(&self) -> &str {
         self.inner.as_ref()
@@ -411,17 +418,10 @@ impl<T: AsRef<str>> Raw<T> {
     /// Converts the [`Raw<T>`] into a [`Rendered<T>`].
     #[inline]
     #[must_use]
-    pub fn rendered(self) -> Rendered<T> {
-        Rendered(self.inner)
-    }
-}
-
-impl<T: AsRef<str> + Copy> Raw<T> {
-    /// Converts the [`Raw<T>`] into a [`Rendered<T>`] in a `const` context.
-    #[inline]
-    #[must_use]
-    pub const fn const_rendered(self) -> Rendered<T> {
-        Rendered(self.inner)
+    pub const fn rendered(self) -> Rendered<T> {
+        // SAFETY: `Raw<T>` has exactly one non-zero-sized field, which is `inner`.
+        let value = unsafe { const_precise_live_drops_hack!(self.inner) };
+        Rendered(value)
     }
 }
 
@@ -459,8 +459,9 @@ pub struct Rendered<T>(T);
 impl<T> Rendered<T> {
     /// Extracts the inner value.
     #[inline]
-    pub fn into_inner(self) -> T {
-        self.0
+    pub const fn into_inner(self) -> T {
+        // SAFETY: `Rendered<T>` has only one field, which is `0`.
+        unsafe { const_precise_live_drops_hack!(self.0) }
     }
 
     /// Gets a reference to the inner value.
@@ -476,3 +477,17 @@ impl<T: PartialEq<U>, U> PartialEq<Rendered<U>> for Rendered<T> {
         self.0 == other.0
     }
 }
+
+/// Workaround for [`const_precise_live_drops`](https://github.com/rust-lang/rust/issues/73255) being unstable.
+///
+/// # Safety
+///
+/// - `$self` must be a struct with exactly 1 non-zero-sized field
+/// - `$field` must be the name/index of that field
+macro_rules! const_precise_live_drops_hack {
+    ($self:ident. $field:tt) => {{
+        let this = core::mem::ManuallyDrop::new($self);
+        (&raw const (*(&raw const this).cast::<Self>()).$field).read()
+    }};
+}
+pub(crate) use const_precise_live_drops_hack;

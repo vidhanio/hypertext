@@ -14,15 +14,13 @@ impl<T: AsRef<str>, C: Context> Renderable<C> for Raw<T, C> {
     #[inline]
     fn render_to(&self, buffer: &mut Buffer<C>) {
         // XSS SAFETY: `Raw` values are expected to be pre-escaped for
-        // the rendering context.
-        buffer
-            .dangerously_get_string()
-            .push_str(self.inner.as_ref());
+        // their respective rendering context.
+        buffer.dangerously_get_string().push_str(self.as_str());
     }
 
     #[inline]
     fn render(&self) -> Rendered<String> {
-        Rendered(self.inner.as_ref().into())
+        Rendered(self.as_str().into())
     }
 }
 
@@ -269,7 +267,7 @@ impl<T: Renderable> Renderable for [T] {
     }
 }
 
-impl<T: Renderable, const C: usize> Renderable for [T; C] {
+impl<T: Renderable, const N: usize> Renderable for [T; N] {
     #[inline]
     fn render_to(&self, buffer: &mut Buffer) {
         self.as_slice().render_to(buffer);
