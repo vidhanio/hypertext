@@ -143,7 +143,7 @@ impl Debug for Buffer {
     }
 }
 
-/// A buffer used for rendering HTML attributes values.
+/// A buffer used for rendering attribute values.
 ///
 /// This is a type alias for [`Buffer<AttributeValue>`].
 pub type AttributeBuffer = Buffer<AttributeValue>;
