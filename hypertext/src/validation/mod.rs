@@ -74,7 +74,7 @@ pub struct AttributeSymbol;
 ///
 /// ```rust
 /// mod hypertext_elements {
-///     use hypertext::validation::define_elements;
+///     use hypertext::define_elements;
 ///     // Re-export all standard HTML elements
 ///     pub use hypertext::validation::hypertext_elements::*;
 ///
@@ -153,7 +153,6 @@ macro_rules! define_elements {
         )*
     }
 }
-pub use define_elements;
 
 /// Define custom void elements.
 ///
@@ -163,7 +162,7 @@ pub use define_elements;
 /// ```rust
 /// mod hypertext_elements {
 ///     // Re-export all standard HTML elements
-///     use hypertext::validation::define_void_elements;
+///     use hypertext::define_void_elements;
 ///     pub use hypertext::validation::hypertext_elements::*;
 ///
 ///     define_void_elements! {
@@ -230,4 +229,3 @@ macro_rules! define_void_elements {
         )*
     }
 }
-pub use define_void_elements;

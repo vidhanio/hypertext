@@ -8,7 +8,7 @@
 
 #[cfg(feature = "mathml")]
 pub use super::mathml::elements::*;
-use crate::validation::{define_elements, define_void_elements};
+use crate::{define_elements, define_void_elements};
 
 define_elements! {
     /// The root of an HTML document.
