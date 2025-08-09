@@ -65,13 +65,15 @@ impl Buffer {
     #[inline]
     pub const fn as_attribute_buffer(&mut self) -> &mut AttributeBuffer {
         // SAFETY:
-        // - Both `Buffer<C>` and `AttributeBuffer` are `#[repr(transparent)]` wrappers around `String`,
-        //   differing only in the zero-sized `PhantomData` marker type.
-        // - `PhantomData` does not affect memory layout, so the layout of `Buffer<C>` and `AttributeBuffer`
-        //   is guaranteed to be identical by Rust's type system.
-        // - This cast only changes the marker type and does not affect the actual data or its validity.
-        // - The lifetime of the reference is preserved, and there are no aliasing or validity issues,
-        //   as both types are functionally identical at runtime.
+        // - Both `Buffer<C>` and `AttributeBuffer` are `#[repr(transparent)]` wrappers
+        //   around `String`, differing only in the zero-sized `PhantomData` marker
+        //   type.
+        // - `PhantomData` does not affect memory layout, so the layout of `Buffer<C>`
+        //   and `AttributeBuffer` is guaranteed to be identical by Rust's type system.
+        // - This cast only changes the marker type and does not affect the actual data
+        //   or its validity.
+        // - The lifetime of the reference is preserved, and there are no aliasing or
+        //   validity issues, as both types are functionally identical at runtime.
         unsafe { &mut *ptr::from_mut(self).cast::<AttributeBuffer>() }
     }
 
