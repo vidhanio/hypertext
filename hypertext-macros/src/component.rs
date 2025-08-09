@@ -2,6 +2,8 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{FnArg, Ident, ItemFn, Pat, PatType, Type, Visibility, parse::Parse};
 
+use crate::html::generate::Generator;
+
 pub struct ComponentArgs {
     visibility: Visibility,
     ident: Option<Ident>,
@@ -88,6 +90,8 @@ pub fn generate(args: ComponentArgs, fn_item: &ItemFn) -> syn::Result<TokenStrea
         }
     };
 
+    let buffer_ident = Generator::buffer_ident();
+
     let output = quote! {
         #[allow(clippy::needless_lifetimes)]
         #fn_item
@@ -96,12 +100,12 @@ pub fn generate(args: ComponentArgs, fn_item: &ItemFn) -> syn::Result<TokenStrea
 
         #[automatically_derived]
         impl #impl_generics ::hypertext::Renderable for #struct_name #ty_generics #where_clause {
-            fn render_to(&self, buffer: &mut ::hypertext::Buffer) {
+            fn render_to(&self, #buffer_ident: &mut ::hypertext::Buffer) {
                 ::hypertext::Renderable::render_to(
                     &#fn_name(#(
                         #field_refs self.#field_names
                     ),*),
-                    buffer,
+                    #buffer_ident,
                 );
             }
         }
