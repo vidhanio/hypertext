@@ -30,6 +30,29 @@ jobs:
       - name: Run tests
         run: cargo test --all-features
 
+  miri:
+    name: Miri
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Miri
+        run: cargo miri setup
+
+      - name: Run Miri
+        run: cargo miri test --all-features
+
   check:
     name: Check
 

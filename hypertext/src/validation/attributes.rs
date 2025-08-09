@@ -10,43 +10,43 @@
 //! ```
 //!
 //! Then you can use the attributes in your code after bringing the trait into
-//! scope:
+//! scope via [`prelude::*`](crate::prelude):
 //!
 //! ```rust
+//! # #[cfg(feature = "htmx")] {
 //! use hypertext::prelude::*;
 //!
 //! # assert_eq!(
 //! maud! {
 //!     a hx-get="/about" { "About" }
 //! }
-//! # .render(), Rendered(r#"<a hx-get="/about">About</a>"#));
+//! # .render().as_inner(), r#"<a hx-get="/about">About</a>"#);
+//! # }
 //! ```
 #![allow(non_upper_case_globals)]
 #[cfg(feature = "mathml")]
-pub use crate::mathml::MathMlGlobalAttributes;
-use crate::validation::Element;
+pub use super::mathml::MathMlGlobalAttributes;
+use crate::validation::{Attribute, Element};
 #[allow(unused_imports)]
-use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol};
+use crate::validation::{AttributeNamespace, AttributeSymbol};
 
 /// Global HTML attributes.
 ///
 /// This trait must be in scope to use standard HTML attributes such as
 /// [`class`](Self::class) and [`id`](Self::id). This trait is implemented
-/// by every HTML element specified in [`crate::html_elements`].
+/// by every HTML element specified in
+/// [`hypertext_elements`](crate::validation::hypertext_elements).
 ///
 /// # Usage With Custom Elements
 ///
 /// ```
 /// use hypertext::prelude::*;
 ///
-/// mod html_elements {
+/// mod hypertext_elements {
 ///     #![expect(non_camel_case_types)]
 ///
-///     pub use hypertext::html_elements::*;
-///     use hypertext::{
-///         attributes::GlobalAttributes,
-///         validation::{Element, Normal},
-///     };
+///     pub use hypertext::validation::hypertext_elements::*;
+///     use hypertext::validation::{Element, Normal, attributes::GlobalAttributes};
 ///
 ///     pub struct custom_element;
 ///
@@ -58,8 +58,10 @@ use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol};
 /// }
 ///
 /// assert_eq!(
-///     maud! { custom-element #my-element title="abc" { "Hello, world!" } }.render(),
-///     Rendered(r#"<custom-element id="my-element" title="abc">Hello, world!</custom-element>"#),
+///     maud! { custom-element #my-element title="abc" { "Hello, world!" } }
+///         .render()
+///         .as_inner(),
+///     r#"<custom-element id="my-element" title="abc">Hello, world!</custom-element>"#
 /// );
 /// ```
 pub trait GlobalAttributes: Element {

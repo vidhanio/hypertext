@@ -31,5 +31,4 @@ too_long_first_doc_paragraph = "allow"
 missing_copy_implementations = "warn"
 missing_debug_implementations = "warn"
 missing_docs = "warn"
-unsafe_code = "forbid"
 

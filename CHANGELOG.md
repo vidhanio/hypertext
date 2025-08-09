@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- [**breaking**] unify all duplicated `Attribute` versions of types/traits with the `Context` trait
+- [**breaking**] make it harder to accidentally make your code vulnerable to XSS via `Buffer`, hiding
+  constructors, and `dangerously_*` functions
+
+### Changed
+
+- [**breaking**] rename `html_elements` to `hypertext_elements`
+- [**breaking**] rename `[void_]elements!` to `define_[void_]elements!`
+- [**breaking**] reorganize all validation-related modules into `validation`
+
 ## [0.11.0](https://github.com/vidhanio/hypertext/compare/hypertext-v0.10.0...hypertext-v0.11.0) - 2025-08-06
 
 ### Added

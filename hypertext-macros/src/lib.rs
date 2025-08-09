@@ -7,11 +7,10 @@ mod html;
 
 use html::{AttributeValueNode, Nodes};
 use proc_macro::TokenStream;
-use quote::quote;
 use syn::{DeriveInput, ItemFn, parse::Parse, parse_macro_input};
 
 use self::html::{Document, Maud, Rsx, Syntax};
-use crate::component::ComponentArgs;
+use crate::{component::ComponentArgs, html::generate::Context};
 
 #[proc_macro]
 pub fn maud(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -47,7 +46,7 @@ fn lazy<S: Syntax>(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::
 where
     Document<S>: Parse,
 {
-    html::generate::lazy::<Document<S>>(tokens.into(), move_, "Lazy")
+    html::generate::lazy::<Document<S>>(tokens.into(), move_)
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
@@ -57,10 +56,7 @@ where
     Document<S>: Parse,
 {
     html::generate::literal::<Document<S>>(tokens.into())
-        .map_or_else(
-            |err| err.to_compile_error(),
-            |lit| quote!(::hypertext::Raw(#lit)),
-        )
+        .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
 
@@ -75,7 +71,7 @@ pub fn attribute_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStr
 }
 
 fn attribute_lazy(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::TokenStream {
-    html::generate::lazy::<Nodes<AttributeValueNode>>(tokens.into(), move_, "LazyAttribute")
+    html::generate::lazy::<Nodes<AttributeValueNode>>(tokens.into(), move_)
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
@@ -83,23 +79,13 @@ fn attribute_lazy(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::T
 #[proc_macro]
 pub fn attribute_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     html::generate::literal::<Nodes<AttributeValueNode>>(tokens.into())
-        .map_or_else(
-            |err| err.to_compile_error(),
-            |lit| quote!(::hypertext::RawAttribute(#lit)),
-        )
-        .into()
-}
-
-#[proc_macro_derive(Renderable, attributes(maud, rsx))]
-pub fn derive_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive::renderable(parse_macro_input!(input as DeriveInput))
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
 
-#[proc_macro_derive(AttributeRenderable, attributes(attribute))]
-pub fn derive_attribute_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    derive::attribute_renderable(parse_macro_input!(input as DeriveInput))
+#[proc_macro_derive(Renderable, attributes(maud, rsx, attribute))]
+pub fn derive_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive::renderable(parse_macro_input!(input as DeriveInput))
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }

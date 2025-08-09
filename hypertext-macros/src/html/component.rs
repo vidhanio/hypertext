@@ -8,7 +8,7 @@ use syn::{
 };
 
 use super::{ElementBody, Generate, Generator, Literal, ParenExpr, Syntax};
-use crate::AttributeValueNode;
+use crate::{AttributeValueNode, Context};
 
 pub struct Component<S: Syntax> {
     pub name: Ident,
@@ -18,6 +18,8 @@ pub struct Component<S: Syntax> {
 }
 
 impl<S: Syntax> Generate for Component<S> {
+    const CONTEXT: Context = Context::Node;
+
     fn generate(&self, g: &mut Generator) {
         let fields = self.attrs.iter().map(|attr| {
             let name = &attr.name;
@@ -28,15 +30,15 @@ impl<S: Syntax> Generate for Component<S> {
 
         let children = match &self.body {
             ElementBody::Normal { children, .. } => {
-                let output_ident = Generator::output_ident();
+                let buffer_ident = Generator::buffer_ident();
 
                 let block = g.block_with(Brace::default(), |g| {
                     g.push(children);
                 });
 
                 let lazy = quote! {
-                    ::hypertext::Lazy(
-                        |#output_ident: &mut ::hypertext::String|
+                    ::hypertext::Lazy::dangerously_create(
+                        |#buffer_ident: &mut ::hypertext::Buffer|
                             #block
                     )
                 };
@@ -66,7 +68,7 @@ impl<S: Syntax> Generate for Component<S> {
             }
         };
 
-        g.push_element_expr(Paren::default(), &init);
+        g.push_expr(Paren::default(), Self::CONTEXT, &init);
     }
 }
 

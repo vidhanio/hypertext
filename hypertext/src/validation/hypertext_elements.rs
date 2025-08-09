@@ -1,102 +1,16 @@
-//! All standard HTML elements.
+//! All built-in elements.
 //!
 //! This module can be overridden in your own crate to add custom HTML elements.
-//! See the documentation for [`elements!`] or [`GlobalAttributes`] for more
-//! information.
+//! See the documentation for [`define_elements!`] or [`GlobalAttributes`] for
+//! more information.
 //!
-//! [`elements!`]: crate::elements
-//! [`GlobalAttributes`]: crate::attributes::GlobalAttributes
+//! [`GlobalAttributes`]: crate::validation::attributes::GlobalAttributes
 
 #[cfg(feature = "mathml")]
-pub use crate::mathml::elements::*;
+pub use super::mathml::elements::*;
+use crate::{define_elements, define_void_elements};
 
-/// Create a set of HTML elements.
-///
-/// This macro should be called from within a module named `html_elements`.
-///
-/// # Example
-///
-/// ```rust
-/// mod html_elements {
-///     use hypertext::elements;
-///     // Re-export all standard HTML elements
-///     pub use hypertext::html_elements::*;
-///
-///     elements! {
-///         /// A custom web component that greets the user.
-///         simple_greeting {
-///             /// The name of the person to greet.
-///             name
-///         }
-///
-///         /// An element representing a coordinate.
-///         coordinate {
-///             /// The x coordinate.
-///             x
-///
-///             /// The y coordinate.
-///             y
-///         }
-///     }
-/// }
-///
-/// // Now, you can use the custom elements like this:
-///
-/// use hypertext::prelude::*;
-///
-/// assert_eq!(
-///     maud! {
-///         simple-greeting name="Alice" {
-///             coordinate x=1 y=2 {}
-///         }
-///     }.render(),
-///     Rendered(r#"<simple-greeting name="Alice"><coordinate x="1" y="2"></coordinate></simple-greeting>"#),
-/// )
-/// ```
-#[macro_export]
-macro_rules! elements {
-    {
-        $(
-            $(#[$meta:meta])*
-            $name:ident $(
-                {
-                    $(
-                        $(#[$attr_meta:meta])*
-                        $attr:ident
-                    )*
-                }
-            )?
-        )*
-    } => {
-        $(
-            $(#[$meta])*
-            #[expect(
-                non_camel_case_types,
-                reason = "camel case types will be interpreted as components"
-            )]
-            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
-            pub struct $name;
-
-            $(
-                #[allow(non_upper_case_globals)]
-                impl $name {
-                    $(
-                        $(#[$attr_meta])*
-                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
-                    )*
-                }
-            )?
-
-            impl $crate::validation::Element for $name {
-                type Kind = $crate::validation::Normal;
-            }
-
-            impl $crate::attributes::GlobalAttributes for $name {}
-        )*
-    }
-}
-
-elements! {
+define_elements! {
     /// The root of an HTML document.
     html
 
@@ -924,82 +838,7 @@ elements! {
     }
 }
 
-/// Create a set of HTML void elements.
-///
-/// This macro should be called from within a module named `html_elements`.
-///
-/// # Example
-/// ```rust
-/// mod html_elements {
-///     // Re-export all standard HTML elements
-///     pub use hypertext::html_elements::*;
-///     use hypertext::void_elements;
-///
-///     void_elements! {
-///         /// A custom void element that greets the user.
-///         simple_greeting {
-///             /// The name of the person to greet.
-///             name
-///         }
-///     }
-/// }
-///
-/// // Now, you can use the custom elements like this:
-///
-/// use hypertext::prelude::*;
-///
-/// assert_eq!(
-///     maud! {
-///         simple-greeting name="Alice";
-///     }
-///     .render(),
-///     Rendered(r#"<simple-greeting name="Alice">"#),
-/// )
-/// ```
-#[macro_export]
-macro_rules! void_elements {
-    {
-        $(
-            $(#[$meta:meta])*
-            $name:ident $(
-                {
-                    $(
-                        $(#[$attr_meta:meta])*
-                        $attr:ident
-                    )*
-                }
-            )?
-        )*
-    } => {
-        $(
-            $(#[$meta])*
-            #[expect(
-                non_camel_case_types,
-                reason = "camel case types will be interpreted as components"
-            )]
-            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
-            pub struct $name;
-
-            $(
-                #[allow(non_upper_case_globals)]
-                impl $name {
-                    $(
-                        $(#[$attr_meta])*
-                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
-                    )*
-                }
-            )?
-
-            impl $crate::validation::Element for $name {
-                type Kind = $crate::validation::Void;
-            }
-
-            impl $crate::attributes::GlobalAttributes for $name {}
-        )*
-    }
-}
-
-void_elements! {
+define_void_elements! {
     /// Either a hyperlink with some text and a corresponding area on an image
     /// map, or a dead area on an image map.
     area {
