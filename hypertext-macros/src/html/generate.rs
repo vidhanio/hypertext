@@ -246,7 +246,7 @@ impl Context {
             Self::AttributeValue => Ident::new("AttributeValue", Span::mixed_site()),
         };
 
-        quote!(::hypertext::#ident)
+        quote!(::hypertext::context::#ident)
     }
 }
 

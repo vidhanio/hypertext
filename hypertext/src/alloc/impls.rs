@@ -8,7 +8,10 @@ use super::alloc::{
     sync::Arc,
     vec::Vec,
 };
-use crate::{AttributeBuffer, AttributeValue, Buffer, Context, Node, Raw, Renderable, Rendered};
+use crate::{
+    AttributeBuffer, Buffer, Raw, Renderable, Rendered,
+    context::{AttributeValue, Context, Node},
+};
 
 impl<T: AsRef<str>, C: Context> Renderable<C> for Raw<T, C> {
     #[inline]

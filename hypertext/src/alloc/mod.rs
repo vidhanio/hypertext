@@ -13,7 +13,10 @@ use core::{
 };
 
 pub use self::macros::*;
-use crate::{AttributeValue, Context, Node, Raw, Rendered, const_precise_live_drops_hack};
+use crate::{
+    Raw, Rendered, const_precise_live_drops_hack,
+    context::{AttributeValue, Context, Node},
+};
 
 /// The buffer used for rendering HTML.
 ///
