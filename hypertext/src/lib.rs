@@ -216,7 +216,7 @@ pub mod prelude;
 
 use core::{fmt::Debug, marker::PhantomData};
 
-/// Render static HTML attributes.
+/// Generate static HTML attributes.
 ///
 /// This will return a [`RawAttribute<&str>`], which can be used in `const`
 /// contexts.
@@ -235,7 +235,7 @@ use core::{fmt::Debug, marker::PhantomData};
 /// );
 /// ```
 pub use hypertext_macros::attribute_static;
-/// Render static HTML using [`maud`] syntax.
+/// Generate static HTML using [`maud`] syntax.
 ///
 /// For details about the syntax, see [`maud!`].
 ///
@@ -263,7 +263,7 @@ pub use hypertext_macros::attribute_static;
 ///
 /// [`maud`]: https://docs.rs/maud
 pub use hypertext_macros::maud_static;
-/// Render static HTML using rsx syntax.
+/// Generate static HTML using rsx syntax.
 ///
 /// This will return a [`Raw<&str>`], which can be used in `const`
 /// contexts.
