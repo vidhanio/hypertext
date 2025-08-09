@@ -152,7 +152,7 @@
 //! ```
 //!
 //! This library also supports component structs, which are simply structs that
-//! implement [`Renderable`] If an element name is capitalized, it will be
+//! implement [`Renderable`]. If an element name is capitalized, it will be
 //! treated as a component, with attributes representing the struct fields. The
 //! [`#[component]`](component) macro can be used to easily turn functions into
 //! components.
@@ -196,7 +196,7 @@
 //! [`class`]: attributes::GlobalAttributes::class
 //! [`title`]: attributes::GlobalAttributes::title
 //! [`HtmxAttributes`]: attributes::HtmxAttributes
-//! [`AlpineJsAttributes`]: attributes::HtmxAttributes
+//! [`AlpineJsAttributes`]: attributes::AlpineJsAttributes
 #![no_std]
 #![warn(clippy::missing_inline_in_public_items)]
 #![cfg_attr(docsrs, expect(internal_features))]
