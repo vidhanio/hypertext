@@ -1,3 +1,5 @@
+use core::fmt::{self, Write};
+
 use super::alloc::{
     borrow::{Cow, ToOwned},
     boxed::Box,
@@ -6,7 +8,59 @@ use super::alloc::{
     sync::Arc,
     vec::Vec,
 };
-use crate::{AttributeBuffer, AttributeValue, Buffer, Context, Node, Renderable, Rendered};
+use crate::{AttributeBuffer, AttributeValue, Buffer, Context, Node, Raw, Renderable, Rendered};
+
+impl<T: AsRef<str>, C: Context> Renderable<C> for Raw<T, C> {
+    #[inline]
+    fn render_to(&self, buffer: &mut Buffer<C>) {
+        // XSS SAFETY: `Raw` values are expected to be pre-escaped for
+        // the rendering context.
+        buffer
+            .dangerously_get_string()
+            .push_str(self.inner.as_ref());
+    }
+
+    #[inline]
+    fn render(&self) -> Rendered<String> {
+        Rendered(self.inner.as_ref().into())
+    }
+}
+
+impl Renderable for fmt::Arguments<'_> {
+    #[inline]
+    fn render_to(&self, buffer: &mut Buffer) {
+        struct ElementEscaper<'a>(&'a mut String);
+
+        impl Write for ElementEscaper<'_> {
+            #[inline]
+            fn write_str(&mut self, s: &str) -> fmt::Result {
+                html_escape::encode_text_to_string(s, self.0);
+                Ok(())
+            }
+        }
+
+        // XSS SAFETY: `ElementEscaper` will escape special characters.
+        _ = ElementEscaper(buffer.dangerously_get_string()).write_fmt(*self);
+    }
+}
+
+impl Renderable<AttributeValue> for fmt::Arguments<'_> {
+    #[inline]
+    fn render_to(&self, buffer: &mut AttributeBuffer) {
+        struct AttributeEscaper<'a>(&'a mut String);
+
+        impl Write for AttributeEscaper<'_> {
+            #[inline]
+            fn write_str(&mut self, s: &str) -> fmt::Result {
+                html_escape::encode_double_quoted_attribute_to_string(s, self.0);
+                Ok(())
+            }
+        }
+
+        // XSS SAFETY: `AttributeEscaper` will escape special characters.
+        _ = AttributeEscaper(buffer.dangerously_get_string()).write_fmt(*self);
+    }
+}
 
 impl Renderable for char {
     #[inline]

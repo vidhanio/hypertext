@@ -310,8 +310,8 @@ pub trait Context: sealed::Sealed {}
 /// Traits and types with this marker type expect complete HTML nodes. If
 /// rendering string-like types, the value/implementation must escape `&` to
 /// `&amp;`, `<` to `&lt;`, and `>` to `&gt;`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Node {}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub struct Node;
 
 impl Context for Node {}
 
@@ -320,8 +320,8 @@ impl Context for Node {}
 /// Traits and types with this marker type expect an attribute value which will
 /// eventually be surrounded by double quotes. The value/implementation must
 /// escape `&` to `&amp;`, `<` to `&lt;`, `>` to `&gt;`, and `"` to `&quot;`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AttributeValue {}
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub struct AttributeValue;
 
 impl Context for AttributeValue {}
 
@@ -333,7 +333,7 @@ mod sealed {
     impl Sealed for AttributeValue {}
 }
 
-/// A raw pre-escaped value.
+/// A raw pre-escaped string.
 ///
 /// For [`Raw<T, Node>`] (a.k.a. [`Raw<T>`]), this must contain complete HTML
 /// nodes. If rendering string-like types, the value must escape `&` to `&amp;`,
@@ -350,7 +350,7 @@ mod sealed {
 ///
 /// This is useful for rendering raw HTML, but should be used with caution
 /// as it can lead to XSS vulnerabilities if used incorrectly. If you are
-/// unsure, render the value itself, as its [`Renderable`] implementation will
+/// unsure, render the string itself, as its [`Renderable`] implementation will
 /// escape any dangerous characters.
 ///
 /// # Example
@@ -375,13 +375,13 @@ mod sealed {
 /// )
 /// ```
 #[derive(Clone, Copy, Default, Eq, Hash)]
-pub struct Raw<T, C = Node> {
+pub struct Raw<T: AsRef<str>, C: Context = Node> {
     inner: T,
     phantom: PhantomData<C>,
 }
 
-impl<T, C> Raw<T, C> {
-    /// Creates a new [`Raw`] from the given value.
+impl<T: AsRef<str>, C: Context> Raw<T, C> {
+    /// Creates a new [`Raw`] from the given string.
     ///
     /// It is recommended to add a `// XSS SAFETY` comment above the usage of
     /// this function to indicate why it is safe to directly use the
@@ -402,31 +402,40 @@ impl<T, C> Raw<T, C> {
 
     /// Gets a reference to the inner value.
     #[inline]
-    pub const fn as_inner(&self) -> &T {
-        &self.inner
+    pub fn as_str(&self) -> &str {
+        self.inner.as_ref()
     }
 }
 
-impl<'a> Raw<&'a str> {
-    /// Converts the [`Raw<&str>`] into a [`Rendered<&str>`].
+impl<T: AsRef<str>> Raw<T> {
+    /// Converts the [`Raw<T>`] into a [`Rendered<T>`].
     #[inline]
     #[must_use]
-    pub const fn rendered(self) -> Rendered<&'a str> {
+    pub fn rendered(self) -> Rendered<T> {
         Rendered(self.inner)
     }
 }
 
-impl<T: PartialEq<U>, C, U> PartialEq<Raw<U, C>> for Raw<T, C> {
+impl<T: AsRef<str> + Copy> Raw<T> {
+    /// Converts the [`Raw<T>`] into a [`Rendered<T>`] in a `const` context.
+    #[inline]
+    #[must_use]
+    pub const fn const_rendered(self) -> Rendered<T> {
+        Rendered(self.inner)
+    }
+}
+
+impl<T: AsRef<str> + PartialEq<U>, C: Context, U: AsRef<str>> PartialEq<Raw<U, C>> for Raw<T, C> {
     #[inline]
     fn eq(&self, other: &Raw<U, C>) -> bool {
         self.inner == other.inner
     }
 }
 
-impl<T: Debug, C> Debug for Raw<T, C> {
+impl<T: AsRef<str>, C: Context> Debug for Raw<T, C> {
     #[inline]
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_tuple("Raw").field(&self.inner).finish()
+        f.debug_tuple("Raw").field(&self.inner.as_ref()).finish()
     }
 }
 
@@ -438,13 +447,13 @@ pub type RawAttribute<T> = Raw<T, AttributeValue>;
 /// A rendered HTML string.
 ///
 /// This type is returned by [`Renderable::render`] ([`Rendered<String>`]), as
-/// well as [`Raw::rendered`] ([`Rendered<&str>`]).
+/// well as [`Raw<T>::rendered`] ([`Rendered<T>`]).
 ///
 /// This type intentionally does **not** implement [`Renderable`] to discourage
 /// anti-patterns such as rendering to a string then embedding that HTML string
-/// into another page. To do this, you should use [`Raw`], or use
-/// [`RenderableExt::memoize`].
-#[derive(Debug, Clone, Copy, Eq, Hash)]
+/// into another page. To do this, you should use [`RenderableExt::memoize`], or
+/// use [`Raw`] directly.
+#[derive(Debug, Clone, Copy, Default, Eq, Hash)]
 pub struct Rendered<T>(T);
 
 impl<T> Rendered<T> {
