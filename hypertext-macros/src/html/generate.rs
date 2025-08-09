@@ -16,8 +16,6 @@ use super::UnquotedName;
 pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Result<TokenStream> {
     let mut g = Generator::new_closure(T::CONTEXT);
 
-    let len_estimate = tokens.to_string().len();
-
     g.push(syn::parse2::<T>(tokens)?);
 
     let block = g.finish();
@@ -31,7 +29,7 @@ pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Resul
     Ok(quote! {
         ::hypertext::Lazy::<_, #marker_ident>::dangerously_create(
             #move_token |#buffer_ident: &mut ::hypertext::Buffer<#marker_ident>| {
-                #buffer_ident.dangerously_get_string().reserve(#len_estimate);
+
                 #block
             }
         )
@@ -84,25 +82,29 @@ impl Generator {
     }
 
     fn finish(self) -> AnyBlock {
-        let mut stmts = self.checks.to_token_stream();
-
-        if self.lazy {
+        let render = if self.lazy {
             let buffer_ident = Self::buffer_ident();
+            let mut stmts = TokenStream::new();
 
             let mut parts = self.parts.into_iter();
+
+            let mut size_estimate = 0;
 
             while let Some(part) = parts.next() {
                 match part {
                     Part::Static(lit) => {
                         let mut dynamic_stmt = None;
-                        let static_parts =
-                            iter::once(lit).chain(parts.by_ref().map_while(|part| match part {
+                        let static_parts = iter::once(lit)
+                            .chain(parts.by_ref().map_while(|part| match part {
                                 Part::Static(lit) => Some(lit),
                                 Part::Dynamic(stmt) => {
                                     dynamic_stmt = Some(stmt);
                                     None
                                 }
-                            }));
+                            }))
+                            .inspect(|static_part| {
+                                size_estimate += static_part.value().len();
+                            });
 
                         stmts.extend(quote! {
                             #buffer_ident.dangerously_get_string().push_str(::core::concat!(#(#static_parts),*));
@@ -114,13 +116,19 @@ impl Generator {
                     }
                 }
             }
+
+            quote! {
+                #buffer_ident.dangerously_get_string().reserve(#size_estimate);
+                #stmts
+            }
         } else {
             let mut static_parts = Vec::new();
+            let mut errors = TokenStream::new();
 
             for part in self.parts {
                 match part {
                     Part::Static(lit) => static_parts.push(lit),
-                    Part::Dynamic(stmt) => stmts.extend(
+                    Part::Dynamic(stmt) => errors.extend(
                         syn::Error::new_spanned(
                             stmt,
                             "static evaluation cannot contain dynamic parts",
@@ -130,12 +138,20 @@ impl Generator {
                 }
             }
 
-            stmts.extend(quote!(::core::concat!(#(#static_parts),*)));
-        }
+            quote! {
+                #errors
+                ::core::concat!(#(#static_parts),*)
+            }
+        };
+
+        let checks = self.checks;
 
         AnyBlock {
             brace_token: self.brace_token,
-            stmts,
+            stmts: quote! {
+                #checks
+                #render
+            },
         }
     }
 
