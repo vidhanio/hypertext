@@ -25,7 +25,7 @@ use crate::{
 #[repr(transparent)]
 pub struct Buffer<C: Context = Node> {
     inner: String,
-    phantom: PhantomData<C>,
+    context: PhantomData<C>,
 }
 
 /// A buffer used for rendering attribute values.
@@ -42,27 +42,44 @@ impl Buffer {
     #[inline]
     #[must_use]
     pub fn new() -> Self {
-        Self {
-            inner: String::new(),
-            phantom: PhantomData,
-        }
+        // XSS SAFETY: The buffer is empty and does not contain any HTML.
+        Self::dangerously_from_string(String::new())
     }
 
     /// Creates a new [`Buffer`] from the given [`String`].
     ///
     /// It is recommended to add a `// XSS SAFETY` comment above the usage of
-    /// this function to indicate why it is safe to directly use the
-    /// contained raw HTML.
+    /// this function to indicate why the original string is safe to be used as
+    /// raw HTML.
     #[inline]
     #[must_use]
     pub fn dangerously_from_string(string: String) -> Self {
         Self {
             inner: string,
-            phantom: PhantomData,
+            context: PhantomData,
         }
     }
 
-    /// Convert this into an [`&mut AttributeBuffer`](AttributeBuffer).
+    /// Creates a new [`&mut Buffer`](Buffer) from the given [`&mut
+    /// String`](String).
+    ///
+    /// It is recommended to add a `// XSS SAFETY` comment above the usage of
+    /// this function to indicate why the original string is safe to be used as
+    /// raw HTML.
+    #[inline]
+    #[must_use]
+    pub fn dangerously_from_string_mut(string: &mut String) -> &mut Self {
+        // SAFETY:
+        // - `Buffer<C>` is a `#[repr(transparent)]` wrapper around `String`, differing
+        //   only in the zero-sized `PhantomData` marker type.
+        // - `PhantomData` does not affect memory layout, so the layout of `Buffer<C>`
+        //   and `String` is guaranteed to be identical by Rust's type system.
+        // - The lifetime of the reference is preserved, and there are no aliasing or
+        //   validity issues, as both types are functionally identical at runtime.
+        unsafe { &mut *ptr::from_mut(string).cast::<Self>() }
+    }
+
+    /// Converts this into an [`&mut AttributeBuffer`](AttributeBuffer).
     #[inline]
     pub fn as_attribute_buffer(&mut self) -> &mut AttributeBuffer {
         // SAFETY:
@@ -78,7 +95,7 @@ impl Buffer {
         unsafe { &mut *ptr::from_mut(self).cast::<AttributeBuffer>() }
     }
 
-    /// Render the buffer to a [`Rendered<String>`].
+    /// Renders the buffer to a [`Rendered<String>`].
     #[inline]
     #[must_use]
     pub fn rendered(self) -> Rendered<String> {
@@ -91,7 +108,7 @@ impl Buffer {
     reason = "`Buffer` does not make sense in `const` contexts"
 )]
 impl<C: Context> Buffer<C> {
-    /// Get a mutable reference to the inner [`String`].
+    /// Gets a mutable reference to the inner [`String`].
     ///
     /// For [`Buffer<Node>`] (a.k.a. [`Buffer`]) writes, the caller must push
     /// complete HTML nodes. If rendering string-like types, the pushed contents
@@ -196,7 +213,7 @@ pub trait Renderable<C: Context = Node> {
     fn render_to(&self, buffer: &mut Buffer<C>);
 
     /// Renders this value to a string. This is a convenience method that
-    /// calls [`render_to`] on a new [`String`] and returns the result.
+    /// calls [`render_to`] into a new [`Buffer`] and returns the result.
     ///
     /// If overriden for performance reasons, this must match the implementation
     /// of [`render_to`].
@@ -245,7 +262,7 @@ impl<T: Renderable> RenderableExt for T {}
 #[must_use = "`Lazy` does nothing unless `.render()` or `.render_to()` is called"]
 pub struct Lazy<F: Fn(&mut Buffer<C>), C: Context = Node> {
     f: F,
-    phantom: PhantomData<C>,
+    context: PhantomData<C>,
 }
 
 /// An attribute value lazily rendered via a closure.
@@ -263,7 +280,7 @@ impl<F: Fn(&mut Buffer<C>), C: Context> Lazy<F, C> {
     pub const fn dangerously_create(f: F) -> Self {
         Self {
             f,
-            phantom: PhantomData,
+            context: PhantomData,
         }
     }
 

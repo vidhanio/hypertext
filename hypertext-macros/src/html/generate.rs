@@ -186,7 +186,7 @@ impl Generator {
                 quote!(#buffer_ident)
             }
             (Context::Node, Context::AttributeValue) => {
-                quote!(&mut #buffer_ident.as_attribute_buffer())
+                quote!(#buffer_ident.as_attribute_buffer())
             }
             (Context::AttributeValue, Context::Node) => unreachable!(),
         };
@@ -294,9 +294,8 @@ impl ToTokens for Checks {
 
                 #[doc(hidden)]
                 fn check_element<
-                    T: ::hypertext::validation::Element<Kind = K>,
                     K: ::hypertext::validation::ElementKind
-                >(_: T) {}
+                >(_: impl ::hypertext::validation::Element<Kind = K>) {}
 
                 #(#checks)*
             };
@@ -359,7 +358,7 @@ impl ToTokens for ElementCheck {
                 let el = Ident::new_raw(&self.ident, *span);
 
                 quote! {
-                    check_element::<_, #kind>(#el);
+                    check_element::<#kind>(#el);
                 }
             });
 

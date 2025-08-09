@@ -818,8 +818,10 @@ impl Toggle {
         });
 
         quote! {
-            #[allow(unused_parens)]
-            #tokens
+            {
+                #[allow(unused_parens)]
+                #tokens
+            }
         }
     }
 

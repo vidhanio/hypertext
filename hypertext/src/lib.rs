@@ -34,6 +34,7 @@
 //!
 //! ```rust
 //! use hypertext::prelude::*;
+//! # use hypertext::{Lazy, context::Node, Buffer, validation::{Element, ElementKind, Attribute, Normal}};
 //!
 //! # assert_eq!(
 //! maud! {
@@ -53,41 +54,33 @@
 //!
 //! // expands to (roughly):
 //!
-//! hypertext::Lazy::dangerously_create(move |buffer: &mut hypertext::Buffer| {
-//!     const _: () = {
+//! Lazy::<_, Node>::dangerously_create(move |buffer: &mut Buffer| {
+//!     const _: fn() = || {
 //!         use hypertext_elements::*;
-//!
-//!         #[doc(hidden)]
-//!         const fn check_element<
-//!             T: hypertext::validation::Element<Kind = K>,
-//!             K: hypertext::validation::ElementKind,
-//!         >() {
-//!         }
-//!
-//!         check_element::<h1, hypertext::validation::Normal>();
-//!         let _: hypertext::validation::Attribute = h1::class;
-//!
-//!         check_element::<p, hypertext::validation::Normal>();
-//!         let _: hypertext::validation::Attribute = p::class;
-//!
-//!         check_element::<div, hypertext::validation::Normal>();
-//!         let _: hypertext::validation::Attribute = div::id;
-//!         let _: hypertext::validation::Attribute = div::title;
+//!         fn check_element<K: ElementKind>(_: impl Element<Kind = K>) {}
+//!     
+//!         check_element::<Normal>(h1);
+//!         let _: Attribute = <h1>::class;
+//!         check_element::<Normal>(p);
+//!         let _: Attribute = <p>::class;
+//!         check_element::<Normal>(div);
+//!         let _: Attribute = <div>::id;
+//!         let _: Attribute = <div>::title;
 //!     };
 //!     buffer
 //!         .dangerously_get_string()
-//!         .push_str("<div id=\"main\" title=\"Main Div\">");
+//!         .push_str(r#"<div id="main" title="Main Div">"#);
 //!     {
 //!         buffer
 //!             .dangerously_get_string()
-//!             .push_str("<h1 class=\"important\">Hello, world!</h1>");
+//!             .push_str(r#"<h1 class="important">Hello, world!</h1>"#);
 //!         for i in 1..=3 {
 //!             buffer.dangerously_get_string().push_str("<p class=\"p-");
-//!             hypertext::Renderable::render_to(&i, &mut buffer.as_attribute_buffer());
+//!             i.render_to(buffer.as_attribute_buffer());
 //!             buffer
 //!                 .dangerously_get_string()
-//!                 .push_str("\">This is paragraph number ");
-//!             hypertext::Renderable::render_to(&i, buffer);
+//!                 .push_str(r#"">This is paragraph number "#);
+//!             i.render_to(buffer);
 //!             buffer.dangerously_get_string().push_str("</p>");
 //!         }
 //!     }
@@ -259,7 +252,7 @@ pub use self::macros::*;
 #[derive(Clone, Copy, Default, Eq, Hash)]
 pub struct Raw<T: AsRef<str>, C: Context = Node> {
     inner: T,
-    phantom: PhantomData<C>,
+    context: PhantomData<C>,
 }
 
 impl<T: AsRef<str>, C: Context> Raw<T, C> {
@@ -272,7 +265,7 @@ impl<T: AsRef<str>, C: Context> Raw<T, C> {
     pub const fn dangerously_create(value: T) -> Self {
         Self {
             inner: value,
-            phantom: PhantomData,
+            context: PhantomData,
         }
     }
 
