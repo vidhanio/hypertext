@@ -88,6 +88,15 @@ impl Buffer {
 impl<C: Context> Buffer<C> {
     /// Get a mutable reference to the inner [`String`].
     ///
+    /// For [`Buffer<Node>`] (a.k.a. [`Buffer`]) writes, the caller must push
+    /// complete HTML nodes. The pushed contents must escape `&` to `&amp;`,
+    /// `<` to `&lt;`, and `>` to `&gt;` if rendering string-like types.
+    ///
+    /// For [`Buffer<AttributeValue>`] (a.k.a. [`AttributeBuffer`]) writes, the
+    /// caller must push attribute values which will eventually be surrounded by
+    /// double quotes. The pushed contents must escape `&` to `&amp;`, `<` to
+    /// `&lt;`, `>` to `&gt;`, and `"` to `&quot;`.
+    ///
     /// This should only be needed in very specific cases, such as manually
     /// constructing raw HTML, usually within a [`Renderable::render_to`]
     /// implementation.
