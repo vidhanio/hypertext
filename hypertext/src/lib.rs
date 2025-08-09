@@ -307,9 +307,9 @@ pub trait Context: sealed::Sealed {}
 /// All types and traits that are generic over [`Context`] use [`Node`]
 /// as the default for the generic type parameter.
 ///
-/// Traits and types with this marker type expect complete HTML nodes. The
-/// value/implementation must escape `&` to `&amp;`, `<` to `&lt;`, and `>` to
-/// `&gt;` if rendering string-like types.
+/// Traits and types with this marker type expect complete HTML nodes. If
+/// rendering string-like types, the value/implementation must escape `&` to
+/// `&amp;`, `<` to `&lt;`, and `>` to `&gt;`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Node {}
 
@@ -336,8 +336,8 @@ mod sealed {
 /// A raw pre-escaped value.
 ///
 /// For [`Raw<T, Node>`] (a.k.a. [`Raw<T>`]), this must contain complete HTML
-/// nodes. The value must escape `&` to `&amp;`, `<` to `&lt;`, and `>` to
-/// `&gt;` if rendering string-like types.
+/// nodes. If rendering string-like types, the value must escape `&` to `&amp;`,
+/// `<` to `&lt;`, and `>` to `&gt;`.
 ///
 /// For [`Raw<T, AttributeValue>`] (a.k.a. [`RawAttribute<T>`]), this must
 /// contain an attribute value which will eventually be surrounded by double

@@ -89,8 +89,8 @@ impl<C: Context> Buffer<C> {
     /// Get a mutable reference to the inner [`String`].
     ///
     /// For [`Buffer<Node>`] (a.k.a. [`Buffer`]) writes, the caller must push
-    /// complete HTML nodes. The pushed contents must escape `&` to `&amp;`,
-    /// `<` to `&lt;`, and `>` to `&gt;` if rendering string-like types.
+    /// complete HTML nodes. If rendering string-like types, the pushed contents
+    /// must escape `&` to `&amp;`, `<` to `&lt;`, and `>` to `&gt;`.
     ///
     /// For [`Buffer<AttributeValue>`] (a.k.a. [`AttributeBuffer`]) writes, the
     /// caller must push attribute values which will eventually be surrounded by
@@ -151,8 +151,8 @@ pub type AttributeBuffer = Buffer<AttributeValue>;
 /// A type that can be rendered as an HTML node.
 ///
 /// For [`Renderable<Node>`] (a.k.a. [`Renderable`]) implementations, this
-/// must render complete HTML nodes. The implementation must escape `&` to
-/// `&amp;`, `<` to `&lt;`, and `>` to `&gt;` if rendering string-like types.
+/// must render complete HTML nodes. If rendering string-like types, the
+/// implementation must escape `&` to `&amp;`, `<` to `&lt;`, and `>` to `&gt;`.
 ///
 /// For [`Renderable<AttributeValue>`] implementations, this must render an
 /// attribute value which will eventually be surrounded by double quotes. The
@@ -237,8 +237,8 @@ impl<T: Renderable> RenderableExt for T {}
 /// variants.
 ///
 /// For [`Lazy<F, Node>`] (a.k.a. [`Lazy<F>`]), this must render complete
-/// HTML nodes. The closure must escape `&` to `&amp;`, `<` to `&lt;`,
-/// and `>` to `&gt;` if rendering string-like types.
+/// HTML nodes. If rendering string-like types, the closure must escape `&` to
+/// `&amp;`, `<` to `&lt;`, and `>` to `&gt;`.
 ///
 /// For [`Lazy<F, AttributeValue>`] (a.k.a. [`LazyAttribute<F>`]), this must
 /// render an attribute value which will eventually be surrounded by double
