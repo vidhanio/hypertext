@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1](https://github.com/vidhanio/hypertext/compare/hypertext-v0.12.0...hypertext-v0.12.1) - 2025-08-09
+
+### Other
+
+- cleanup docs and implementations
+- make len estimate better
+
 ## [0.12.0](https://github.com/vidhanio/hypertext/compare/hypertext-v0.11.0...hypertext-v0.12.0) - 2025-08-09
 
 ### Added
