@@ -10,9 +10,10 @@
 //! ```
 //!
 //! Then you can use the attributes in your code after bringing the trait into
-//! scope:
+//! scope via [`prelude::*`](crate::prelude):
 //!
 //! ```rust
+//! # #[cfg(feature = "htmx")] {
 //! use hypertext::prelude::*;
 //!
 //! # assert_eq!(
@@ -20,6 +21,7 @@
 //!     a hx-get="/about" { "About" }
 //! }
 //! # .render().as_inner(), r#"<a hx-get="/about">About</a>"#);
+//! # }
 //! ```
 #![allow(non_upper_case_globals)]
 #[cfg(feature = "mathml")]
