@@ -103,6 +103,7 @@ jobs:
 
     needs:
       - test
+      - miri
       - check
       - format
 
@@ -136,6 +137,7 @@ jobs:
 
     needs:
       - test
+      - miri
       - check
       - format
 
