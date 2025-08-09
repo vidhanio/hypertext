@@ -1,6 +1,6 @@
 //! The [`Context`] trait and its implementors.
 
-/// The context that the value is being rendered to.
+/// A marker trait to represent the context that the value is being rendered to.
 ///
 /// This can be either [`Node`] or an [`AttributeValue`]. A [`Node`]
 /// represents an HTML node, while an [`AttributeValue`] represents an attribute
@@ -11,7 +11,7 @@
 /// an HTML element into an attribute value.
 pub trait Context: sealed::Sealed {}
 
-/// An HTML element node.
+/// A marker type to represent a complete element node.
 ///
 /// All types and traits that are generic over [`Context`] use [`Node`]
 /// as the default for the generic type parameter.
@@ -24,7 +24,7 @@ pub struct Node;
 
 impl Context for Node {}
 
-/// An HTML attribute value.
+/// A marker type to represent an attribute value.
 ///
 /// Traits and types with this marker type expect an attribute value which will
 /// eventually be surrounded by double quotes. The value/implementation must

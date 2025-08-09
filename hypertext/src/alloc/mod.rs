@@ -1,7 +1,6 @@
 #![allow(clippy::doc_markdown)]
 
 mod impls;
-mod macros;
 
 extern crate alloc;
 
@@ -12,7 +11,6 @@ use core::{
     ptr,
 };
 
-pub use self::macros::*;
 use crate::{
     Raw, Rendered, const_precise_live_drops_hack,
     context::{AttributeValue, Context, Node},
@@ -64,7 +62,7 @@ impl Buffer {
         }
     }
 
-    /// Turn this into an [`&mut AttributeBuffer`](AttributeBuffer).
+    /// Convert this into an [`&mut AttributeBuffer`](AttributeBuffer).
     #[inline]
     pub fn as_attribute_buffer(&mut self) -> &mut AttributeBuffer {
         // SAFETY:
@@ -235,9 +233,6 @@ impl<T: Renderable> RenderableExt for T {}
 
 /// A value lazily rendered via a closure.
 ///
-/// This is the type returned by [`maud!`] and [`rsx!`], as well as their `move`
-/// variants.
-///
 /// For [`Lazy<F, Node>`] (a.k.a. [`Lazy<F>`]), this must render complete
 /// HTML nodes. If rendering string-like types, the closure must escape `&` to
 /// `&amp;`, `<` to `&lt;`, and `>` to `&gt;`.
@@ -304,8 +299,13 @@ impl<F: Fn(&mut Buffer<C>), C: Context> Debug for Lazy<F, C> {
 ///
 /// This will handle escaping special characters for you.
 ///
-/// This can be created more easily via the `%(...)` syntax in [`maud!`] and
-/// [`rsx!`], which will automatically wrap the expression in this type.
+/// This can be created more easily via the `%(...)` syntax in [`maud!`],
+/// [`rsx!`], and [`attribute!`] which will automatically wrap the expression in
+/// this type.
+///
+/// [`maud!`]: crate::maud
+/// [`rsx!`]: crate::rsx
+/// [`attribute!`]: crate::attribute
 #[derive(Debug, Clone, Copy)]
 #[doc(alias = "%(...)")]
 pub struct Displayed<T: Display>(pub T);
@@ -324,8 +324,13 @@ where
 ///
 /// This will handle escaping special characters for you.
 ///
-/// This can be created more easily via the `?(...)` syntax in [`maud!`] and
-/// [`rsx!`], which will automatically wrap the expression in this type.
+/// This can be created more easily via the `?(...)` syntax in [`maud!`],
+/// [`rsx!`], and [`attribute!`] which will automatically wrap the expression in
+/// this type.
+///
+/// [`maud!`]: crate::maud
+/// [`rsx!`]: crate::rsx
+/// [`attribute!`]: crate::attribute
 #[derive(Debug, Clone, Copy)]
 #[doc(alias = "?(...)")]
 pub struct Debugged<T: Debug>(pub T);

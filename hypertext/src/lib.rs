@@ -22,9 +22,9 @@
 //! misspell an element/attribute or use invalid attributes.
 //!
 //! It does this by looking in your current namespace, or a module named
-//! `html_elements` (all the valid HTML elements are defined in this crate
-//! already in [`html_elements`], but it doesn't hard-code this module so you
-//! can define your own elements).
+//! `hypertext_elements` (all the valid HTML elements are defined in this crate
+//! already in [`hypertext_elements`](validation::hypertext_elements), but it
+//! doesn't hard-code this module so you can define your own elements).
 //!
 //! It then imports each element you use in your macro invocation, and then
 //! attempts to access the corresponding associated type for each attribute you
@@ -55,7 +55,7 @@
 //!
 //! hypertext::Lazy::dangerously_create(move |buffer: &mut hypertext::Buffer| {
 //!     const _: () = {
-//!         use html_elements::*;
+//!         use hypertext_elements::*;
 //!
 //!         #[doc(hidden)]
 //!         const fn check_element<
@@ -102,7 +102,8 @@
 //! example, as it defines the attributes that can be used on any element, for
 //! example [`id`], [`class`], and [`title`]. This library comes with built-in
 //! support for many popular frontend attribute-based frameworks in
-//! [`attributes`], such as [`HtmxAttributes`] and [`AlpineJsAttributes`]
+//! [`validation::attributes`], such as [`HtmxAttributes`] and
+//! [`AlpineJsAttributes`]
 //!
 //! Here's an example of how you could define your own attributes for use with
 //! the wonderful frontend library [htmx](https://htmx.org):
@@ -191,107 +192,32 @@
 //! );
 //! ```
 //!
-//! [`GlobalAttributes`]: attributes::GlobalAttributes
-//! [`id`]: attributes::GlobalAttributes::id
-//! [`class`]: attributes::GlobalAttributes::class
-//! [`title`]: attributes::GlobalAttributes::title
-//! [`HtmxAttributes`]: attributes::HtmxAttributes
-//! [`AlpineJsAttributes`]: attributes::AlpineJsAttributes
+//! [`GlobalAttributes`]: validation::attributes::GlobalAttributes
+//! [`id`]: validation::attributes::GlobalAttributes::id
+//! [`class`]: validation::attributes::GlobalAttributes::class
+//! [`title`]: validation::attributes::GlobalAttributes::title
+//! [`HtmxAttributes`]: validation::attributes::HtmxAttributes
+//! [`AlpineJsAttributes`]: validation::attributes::AlpineJsAttributes
 
 #![no_std]
 #![warn(clippy::missing_inline_in_public_items)]
 #![cfg_attr(docsrs, expect(internal_features))]
-#![cfg_attr(docsrs, feature(rustdoc_internals, doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(rustdoc_internals, doc_cfg, doc_auto_cfg))]
 
 #[cfg(feature = "alloc")]
 mod alloc;
-pub mod attributes;
 pub mod context;
-pub mod html_elements;
-#[cfg(feature = "mathml")]
-mod mathml;
-pub mod validation;
-mod web;
-
+mod macros;
 pub mod prelude;
+pub mod validation;
+mod web_frameworks;
 
 use core::{fmt::Debug, marker::PhantomData};
 
-/// Generate static HTML attributes.
-///
-/// This will return a [`RawAttribute<&str>`], which can be used in `const`
-/// contexts.
-///
-/// Note that the macro cannot process any dynamic content, so you cannot use
-/// any expressions inside the macro.
-///
-/// # Example
-///
-/// ```
-/// use hypertext::{RawAttribute, attribute_static, prelude::*};
-///
-/// assert_eq!(
-///     attribute_static! { "my attribute " 1 }.into_inner(),
-///     "my attribute 1"
-/// );
-/// ```
-pub use hypertext_macros::attribute_static;
-/// Generate static HTML using [`maud`] syntax.
-///
-/// For details about the syntax, see [`maud!`].
-///
-/// This will return a [`Raw<&str>`], which can be used in `const`
-/// contexts.
-///
-/// Note that the macro cannot process any dynamic content, so you cannot use
-/// any expressions inside the macro.
-///
-/// # Example
-///
-/// ```
-/// use hypertext::{Raw, maud_static, prelude::*};
-///
-/// assert_eq!(
-///     maud_static! {
-///         div #profile title="Profile" {
-///             h1 { "Alice" }
-///        }
-///     }
-///     .into_inner(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
-/// );
-/// ```
-///
-/// [`maud`]: https://docs.rs/maud
-pub use hypertext_macros::maud_static;
-/// Generate static HTML using rsx syntax.
-///
-/// This will return a [`Raw<&str>`], which can be used in `const`
-/// contexts.
-///
-/// Note that the macro cannot process any dynamic content, so you cannot use
-/// any expressions inside the macro.
-///
-/// # Example
-///
-/// ```
-/// use hypertext::{Raw, prelude::*, rsx_static};
-///
-/// assert_eq!(
-///     rsx_static! {
-///         <div id="profile" title="Profile">
-///             <h1>Alice</h1>
-///         </div>
-///     }
-///     .into_inner(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
-/// );
-/// ```
-pub use hypertext_macros::rsx_static;
-
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;
-use crate::context::{AttributeValue, Context, Node};
+use self::context::{AttributeValue, Context, Node};
+pub use self::macros::*;
 
 /// A raw pre-escaped string.
 ///
@@ -303,10 +229,6 @@ use crate::context::{AttributeValue, Context, Node};
 /// contain an attribute value which will eventually be surrounded by double
 /// quotes. The value must escape `&` to `&amp;`, `<` to `&lt;`, `>` to `&gt;`,
 /// and `"` to `&quot;`.
-///
-/// This is the type returned by [`maud_static!`] and [`rsx_static!`]
-/// ([`Raw<&'static str>`]), as well as [`attribute_static!`]
-/// ([`RawAttribute<&'static str>`]).
 ///
 /// This is useful for rendering raw HTML, but should be used with caution
 /// as it can lead to XSS vulnerabilities if used incorrectly. If you are

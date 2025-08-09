@@ -288,15 +288,15 @@ impl ToTokens for Checks {
         let checks = &self.elements;
 
         quote! {
-            const _: () = {
+            const _: fn() = || {
                 #[allow(unused_imports)]
-                use html_elements::*;
+                use hypertext_elements::*;
 
                 #[doc(hidden)]
-                const fn check_element<
+                fn check_element<
                     T: ::hypertext::validation::Element<Kind = K>,
                     K: ::hypertext::validation::ElementKind
-                >() {}
+                >(_: T) {}
 
                 #(#checks)*
             };
@@ -359,7 +359,7 @@ impl ToTokens for ElementCheck {
                 let el = Ident::new_raw(&self.ident, *span);
 
                 quote! {
-                    let _: #el = #el;
+                    check_element::<_, #kind>(#el);
                 }
             });
 
@@ -371,17 +371,12 @@ impl ToTokens for ElementCheck {
                 .unwrap_or_else(Span::mixed_site),
         );
 
-        let check_kind = quote! {
-            check_element::<#el, #kind>();
-        };
-
         let attr_checks = self
             .attributes
             .iter()
             .map(|attr| attr.to_token_stream_with_el(&el));
 
         quote! {
-            #check_kind
             #(#el_checks)*
             #(#attr_checks)*
         }
@@ -425,7 +420,7 @@ impl AttributeCheck {
                 let ident = Ident::new_raw(&self.ident, *span);
 
                 quote! {
-                    let _: #kind = #el::#ident;
+                    let _: #kind = <#el>::#ident;
                 }
             })
             .collect()

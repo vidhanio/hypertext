@@ -1,4 +1,5 @@
-/// Derive [`Renderable`] for a type.
+#![allow(clippy::doc_markdown)]
+/// Derive [`Renderable`](crate::Renderable) for a type.
 ///
 /// # Examples
 ///
@@ -61,10 +62,10 @@
 ///     r#"<div title="10,20">Location</div>"#
 /// );
 /// ```
-///
-/// [`Renderable`]: crate::Renderable
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::Renderable;
-/// Generate an attribute value, returning a [`LazyAttribute`].
+/// Generate an attribute value, returning a
+/// [`LazyAttribute`](crate::LazyAttribute).
 ///
 /// # Example
 ///
@@ -78,19 +79,21 @@ pub use hypertext_macros::Renderable;
 ///     "<div title=\"x01234\">Hi!</div>"
 /// );
 /// ```
-///
-/// [`LazyAttribute`]: crate::LazyAttribute
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::attribute;
 /// Generate an attribute value, borrowing the environment.
 ///
-/// This is identical to [`attribute!`], except that it does not take ownership
-/// of the environment. This is useful when you want to build a
-/// [`LazyAttribute`] using some captured variables, but you still want to be
-/// able to use the variables after the [`LazyAttribute`] is created.
+/// This is identical to [`attribute!`], except that it does not take
+/// ownership of the environment. This is useful when you want to build
+/// a [`LazyAttribute`] using some captured variables, but you still
+/// want to be able to use the variables after the [`LazyAttribute`] is
+/// created.
 ///
 /// [`LazyAttribute`]: crate::LazyAttribute
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::attribute_borrow;
-/// Convert a function returning a [`Renderable`] into a component.
+/// Convert a function returning a [`Renderable`](crate::Renderable) into a
+/// component.
 ///
 /// This is a procedural macro that takes a function and generates a
 /// struct that holds the function's parameters. The struct implements
@@ -109,13 +112,13 @@ pub use hypertext_macros::attribute_borrow;
 /// converting it to PascalCase. If you would like to set a different name,
 /// you can specify it as `#[component(MyComponentName)]` on the function.
 ///
-/// The visibility of the generated struct is determined by the visibility of
-/// the function. If you would like to set a different visibility, you can
-/// specify it as `#[component(pub)]`, `#[component(pub(crate))]`, etc. on the
-/// function.
+/// The visibility of the generated struct is determined by the visibility
+/// of the function. If you would like to set a different visibility,
+/// you can specify it as `#[component(pub)]`,
+/// `#[component(pub(crate))]`, etc. on the function.
 ///
-/// You can combine both of these by setting an attribute like `#[component(pub
-/// MyComponentName)]`.
+/// You can combine both of these by setting an attribute like
+/// `#[component(pub MyComponentName)]`.
 ///
 /// # Example
 ///
@@ -143,10 +146,9 @@ pub use hypertext_macros::attribute_borrow;
 ///     "<div><nav><h1>My Nav Bar</h1><h2>My Subtitle</h2></nav></div>",
 /// );
 /// ```
-///
-/// [`Renderable`]: crate::Renderable
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::component;
-/// Generate HTML using [`maud`] syntax, returning a [`Lazy`].
+/// Generate HTML using [`maud`] syntax, returning a [`Lazy`](crate::Lazy).
 ///
 /// Note that this is not a complete 1:1 port of [`maud`]'s syntax as it is
 /// stricter in some places to prevent anti-patterns.
@@ -180,20 +182,21 @@ pub use hypertext_macros::component;
 /// ```
 ///
 /// [`maud`]: https://docs.rs/maud
-/// [`Lazy`]: crate::Lazy
 /// [`id`]: crate::validation::GlobalAttributes::id
 /// [`class`]: crate::validation::GlobalAttributes::class
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::maud;
 /// Generate HTML using [`maud!`] syntax, borrowing the environment.
 ///
-/// This is identical to [`maud!`], except that it does not take ownership of
-/// the environment. This is useful when you want to build a [`Lazy`] using
-/// some captured variables, but you still want to be able to use the variables
-/// after the [`Lazy`] is created.
+/// This is identical to [`maud!`], except that it does not take ownership
+/// of the environment. This is useful when you want to build a [`Lazy`]
+/// using some captured variables, but you still want to be able to use
+/// the variables after the [`Lazy`] is created.
 ///
 /// [`Lazy`]: crate::Lazy
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::maud_borrow;
-/// Generate HTML using rsx syntax, returning a [`Lazy`].
+/// Generate HTML using rsx syntax, returning a [`Lazy`](crate::Lazy).
 ///
 /// # Example
 ///
@@ -211,15 +214,15 @@ pub use hypertext_macros::maud_borrow;
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#
 /// );
 /// ```
-///
-/// [`Lazy`]: crate::Lazy
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::rsx;
 /// Generate HTML using [`rsx!`] syntax, borrowing the environment.
 ///
 /// This is identical to [`rsx!`], except that it does not take ownership of
 /// the environment. This is useful when you want to build a [`Lazy`] using
-/// some captured variables, but you still want to be able to use the variables
-/// after the [`Lazy`] is created.
+/// some captured variables, but you still want to be able to use the
+/// variables after the [`Lazy`] is created.
 ///
 /// [`Lazy`]: crate::Lazy
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::rsx_borrow;
