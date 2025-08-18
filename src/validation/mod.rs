@@ -4,7 +4,7 @@
 //! that implements [`Element`]. It searches your current scope, then falls back
 //! to searching the contents of an imported module named `hypertext_elements`.
 //! This library has a default [`hypertext_elements`] module, usually brought
-//! into scope via [`use hypertext::prelude::* `](crate::prelude).
+//! into scope via [`use hypertext::prelude::*`](crate::prelude).
 //!
 //! Attributes are validated by accessing a constant with the same name
 //! as the attribute on the element type. More details on the different types of

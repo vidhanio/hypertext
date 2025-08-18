@@ -6,7 +6,6 @@ license.workspace = true
 publish = false
 
 [dependencies]
-anyhow = "1"
 axum = "0.8"
 axum-htmx = "0.8"
 hypertext = { workspace = true, features = ["axum", "htmx"] }
