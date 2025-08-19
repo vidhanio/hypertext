@@ -286,4 +286,4 @@ macro_rules! const_precise_live_drops_hack {
         (&raw const (*(&raw const this).cast::<Self>()).$field).read()
     }};
 }
-pub(crate) use const_precise_live_drops_hack;
+use const_precise_live_drops_hack;

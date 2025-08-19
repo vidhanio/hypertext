@@ -89,7 +89,7 @@ extern crate alloc;
 /// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::Renderable;
-/// Generate an attribute value, returning a
+/// Generates an attribute value, returning a
 /// [`LazyAttribute`](crate::LazyAttribute).
 ///
 /// # Example
@@ -106,7 +106,7 @@ pub use hypertext_macros::Renderable;
 /// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::attribute;
-/// Generate an attribute value, borrowing the environment.
+/// Generates an attribute value, borrowing the environment.
 ///
 /// This is identical to [`attribute!`], except that it does not take
 /// ownership of the environment. This is useful when you want to build
@@ -115,7 +115,7 @@ pub use hypertext_macros::attribute;
 /// invocation.
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::attribute_borrow;
-/// Generate HTML using Maud syntax, returning a [`Lazy`](crate::Lazy).
+/// Generates HTML using Maud syntax, returning a [`Lazy`](crate::Lazy).
 ///
 /// Note that this is not a complete 1:1 port of [Maud](https://maud.lambda.xyz)'s
 /// syntax as it is stricter in some cases to prevent anti-patterns.
@@ -179,7 +179,7 @@ pub use hypertext_macros::attribute_borrow;
 /// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::maud;
-/// Generate HTML using [`maud!`] syntax, borrowing the environment.
+/// Generates HTML using [`maud!`] syntax, borrowing the environment.
 ///
 /// This is identical to [`maud!`], except that it does not take ownership
 /// of the environment. This is useful when you want to build a
@@ -187,7 +187,7 @@ pub use hypertext_macros::maud;
 /// be able to use the captured variables after the invocation.
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::maud_borrow;
-/// Convert a function returning a [`Renderable`](crate::Renderable) into a
+/// Turns a function returning a [`Renderable`](crate::Renderable) into a
 /// struct that implements [`Renderable`](crate::Renderable).
 ///
 /// This macro generates a struct that has fields corresponding to the
@@ -243,7 +243,7 @@ pub use hypertext_macros::maud_borrow;
 /// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::renderable;
-/// Generate HTML using rsx syntax, returning a [`Lazy`](crate::Lazy).
+/// Generates HTML using rsx syntax, returning a [`Lazy`](crate::Lazy).
 ///
 /// # Examples
 ///
@@ -291,7 +291,7 @@ pub use hypertext_macros::renderable;
 /// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::rsx;
-/// Generate HTML using [`rsx!`] syntax, borrowing the environment.
+/// Generates HTML using [`rsx!`] syntax, borrowing the environment.
 ///
 /// This is identical to [`rsx!`], except that it does not take ownership of
 /// the environment. This is useful when you want to build a
