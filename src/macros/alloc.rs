@@ -138,15 +138,43 @@ pub use hypertext_macros::attribute_borrow;
 /// ```
 /// use hypertext::prelude::*;
 ///
+/// let name = "Alice";
+///
 /// assert_eq!(
 ///     maud! {
 ///         div #profile title="Profile" {
-///             h1 { "Alice" }
+///             h1 { (name) }
 ///        }
 ///     }
 ///     .render()
 ///     .as_inner(),
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#
+/// );
+/// ```
+///
+/// ## Using `file`
+///
+/// If the named argument `file` is provided, the contents of the file will be
+/// interpreted as input to this macro. The path is interpreted relative to the
+/// `CARGO_MANIFEST_DIR` environment variable, which is usually the root of
+/// your crate.
+///
+/// `static.maud`:
+/// ```text
+/// div #profile title="Profile" {
+///     h1 { (name) }
+/// }
+/// ```
+///
+/// ```
+/// use hypertext::prelude::*;
+/// # macro_rules! maud { (file = "static.maud") => { hypertext::maud! { div #profile title="Profile" { h1 { "Alice" } } } }; }
+///
+/// let name = "Alice";
+///
+/// assert_eq!(
+///     maud!(file = "static.maud").render().as_inner(),
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
@@ -217,20 +245,48 @@ pub use hypertext_macros::maud_borrow;
 pub use hypertext_macros::renderable;
 /// Generate HTML using rsx syntax, returning a [`Lazy`](crate::Lazy).
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
 /// use hypertext::prelude::*;
 ///
+/// let name = "Alice";
+///
 /// assert_eq!(
 ///     rsx! {
 ///         <div id="profile" title="Profile">
-///             <h1>Alice</h1>
+///             <h1>(name)</h1>
 ///         </div>
 ///     }
 ///     .render()
 ///     .as_inner(),
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#
+/// );
+/// ```
+///
+/// ## Using `file`
+///
+/// If the named argument `file` is provided, the contents of the file will be
+/// interpreted as input to this macro. The path is interpreted relative to the
+/// `CARGO_MANIFEST_DIR` environment variable, which is usually the root of
+/// your crate.
+///
+/// `static.html`:
+/// ```html
+/// <div id="profile" title="Profile">
+///     <h1>(name)</h1>
+/// </div>
+/// ```
+///
+/// ```
+/// use hypertext::prelude::*;
+/// # macro_rules! rsx { (file = "static.html") => { hypertext::rsx! { <div id="profile" title="Profile"><h1>Alice</h1></div> } }; }
+///
+/// let name = "Alice";
+///
+/// assert_eq!(
+///     rsx!(file = "static.html").render().as_inner(),
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]

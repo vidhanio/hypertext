@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use syn::{
-    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, custom_punctuation,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
     ext::IdentExt,
     parse::{Parse, ParseStream, discouraged::Speculative},
     parse_quote,
@@ -16,11 +16,6 @@ pub struct Rsx;
 
 impl Syntax for Rsx {}
 
-custom_punctuation!(FragmentOpen, <>);
-custom_punctuation!(FragmentClose, </>);
-custom_punctuation!(OpenTagSolidusEnd, />);
-custom_punctuation!(CloseTagStart, </);
-
 impl Node<Rsx> {
     fn parse_component(input: ParseStream) -> syn::Result<Self> {
         input.parse::<Token![<]>()?;
@@ -29,7 +24,11 @@ impl Node<Rsx> {
 
         let mut attrs = Vec::new();
 
-        while !(input.peek(Token![..]) || input.peek(Token![>]) || input.peek(OpenTagSolidusEnd)) {
+        #[allow(clippy::suspicious_operation_groupings)]
+        while !(input.peek(Token![..])
+            || input.peek(Token![>])
+            || (input.peek(Token![/]) && input.peek2(Token![>])))
+        {
             attrs.push(input.parse()?);
         }
 
@@ -48,7 +47,7 @@ impl Node<Rsx> {
         } else {
             let mut children = Vec::new();
 
-            while !input.peek(CloseTagStart) {
+            while !(input.peek(Token![<]) && input.peek2(Token![/])) {
                 if input.is_empty() {
                     children.insert(
                         0,
@@ -67,7 +66,8 @@ impl Node<Rsx> {
             }
 
             let fork = input.fork();
-            fork.parse::<CloseTagStart>()?;
+            fork.parse::<Token![<]>()?;
+            fork.parse::<Token![/]>()?;
             let closing_name = fork.parse::<Ident>()?;
             if closing_name == name {
                 input.advance_to(&fork);
@@ -105,7 +105,7 @@ impl Node<Rsx> {
 
         let mut attrs = Vec::new();
 
-        while !(input.peek(Token![>]) || (input.peek(OpenTagSolidusEnd))) {
+        while !(input.peek(Token![>]) || (input.peek(Token![/]) && input.peek2(Token![>]))) {
             attrs.push(input.parse()?);
         }
 
@@ -121,7 +121,7 @@ impl Node<Rsx> {
         } else {
             let mut children = Vec::new();
 
-            while !(input.peek(CloseTagStart)) {
+            while !(input.peek(Token![<]) && input.peek2(Token![/])) {
                 if input.is_empty() {
                     children.insert(
                         0,
@@ -138,7 +138,8 @@ impl Node<Rsx> {
             }
 
             let fork = input.fork();
-            fork.parse::<CloseTagStart>()?;
+            fork.parse::<Token![<]>()?;
+            fork.parse::<Token![/]>()?;
             let closing_name = fork.parse()?;
             if closing_name == name {
                 input.advance_to(&fork);
@@ -242,15 +243,18 @@ impl Parse for Doctype<Rsx> {
 
 impl Parse for Group<Node<Rsx>> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        input.parse::<FragmentOpen>()?;
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![>]>()?;
 
         let mut children = Vec::new();
 
-        while !input.peek(FragmentClose) {
+        while !(input.peek(Token![<]) && input.peek2(Token![/]) && input.peek3(Token![>])) {
             children.push(input.parse()?);
         }
 
-        input.parse::<FragmentClose>()?;
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![/]>()?;
+        input.parse::<Token![>]>()?;
 
         Ok(Self(Many(children)))
     }
