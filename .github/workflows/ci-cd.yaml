@@ -12,8 +12,10 @@ permissions:
   contents: read
 
 jobs:
-  checks:
-    name: Checks (${{ matrix.features.name }})
+  test:
+    name: Test (${{ matrix.features.name }})
+
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
@@ -25,9 +27,81 @@ jobs:
           - name: All Features
             flag: --all-features
 
-    uses: ./.github/workflows/checks.yaml
-    with:
-      features-flag: ${{ matrix.features.flag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test --tests --no-default-features ${{ matrix.features.flag }}
+
+  miri:
+    name: Miri (${{ matrix.features.name }})
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        features:
+          - name: No Default Features
+            flag:
+          - name: Default Features
+            flag: --features default
+          - name: All Features
+            flag: --all-features
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Miri
+        run: cargo miri setup
+
+      - name: Run Miri
+        run: cargo miri test --no-default-features ${{ matrix.features.flag }}
+
+  clippy:
+    name: Clippy (${{ matrix.features.name }})
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        features:
+          - name: No Default Features
+            flag:
+          - name: Default Features
+            flag: --features default
+          - name: All Features
+            flag: --all-features
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run Clippy
+        run: cargo clippy --no-default-features ${{ matrix.features.flag }}
 
   test-docs:
     name: Test Documentation
