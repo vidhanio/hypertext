@@ -171,7 +171,9 @@ jobs:
       contents: write
 
     needs:
-      - checks
+      - test
+      - miri
+      - clippy
       - test-docs
       - check-docs
       - check-format
@@ -205,7 +207,9 @@ jobs:
       pull-requests: write
 
     needs:
-      - checks
+      - test
+      - miri
+      - clippy
       - test-docs
       - check-docs
       - check-format
