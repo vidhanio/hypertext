@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: CI/CD
 
 on:
   - push
@@ -12,8 +12,25 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Test
+  checks:
+    name: Checks (${{ matrix.features.name }})
+
+    strategy:
+      matrix:
+        features:
+          - name: No Default Features
+            flag:
+          - name: Default Features
+            flag: --features default
+          - name: All Features
+            flag: --all-features
+
+    uses: ./.github/workflows/checks.yaml
+    with:
+      features-flag: ${{ matrix.features.flag }}
+
+  test-docs:
+    name: Test Documentation
 
     runs-on: ubuntu-latest
 
@@ -27,11 +44,11 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Run tests
-        run: cargo test --all-features
+      - name: Run documentation tests
+        run: cargo test --doc --all-features
 
-  miri:
-    name: Miri
+  check-docs:
+    name: Check Documentation
 
     runs-on: ubuntu-latest
 
@@ -41,40 +58,18 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: miri
 
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Setup Miri
-        run: cargo miri setup
+      - name: Install `cargo-docs-rs`
+        uses: dtolnay/install@cargo-docs-rs
 
-      - name: Run Miri
-        run: cargo miri test --all-features
+      - name: Check documentation
+        run: cargo docs-rs
 
-  check:
-    name: Check
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-
-      - name: Cache dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Check code
-        run: cargo clippy --all-features
-
-  format:
-    name: Format
+  check-format:
+    name: Check Formatting
 
     runs-on: ubuntu-latest
 
@@ -102,10 +97,10 @@ jobs:
       contents: write
 
     needs:
-      - test
-      - miri
-      - check
-      - format
+      - checks
+      - test-docs
+      - check-docs
+      - check-format
 
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
@@ -136,10 +131,10 @@ jobs:
       pull-requests: write
 
     needs:
-      - test
-      - miri
-      - check
-      - format
+      - checks
+      - test-docs
+      - check-docs
+      - check-format
 
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
