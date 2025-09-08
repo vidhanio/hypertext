@@ -1,6 +1,6 @@
 use hypertext::prelude::*;
 
-#[component]
+#[renderable]
 pub fn about() -> impl Renderable {
     rsx! {
         <div class="flex flex-col items-center">

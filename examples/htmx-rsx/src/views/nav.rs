@@ -1,9 +1,8 @@
 use hypertext::prelude::*;
 
-#[component]
+#[renderable]
 pub fn nav<'a>(selected: &'a str, oob: bool) -> impl Renderable {
     let routes = [("Home", "/"), ("About", "/about"), ("List", "/list")];
-
     rsx! {
         <nav id="nav" class="text-gray-100 border-b border-b-gray-700" hx-swap-oob=(oob)>
             <ul class="flex flex-row items-center justify-center">
@@ -19,7 +18,7 @@ pub fn nav<'a>(selected: &'a str, oob: bool) -> impl Renderable {
                         hx-get=(path)
                         hx-target="#page"
                         hx-swap="innerHTML"
-                        hx-push-url="true"
+                        hx-push-url=true
                     >
                         <li>
                             (name)

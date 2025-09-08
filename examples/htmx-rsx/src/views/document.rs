@@ -2,7 +2,7 @@ use hypertext::prelude::*;
 
 use crate::views::nav::Nav;
 
-#[component]
+#[renderable]
 pub fn document<'a, R: Renderable>(selected: &'a str, children: &R) -> impl Renderable {
     rsx! {
         <!DOCTYPE html>
@@ -19,7 +19,7 @@ pub fn document<'a, R: Renderable>(selected: &'a str, children: &R) -> impl Rend
             </head>
             <body class="bg-gray-900 text-gray-100">
                 <h1 class="flex text-5xl mx-auto font-bold justify-center items-center mb-2">Hypertext</h1>
-                <Nav selected=selected oob=true />
+                <Nav selected oob=true />
                 <div id="page" class="mt-2">
                     (children)
                 </div>
