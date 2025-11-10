@@ -479,3 +479,102 @@ pub trait AlpineJsAttributes: GlobalAttributes {
 
 #[cfg(feature = "alpine")]
 impl<T: GlobalAttributes> AlpineJsAttributes for T {}
+
+/// Attributes for use with [DataStar](https://data-star.dev/).
+#[cfg(feature = "datastar")]
+pub trait DataStarAttributes: GlobalAttributes {
+    /// Sets the value of any HTML attribute to an expression
+    const data_attr: AttributeNamespace = AttributeNamespace;
+
+    /// Creates a signal and sets up two-way data binding
+    const data_bind: AttributeNamespace = AttributeNamespace;
+
+    /// Adds or removes a class based on an expression
+    const data_class: AttributeNamespace = AttributeNamespace;
+
+    /// Creates a computed signal based on an expression
+    const data_computed: AttributeNamespace = AttributeNamespace;
+
+    /// Executes an expression when any signals in it change
+    const data_effect: Attribute = Attribute;
+
+    /// Tells Datastar to ignore an element and its descendants
+    const data_ignore: Attribute = Attribute;
+
+    /// Tells PatchElements watcher to skip processing an element when morphing
+    const data_ignore_morph: Attribute = Attribute;
+
+    /// Creates a signal that is `true` while a fetch request is in flight
+    const data_indicator: AttributeNamespace = AttributeNamespace;
+
+    /// Runs an expression when the attribute is initialized
+    const data_init: Attribute = Attribute;
+
+    /// Sets text content to a reactive JSON stringified version of signals
+    const data_json_signals: Attribute = Attribute;
+
+    /// Attaches an event listener to an element
+    const data_on: AttributeNamespace = AttributeNamespace;
+
+    /// Runs an expression when the element intersects with the viewport
+    const data_on_intersect: Attribute = Attribute;
+
+    /// Runs an expression at a regular interval
+    const data_on_interval: Attribute = Attribute;
+
+    /// Runs an expression whenever any signals are patched
+    const data_on_signal_patch: Attribute = Attribute;
+
+    /// Filters which signals to watch when using data-on-signal-patch
+    const data_on_signal_patch_filter: Attribute = Attribute;
+
+    /// Preserves the value of an attribute when morphing DOM elements
+    const data_preserve_attr: Attribute = Attribute;
+
+    /// Creates a new signal that is a re ference to the element
+    const data_ref: AttributeNamespace = AttributeNamespace;
+
+    /// Shows or hides an element based on an expression
+    const data_show: Attribute = Attribute;
+
+    /// Patches one or more signals into the existing signals
+    const data_signals: AttributeNamespace = AttributeNamespace;
+
+    /// Sets the value of inline CSS styles based on an expression
+    const data_style: AttributeNamespace = AttributeNamespace;
+
+    /// Binds the text content of an element to an expression
+    const data_text: Attribute = Attribute;
+
+    // Pro Attributes
+
+    /// Allows you to animate element attributes over time
+    const data_animate: AttributeNamespace = AttributeNamespace;
+
+    /// Adds custom validity to an element using an expression
+    const data_custom_validity: Attribute = Attribute;
+
+    /// Runs an expression on every requestAnimationFrame event
+    const data_on_raf: Attribute = Attribute;
+
+    /// Runs an expression whenever an element's dimensions change
+    const data_on_resize: Attribute = Attribute;
+
+    /// Persists signals in local storage
+    const data_persist: AttributeNamespace = AttributeNamespace;
+
+    /// Syncs query string params to signal values
+    const data_query_string: Attribute = Attribute;
+
+    /// Replaces the URL in the browser without reloading the page
+    const data_replace_url: Attribute = Attribute;
+
+    /// Scrolls the element into view
+    const data_scroll_into_view: Attribute = Attribute;
+
+    /// Sets the view-transition-name style attribute explicitly
+    const data_view_transition: Attribute = Attribute;
+}
+
+#[cfg(feature = "datastar")]
+impl<T: GlobalAttributes> DataStarAttributes for T {}
