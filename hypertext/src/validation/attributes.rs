@@ -405,7 +405,7 @@ pub trait HtmxAttributes: GlobalAttributes {
     /// The name of the message to swap into the DOM
     const sse_swap: Attribute = Attribute;
 
-    /// To close the EventStream gracefully when that message is received.
+    /// To close the `EventStream` gracefully when that message is received.
     /// This might be helpful if you want to send information
     /// to a client that will eventually stop.
     const sse_close: Attribute = Attribute;
