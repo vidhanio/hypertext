@@ -1,15 +1,15 @@
 use core::fmt::{self, Write};
 
-use super::alloc::{
-    borrow::{Cow, ToOwned},
-    boxed::Box,
-    rc::Rc,
-    string::String,
-    sync::Arc,
-    vec::Vec,
-};
 use crate::{
     AttributeBuffer, Buffer, Raw, Renderable,
+    alloc::{
+        borrow::{Cow, ToOwned},
+        boxed::Box,
+        rc::Rc,
+        string::String,
+        sync::Arc,
+        vec::Vec,
+    },
     context::{AttributeValue, Context, Node},
 };
 

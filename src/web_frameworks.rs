@@ -1,8 +1,3 @@
-extern crate alloc;
-
-#[allow(unused_imports)]
-use alloc::string::String;
-
 #[allow(dead_code)]
 const HTML_CONTENT_TYPE: &str = "text/html; charset=utf-8";
 
@@ -10,8 +5,7 @@ const HTML_CONTENT_TYPE: &str = "text/html; charset=utf-8";
 mod actix_web {
     use actix_web::{HttpRequest, HttpResponse, Responder, web::Html};
 
-    use super::String;
-    use crate::{Buffer, Lazy, prelude::*};
+    use crate::{Buffer, Lazy, alloc::string::String, prelude::*};
 
     impl<F: Fn(&mut Buffer)> Responder for Lazy<F> {
         type Body = <Rendered<String> as Responder>::Body;
@@ -36,8 +30,7 @@ mod actix_web {
 mod axum {
     use axum_core::response::{IntoResponse, Response};
 
-    use super::String;
-    use crate::{Buffer, Lazy, prelude::*};
+    use crate::{Buffer, Lazy, alloc::string::String, prelude::*};
 
     const CONTENT_TYPE_HEADER: &str = "content-type";
 
@@ -72,8 +65,7 @@ mod ntex {
         web::{ErrorRenderer, HttpRequest, Responder},
     };
 
-    use super::String;
-    use crate::{Buffer, Lazy, prelude::*};
+    use crate::{Buffer, Lazy, alloc::string::String, prelude::*};
 
     impl<F: Fn(&mut Buffer), Err: ErrorRenderer> Responder<Err> for Lazy<F> {
         #[inline]
@@ -107,8 +99,7 @@ mod poem {
 
     use poem::{IntoResponse, Response, web::Html};
 
-    use super::String;
-    use crate::{Buffer, Lazy, prelude::*};
+    use crate::{Buffer, Lazy, alloc::string::String, prelude::*};
 
     impl<F: Fn(&mut Buffer) + Send> IntoResponse for Lazy<F> {
         #[inline]
@@ -132,8 +123,7 @@ mod rocket {
         response::{Responder, Result, content::RawHtml},
     };
 
-    use super::String;
-    use crate::{Buffer, Lazy, prelude::*};
+    use crate::{Buffer, Lazy, alloc::string::String, prelude::*};
 
     impl<'r, 'o: 'r, F: Fn(&mut Buffer) + Send> Responder<'r, 'o> for Lazy<F> {
         #[inline]
@@ -161,8 +151,7 @@ mod rocket {
 mod salvo {
     use salvo_core::{Response, Scribe, writing::Text};
 
-    use super::String;
-    use crate::{Buffer, Lazy, RenderableExt, prelude::*};
+    use crate::{Buffer, Lazy, RenderableExt, alloc::string::String, prelude::*};
 
     impl<F: Fn(&mut Buffer)> Scribe for Lazy<F> {
         #[inline]
@@ -191,8 +180,7 @@ mod tide {
 
     use tide::{Response, http::mime};
 
-    use super::String;
-    use crate::{Buffer, Lazy, prelude::*};
+    use crate::{Buffer, Lazy, alloc::string::String, prelude::*};
 
     impl<F: Fn(&mut Buffer)> From<Lazy<F>> for Response {
         #[inline]
@@ -215,8 +203,7 @@ mod tide {
 mod warp {
     use warp::reply::{self, Reply, Response};
 
-    use super::String;
-    use crate::{Buffer, Lazy, prelude::*};
+    use crate::{Buffer, Lazy, alloc::string::String, prelude::*};
 
     impl<F: Fn(&mut Buffer) + Send> Reply for Lazy<F> {
         #[inline]

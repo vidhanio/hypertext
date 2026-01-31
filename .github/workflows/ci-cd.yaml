@@ -26,6 +26,7 @@ jobs:
             flag: --features default
           - name: All Features
             flag: --all-features
+      fail-fast: false
 
     steps:
       - name: Checkout repository
@@ -54,6 +55,7 @@ jobs:
             flag: --features default
           - name: All Features
             flag: --all-features
+      fail-fast: false
 
     steps:
       - name: Checkout repository
@@ -71,7 +73,7 @@ jobs:
         run: cargo miri setup
 
       - name: Run Miri
-        run: cargo miri test --no-default-features ${{ matrix.features.flag }}
+        run: cargo miri test --tests --no-default-features ${{ matrix.features.flag }}
 
   clippy:
     name: Clippy
@@ -87,6 +89,7 @@ jobs:
             flag: --features default
           - name: All Features
             flag: --all-features
+      fail-fast: false
 
     steps:
       - name: Checkout repository

@@ -1,4 +1,17 @@
+#![expect(
+    missing_docs,
+    clippy::missing_errors_doc,
+    missing_debug_implementations,
+    clippy::must_use_candidate,
+    missing_copy_implementations
+)]
+
+pub mod config;
+pub mod repr;
+pub mod syntaxes;
+
 use std::{
+    borrow::Cow,
     convert::Infallible,
     env, fs, iter,
     ops::{Deref, DerefMut},
@@ -13,78 +26,7 @@ use syn::{
     token::{Brace, Paren},
 };
 
-use super::UnquotedName;
-use crate::html::Context;
-
-pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Result<TokenStream> {
-    let mut g = Generator::new_closure();
-
-    let size_estimate = tokens.to_string().len();
-
-    g.push(parse_maybe_file::<T>.parse2(tokens)?);
-
-    let block = g.finish();
-
-    let buffer_ident = Generator::buffer_ident();
-
-    let move_token = move_.then(|| quote!(move));
-
-    let ctx = T::Context::marker_type();
-
-    Ok(quote! {
-        ::hypertext::Lazy::<_, #ctx>::dangerously_create(
-            #move_token |#buffer_ident: &mut ::hypertext::Buffer<#ctx>| {
-                #buffer_ident.dangerously_get_string().reserve(#size_estimate);
-                #block
-            }
-        )
-    })
-}
-
-pub fn literal<T: Parse + Generate>(tokens: TokenStream) -> syn::Result<TokenStream> {
-    let mut g = Generator::new_static();
-
-    g.push(parse_maybe_file::<T>.parse2(tokens)?);
-
-    let literal = g.finish().to_token_stream();
-
-    let ctx = T::Context::marker_type();
-
-    Ok(quote! {
-        ::hypertext::Raw::<_, #ctx>::dangerously_create(#literal)
-    })
-}
-
-fn parse_maybe_file<T: Parse>(input: ParseStream) -> syn::Result<T> {
-    custom_keyword!(file);
-
-    if input.peek(file) && input.peek2(Token![=]) {
-        input.parse::<file>()?;
-        input.parse::<Token![=]>()?;
-        let path_lit = input.parse::<LitStr>()?;
-        let path = PathBuf::from(path_lit.value());
-        if path.is_absolute() {
-            return Err(Error::new_spanned(
-                path_lit,
-                "absolute paths are not allowed",
-            ));
-        }
-        let path = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").unwrap()).join(path);
-        let contents = fs::read_to_string(&path).map_err(|e| {
-            Error::new_spanned(
-                &path_lit,
-                format!(r#"io error while reading "{}": {e}"#, path.display()),
-            )
-        })?;
-        let tokens = contents
-            .parse::<TokenStream>()
-            .map_err(|e| Error::new_spanned(path_lit, e.to_string()))?;
-
-        syn::parse2(tokens)
-    } else {
-        input.parse()
-    }
-}
+use self::repr::UnquotedName;
 
 pub struct Generator {
     lazy: bool,
@@ -160,7 +102,7 @@ impl Generator {
                 match part {
                     Part::Static(lit) => static_parts.push(lit),
                     Part::Dynamic(stmt) => errors.extend(
-                        Error::new_spanned(stmt, "static evaluation cannot contain dynamic parts")
+                        Error::new_spanned(stmt, "simple evaluation cannot contain dynamic parts")
                             .to_compile_error(),
                     ),
                 }
@@ -267,6 +209,30 @@ enum Part {
     Dynamic(TokenStream),
 }
 
+pub struct AnyBlock {
+    pub brace_token: Brace,
+    pub stmts: TokenStream,
+}
+
+impl Parse for AnyBlock {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let content;
+
+        Ok(Self {
+            brace_token: braced!(content in input),
+            stmts: content.parse()?,
+        })
+    }
+}
+
+impl ToTokens for AnyBlock {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.brace_token.surround(tokens, |tokens| {
+            self.stmts.to_tokens(tokens);
+        });
+    }
+}
+
 pub trait Generate {
     type Context: Context;
 
@@ -287,6 +253,29 @@ impl<T: Generate> Generate for &T {
 
     fn generate(&self, g: &mut Generator) {
         (*self).generate(g);
+    }
+}
+
+pub trait Context: Generate<Context = Self> {
+    fn is_control(&self) -> bool;
+
+    fn marker_type() -> TokenStream;
+
+    fn escape(s: &str) -> Cow<'_, str>;
+}
+
+impl Context for Infallible {
+    fn is_control(&self) -> bool {
+        #[expect(clippy::uninhabited_references)]
+        match *self {}
+    }
+
+    fn marker_type() -> TokenStream {
+        TokenStream::new()
+    }
+
+    fn escape(s: &str) -> Cow<'_, str> {
+        Cow::Borrowed(s)
     }
 }
 
@@ -364,8 +353,8 @@ impl ElementCheck {
         }
     }
 
-    pub fn set_closing_spans(&mut self, spans: Vec<Span>) {
-        self.closing_spans = spans;
+    pub fn set_closing_tag(&mut self, name: &UnquotedName) {
+        self.closing_spans = name.spans();
     }
 
     pub fn push_attribute(&mut self, attr: AttributeCheck) {
@@ -375,7 +364,7 @@ impl ElementCheck {
 
 impl ToTokens for ElementCheck {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let kind = self.kind;
+        let kind = &self.kind;
 
         let el_checks = self
             .opening_spans
@@ -410,7 +399,6 @@ impl ToTokens for ElementCheck {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
 pub enum ElementKind {
     Normal,
     Void,
@@ -467,29 +455,5 @@ impl ToTokens for AttributeCheckKind {
             Self::Symbol => quote!(::hypertext::validation::AttributeSymbol),
         }
         .to_tokens(tokens);
-    }
-}
-
-pub struct AnyBlock {
-    pub brace_token: Brace,
-    pub stmts: TokenStream,
-}
-
-impl Parse for AnyBlock {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let content;
-
-        Ok(Self {
-            brace_token: braced!(content in input),
-            stmts: content.parse()?,
-        })
-    }
-}
-
-impl ToTokens for AnyBlock {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.brace_token.surround(tokens, |tokens| {
-            self.stmts.to_tokens(tokens);
-        });
     }
 }

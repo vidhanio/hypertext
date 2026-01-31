@@ -3,8 +3,8 @@ use quote::quote;
 use syn::{DeriveInput, Error, spanned::Spanned};
 
 use crate::{
-    AttributeValue, Document, Many, Maud, Rsx,
-    html::{self, Context, generate::Generator},
+    AttributeValue, Config, Document, Many, Maud, Rsx, Semantics,
+    html::{Context, generate::Generator},
 };
 
 #[allow(clippy::needless_pass_by_value)]
@@ -34,14 +34,14 @@ fn renderable_node(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
             if attr.path().is_ident("maud") {
                 Some((
                     attr,
-                    html::generate::lazy::<Document<Maud>>
-                        as fn(TokenStream, bool) -> syn::Result<TokenStream>,
+                    (|tokens| Config::Lazy(Semantics::Move).generate::<Document<Maud>>(tokens))
+                        as fn(_) -> _,
                 ))
             } else if attr.path().is_ident("rsx") {
                 Some((
                     attr,
-                    html::generate::lazy::<Document<Rsx>>
-                        as fn(TokenStream, bool) -> syn::Result<TokenStream>,
+                    (|tokens| Config::Lazy(Semantics::Move).generate::<Document<Rsx>>(tokens))
+                        as fn(_) -> _,
                 ))
             } else {
                 None
@@ -49,7 +49,7 @@ fn renderable_node(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
         })
         .peekable();
 
-    let (lazy_fn, tokens) = match (attrs.next(), attrs.peek()) {
+    let (generate_fn, tokens) = match (attrs.next(), attrs.peek()) {
         (Some((attr, f)), None) => (f, attr.meta.require_list()?.tokens.clone()),
         (Some((attr, _)), Some(_)) => {
             let mut error = Error::new(
@@ -69,7 +69,7 @@ fn renderable_node(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
         }
     };
 
-    let lazy = lazy_fn(tokens, true)?;
+    let lazy = generate_fn(tokens)?;
 
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
@@ -112,7 +112,7 @@ fn renderable_attribute(input: &DeriveInput) -> syn::Result<Option<TokenStream>>
         }
     };
 
-    let lazy = html::generate::lazy::<Many<AttributeValue>>(tokens, true)?;
+    let lazy = Config::Lazy(Semantics::Move).generate::<Many<AttributeValue>>(tokens)?;
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let buffer_ident = Generator::buffer_ident();

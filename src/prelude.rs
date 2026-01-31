@@ -5,6 +5,9 @@
 //! re-exports the [`hypertext_elements`] module, and any [framework-specific
 //! attribute traits](crate::validation::attributes) that have been enabled, as
 //! well as the [`GlobalAttributes`] trait.
-pub use crate::validation::{attributes::*, hypertext_elements};
 #[cfg(feature = "alloc")]
-pub use crate::{Renderable, RenderableExt as _, Rendered, attribute, maud, renderable, rsx};
+pub use crate::{Renderable, RenderableExt as _, Rendered};
+pub use crate::{
+    macros::*,
+    validation::{attributes::*, hypertext_elements},
+};

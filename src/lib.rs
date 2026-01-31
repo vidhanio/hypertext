@@ -1,4 +1,4 @@
-//! A blazing fast type-checked HTML macro crate.
+//! A blazing fast type checked HTML macro crate.
 //!
 //! # Features
 //!
@@ -9,7 +9,7 @@
 //! into one if there is no dynamic content between them.
 //!
 //! The entire crate is `#![no_std]` compatible, and allocation is completely
-//! optional (via [`maud_static!`] and [`rsx_static!`]) if you don't use any
+//! optional (via [`maud::simple!`] and [`rsx::simple!`]) if you don't use any
 //! dynamic content.
 //!
 //! The crate gives extreme importance to lazy rendering and minimizing
@@ -118,12 +118,16 @@
     feature(rustdoc_internals, doc_cfg, doc_auto_cfg)
 )]
 
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 pub mod context;
 mod macros;
 pub mod prelude;
 #[cfg(feature = "alloc")]
 mod renderable;
 pub mod validation;
+#[cfg(feature = "alloc")]
 mod web_frameworks;
 
 use core::{fmt::Debug, marker::PhantomData};

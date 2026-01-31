@@ -18,7 +18,7 @@
 pub mod attributes;
 pub mod hypertext_elements;
 
-/// A marker trait for type-checked elements.
+/// A marker trait for type checked elements.
 pub trait Element {
     /// The kind of this element.
     type Kind: ElementKind;
@@ -35,7 +35,7 @@ pub trait ElementKind: sealed::Sealed {}
 ///
 /// # Examples
 ///
-/// ## [maud!](crate::maud)
+/// ## [`maud!`](crate::maud!)
 ///
 /// ```
 /// use hypertext::prelude::*;
@@ -51,7 +51,7 @@ pub trait ElementKind: sealed::Sealed {}
 /// );
 /// ```
 ///
-/// ## [rsx!](crate::rsx)
+/// ## [`rsx!`](crate::rsx!)
 ///
 /// ```
 /// use hypertext::prelude::*;
@@ -78,7 +78,7 @@ impl ElementKind for Normal {}
 ///
 /// # Examples
 ///
-/// ## [maud!](crate::maud)
+/// ## [`maud!`](crate::maud!)
 ///
 /// ```
 /// use hypertext::prelude::*;
@@ -94,7 +94,7 @@ impl ElementKind for Normal {}
 /// );
 /// ```
 ///
-/// ## [rsx!](crate::rsx)
+/// ## [`rsx!`](crate::rsx!)
 ///
 /// ```
 /// use hypertext::prelude::*;

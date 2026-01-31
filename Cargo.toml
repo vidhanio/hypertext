@@ -17,32 +17,33 @@ all-features = true
 
 [workspace]
 resolver = "2"
-members = [".", "examples/*", "macros"]
-default-members = [".", "macros"]
+members = [".", "./macros", "./proc-macros", "./syntax", "examples/*"]
+default-members = [".", "./macros", "./syntax", "proc-macros"]
 
 [workspace.package]
 version = "0.12.1"
 authors = ["Vidhan Bhatt <me@vidhan.io>"]
 edition = "2024"
-description = "A blazing fast type-checked HTML macro crate."
+description = "A blazing fast type checked HTML macro crate."
 readme = "README.md"
 homepage = "https://github.com/vidhanio/hypertext"
 repository = "https://github.com/vidhanio/hypertext"
 license = "MIT"
-keywords = ["html", "macro"]
+keywords = ["html", "macro", "maud", "rsx"]
 categories = ["template-engine"]
 
 [workspace.dependencies]
 html-escape = { version = "0.2", default-features = false }
 hypertext = { version = "0.12.1", path = "." }
 hypertext-macros = { version = "0.12.1", path = "./macros" }
+hypertext-proc-macros = { version = "0.12.1", path = "./proc-macros" }
+hypertext-syntax = { version = "0.12.1", path = "./syntax" }
 
 [workspace.lints]
 [workspace.lints.clippy]
 cargo = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
-too_long_first_doc_paragraph = "allow"
 
 [workspace.lints.rust]
 missing_copy_implementations = "warn"
@@ -53,7 +54,7 @@ missing_docs = "warn"
 actix-web = { version = "4", default-features = false, optional = true }
 axum-core = { version = "0.5", default-features = false, optional = true }
 html-escape = { workspace = true, optional = true }
-hypertext-macros.workspace = true
+hypertext-proc-macros.workspace = true
 itoa = { version = "1", optional = true }
 ntex = { version = "2", default-features = false, optional = true }
 poem = { version = "3", default-features = false, optional = true }

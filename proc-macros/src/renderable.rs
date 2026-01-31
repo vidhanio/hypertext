@@ -22,7 +22,8 @@ impl Parse for RenderableArgs {
     }
 }
 
-pub fn generate(args: RenderableArgs, fn_item: &ItemFn) -> syn::Result<TokenStream> {
+#[expect(clippy::needless_pass_by_value)]
+pub fn generate(args: RenderableArgs, fn_item: ItemFn) -> syn::Result<TokenStream> {
     let mut fields = Vec::new();
     let mut field_names = Vec::new();
     let mut field_refs = Vec::new();

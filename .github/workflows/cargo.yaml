@@ -1,0 +1,38 @@
+name: Cargo
+
+on:
+  workflow_call:
+    inputs:
+      nightly:
+        type: boolean
+      components:
+        type: string
+      title:
+        type: string
+        required: true
+      run:
+        type: string
+        required: true
+
+env:
+  RUSTFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
+
+jobs:
+  cargo-run:
+    name: Run
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: ${{ inputs.title }}
+        run: cargo ${{ inputs.run }}

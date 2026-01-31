@@ -9,8 +9,8 @@ use syn::{
     spanned::Spanned,
 };
 
-#[derive(PartialEq, Eq, Clone)]
-pub struct UnquotedName(Vec<NameFragment>);
+#[derive(PartialEq, Eq)]
+pub struct UnquotedName(pub Vec<NameFragment>);
 
 impl UnquotedName {
     pub fn ident_string(&self) -> String {
@@ -138,8 +138,8 @@ impl Parse for UnquotedName {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
-enum NameFragment {
+#[derive(PartialEq, Eq)]
+pub enum NameFragment {
     Ident(Ident),
     Int(LitInt),
     Hyphen(Token![-]),

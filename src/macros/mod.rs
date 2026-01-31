@@ -1,98 +1,141 @@
+pub mod attribute;
+pub mod maud;
 #[cfg(feature = "alloc")]
-mod alloc;
+mod renderable;
+pub mod rsx;
 
-/// Generates static HTML attributes.
-///
-/// This will return a [`RawAttribute<&'static str>`](crate::RawAttribute),
-/// which can be used in `const` contexts.
-///
-/// Note that the macro cannot process any dynamic content, so you cannot use
-/// any expressions inside the macro.
+/// Generates an attribute value, returning a
+/// [`LazyAttribute`](crate::LazyAttribute).
 ///
 /// # Example
 ///
 /// ```
-/// use hypertext::{RawAttribute, attribute_static, prelude::*};
+/// use hypertext::prelude::*;
+///
+/// let attr = attribute! { "x" @for i in 0..5 { (i) } };
 ///
 /// assert_eq!(
-///     attribute_static! { "my attribute " 1 }.into_inner(),
-///     "my attribute 1"
+///     maud! { div title=attr { "Hi!" } }.render().as_inner(),
+///     r#"<div title="x01234">Hi!</div>"#
 /// );
 /// ```
-pub use hypertext_macros::attribute_static;
-/// Generates static HTML using [`maud!`] syntax.
+#[cfg(feature = "alloc")]
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_proc_macros::attribute;
+/// Generates HTML using Maud syntax, returning a [`Lazy`](crate::Lazy).
 ///
-/// This will return a [`Raw<&'static str>`](crate::Raw), which can be used in
-/// `const` contexts.
+/// Note that this is not a complete 1:1 port of [Maud](https://maud.lambda.xyz)'s
+/// syntax as it is stricter in some cases to prevent anti-patterns.
 ///
-/// Note that the macro cannot process any dynamic content, so you cannot use
-/// any expressions inside the macro.
+/// Some key differences are:
+/// - `#` ([`id`](crate::validation::attributes::GlobalAttributes::id)
+///   shorthand), if present, must be the first attribute.
+/// - `.` ([`class`](crate::validation::attributes::GlobalAttributes::class)
+///   shorthand), if present, come after `#` (if present) and before other
+///   attributes.
+///
+/// Additionally, the `DOCTYPE` constant present in maud is replaced
+/// with a new `!DOCTYPE` syntax, which will render `<!DOCTYPE html>` in its
+/// place.
+///
+/// For more details on the rest of Maud's syntax, see the [Maud Book](https://maud.lambda.xyz).
 ///
 /// # Example
 ///
 /// ```
-/// use hypertext::{Raw, maud_static, prelude::*};
+/// use hypertext::prelude::*;
+///
+/// let name = "Alice";
 ///
 /// assert_eq!(
-///     maud_static! {
+///     maud! {
 ///         div #profile title="Profile" {
-///             h1 { "Alice" }
+///             h1 { (name) }
 ///        }
 ///     }
-///     .into_inner(),
+///     .render()
+///     .as_inner(),
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#
+/// );
+/// ```
+///
+/// ## Using `file`
+///
+/// If the named argument `file` is provided, the contents of the file will
+/// be interpreted at compile time as input to this macro. The path is
+/// interpreted relative to the `CARGO_MANIFEST_DIR` environment
+/// variable, which is usually the root of your crate.
+///
+/// `static.maud`:
+/// ```text
+/// div #profile title="Profile" {
+///     h1 { (name) }
+/// }
+/// ```
+///
+/// ```
+/// use hypertext::prelude::*;
+/// # macro_rules! maud { (file = "static.maud") => { hypertext::maud! { div #profile title="Profile" { h1 { "Alice" } } } }; }
+///
+/// let name = "Alice";
+///
+/// assert_eq!(
+///     maud!(file = "static.maud").render().as_inner(),
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
-pub use hypertext_macros::maud_static;
-/// Generates static HTML using [`rsx!`] syntax.
-///
-/// This will return a [`Raw<&'static str>`](crate::Raw), which can be used in
-/// `const` contexts.
-///
-/// Note that the macro cannot process any dynamic content, so you cannot use
-/// any expressions inside the macro.
+#[cfg(feature = "alloc")]
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_proc_macros::maud;
+/// Generates HTML using RSX syntax, returning a [`Lazy`](crate::Lazy).
 ///
 /// # Examples
 ///
 /// ```
-/// use hypertext::{Raw, prelude::*, rsx_static};
+/// use hypertext::prelude::*;
+///
+/// let name = "Alice";
 ///
 /// assert_eq!(
-///     rsx_static! {
+///     rsx! {
 ///         <div id="profile" title="Profile">
-///             <h1>Alice</h1>
+///             <h1>(name)</h1>
 ///         </div>
 ///     }
-///     .into_inner(),
-///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
+///     .render()
+///     .as_inner(),
+///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#
 /// );
 /// ```
 ///
 /// ## Using `file`
 ///
 /// If the named argument `file` is provided, the contents of the file will be
-/// interpreted as input to this macro. The path is interpreted relative to the
-/// `CARGO_MANIFEST_DIR` environment variable, which is usually the root of
-/// your crate.
+/// interpreted at compile time as input to this macro. The path is interpreted
+/// relative to the `CARGO_MANIFEST_DIR` environment variable, which is usually
+/// the root of your crate.
 ///
 /// `static.html`:
-///
 /// ```html
 /// <div id="profile" title="Profile">
-///     <h1>Alice</h1>
+///     <h1>(name)</h1>
 /// </div>
 /// ```
 ///
 /// ```
-/// use hypertext::{Raw, prelude::*, rsx_static};
-/// # macro_rules! rsx_static { (file = "static.html") => { hypertext::rsx_static! { <div id="profile" title="Profile"><h1>Alice</h1></div> } }; }
+/// use hypertext::prelude::*;
+/// # macro_rules! rsx { (file = "static.html") => { hypertext::rsx! { <div id="profile" title="Profile"><h1>Alice</h1></div> } }; }
+///
+/// let name = "Alice";
 ///
 /// assert_eq!(
-///     rsx_static!(file = "static.html").into_inner(),
+///     rsx!(file = "static.html").render().as_inner(),
 ///     r#"<div id="profile" title="Profile"><h1>Alice</h1></div>"#,
 /// );
 /// ```
-pub use hypertext_macros::rsx_static;
+#[cfg(feature = "alloc")]
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_proc_macros::rsx;
 
 #[cfg(feature = "alloc")]
-pub use self::alloc::*;
+pub use self::renderable::*;

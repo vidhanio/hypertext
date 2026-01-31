@@ -1,9 +1,10 @@
-//! Tests for the `hypertext` crate.
+//! Tests which require `feature = "alloc"`.
+
 #![cfg(feature = "alloc")]
 
 use std::fmt::{self, Display, Formatter};
 
-use hypertext::{Buffer, Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
+use hypertext::{Buffer, Raw, prelude::*};
 
 #[test]
 fn readme() {
@@ -377,12 +378,12 @@ fn correct_attr_escape() {
 
 #[test]
 fn statics() {
-    const MAUD_RAW_RESULT: Raw<&str> = maud_static! {
+    const MAUD_RAW_RESULT: Raw<&str> = maud::simple! {
         div #profile title="Profile" {
             h1 { "Hello, world!" }
         }
     };
-    const RSX_RAW_RESULT: Raw<&str> = rsx_static! {
+    const RSX_RAW_RESULT: Raw<&str> = rsx::simple! {
         <div id="profile" title="Profile">
             <h1>"Hello, world!"</h1>
         </div>
@@ -503,10 +504,10 @@ fn component_fns() {
 #[test]
 fn borrow() {
     let s = "Hello, world!".to_owned();
-    let maud_result = maud_borrow! { span { (s) } };
-    let rsx_result = rsx_borrow! { <span>(s)</span> };
-    // still able to use `s` after the borrow, as we use `maud_borrow!` and
-    // `rsx_borrow!`
+    let maud_result = maud::borrow! { span { (s) } };
+    let rsx_result = rsx::borrow! { <span>(s)</span> };
+    // still able to use `s` after the borrow, as we use `maud::borrow!` and
+    // `rsx::borrow!`
     let expected = format!("<span>{s}</span>");
 
     assert_eq!(maud_result.render().into_inner(), expected);

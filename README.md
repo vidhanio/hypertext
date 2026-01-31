@@ -1,10 +1,10 @@
 # `hypertext`
 
-A blazing fast type-checked HTML macro crate.
+A blazing fast type checked HTML macro crate.
 
 ## Features
 
-- Type checking for element names/attributes, including extensible support for custom frameworks like [htmx](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/)
+- Compile-time type checking for element names/attributes, including extensible support for custom frameworks like [htmx](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/)
 - `#![no_std]` support
 - [Extremely fast](https://github.com/askama-rs/template-benchmark#benchmark-results),
   using lazy rendering to minimize allocation

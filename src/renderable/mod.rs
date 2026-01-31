@@ -3,9 +3,6 @@
 mod buffer;
 mod impls;
 
-extern crate alloc;
-
-use alloc::string::String;
 use core::{
     fmt::{self, Debug, Display, Formatter},
     marker::PhantomData,
@@ -13,7 +10,9 @@ use core::{
 
 pub use self::buffer::*;
 use crate::{
-    Raw, Rendered, const_precise_live_drops_hack,
+    Raw, Rendered,
+    alloc::string::String,
+    const_precise_live_drops_hack,
     context::{AttributeValue, Context, Node},
 };
 
@@ -123,7 +122,7 @@ use crate::{
 /// a `(...)` node, you can also use the "component" syntax to make using these
 /// types more like popular frontend frameworks such as React.js.
 ///
-/// ### [`maud!`](crate::maud)
+/// ### [`maud!`](crate::maud!)
 ///
 /// ```
 /// use hypertext::prelude::*;
@@ -146,7 +145,7 @@ use crate::{
 /// );
 /// ```
 ///
-/// ### [`rsx!`](crate::rsx)
+/// ### [`rsx!`](crate::rsx!)
 ///
 /// ```
 /// use hypertext::prelude::*;
@@ -324,8 +323,8 @@ impl<F: Fn(&mut Buffer<C>), C: Context> Debug for Lazy<F, C> {
 /// This will handle escaping special characters for you.
 ///
 /// This can be created more easily via the `%(...)` syntax in
-/// [`maud!`](crate::maud), [`rsx!`](crate::rsx), and
-/// [`attribute!`](crate::attribute) which will automatically wrap the
+/// [`maud!`](crate::maud!), [`rsx!`](crate::rsx!), and
+/// [`attribute!`](crate::attribute!) which will automatically wrap the
 /// expression in this type.
 ///
 /// # Example
@@ -367,8 +366,8 @@ where
 /// This will handle escaping special characters for you.
 ///
 /// This can be created more easily via the `?(...)` syntax in
-/// [`maud!`](crate::maud), [`rsx!`](crate::rsx), and
-/// [`attribute!`](crate::attribute) which will automatically wrap the
+/// [`maud!`](crate::maud!), [`rsx!`](crate::rsx!), and
+/// [`attribute!`](crate::attribute!) which will automatically wrap the
 /// expression in this type.
 ///
 /// # Example
