@@ -1,24 +1,7 @@
-[package]
-name = "hypertext"
-version.workspace = true
-authors.workspace = true
-edition.workspace = true
-description.workspace = true
-documentation = "https://docs.rs/hypertext"
-readme.workspace = true
-homepage.workspace = true
-repository.workspace = true
-license.workspace = true
-keywords.workspace = true
-categories.workspace = true
-
-[package.metadata.docs.rs]
-all-features = true
-
 [workspace]
 resolver = "2"
-members = [".", "./macros", "./proc-macros", "./syntax", "examples/*"]
-default-members = [".", "./macros", "./syntax", "proc-macros"]
+members = ["crates/*"]
+default-members = ["crates/*"]
 
 [workspace.package]
 version = "0.12.1"
@@ -32,12 +15,16 @@ license = "MIT"
 keywords = ["html", "macro", "maud", "rsx"]
 categories = ["template-engine"]
 
+[workspace.metadata.crane]
+name = "hypertext"
+
 [workspace.dependencies]
+hypertext = { version = "0.12.1", path = "./crates/hypertext" }
+hypertext-macros = { version = "0.12.1", path = "./crates/hypertext-macros" }
+hypertext-proc-macros = { version = "0.12.1", path = "./crates/hypertext-proc-macros" }
+hypertext-syntax = { version = "0.12.1", path = "./crates/hypertext-syntax" }
+
 html-escape = { version = "0.2", default-features = false }
-hypertext = { version = "0.12.1", path = "." }
-hypertext-macros = { version = "0.12.1", path = "./macros" }
-hypertext-proc-macros = { version = "0.12.1", path = "./proc-macros" }
-hypertext-syntax = { version = "0.12.1", path = "./syntax" }
 
 [workspace.lints]
 [workspace.lints.clippy]
@@ -49,37 +36,3 @@ pedantic = { level = "warn", priority = -1 }
 missing_copy_implementations = "warn"
 missing_debug_implementations = "warn"
 missing_docs = "warn"
-
-[dependencies]
-actix-web = { version = "4", default-features = false, optional = true }
-axum-core = { version = "0.5", default-features = false, optional = true }
-html-escape = { workspace = true, optional = true }
-hypertext-proc-macros.workspace = true
-itoa = { version = "1", optional = true }
-ntex = { version = "2", default-features = false, optional = true }
-poem = { version = "3", default-features = false, optional = true }
-rocket = { version = "0.5", default-features = false, optional = true }
-ryu = { version = "1", optional = true }
-salvo_core = { version = "0.82", default-features = false, optional = true }
-tide = { version = "0.16", default-features = false, optional = true }
-warp = { version = "0.4", default-features = false, optional = true }
-
-[features]
-actix-web = ["alloc", "dep:actix-web"]
-alloc = ["dep:html-escape", "dep:itoa", "dep:ryu"]
-alpine = []
-axum = ["alloc", "dep:axum-core"]
-default = ["alloc"]
-htmx = []
-hyperscript = []
-mathml = []
-ntex = ["alloc", "dep:ntex"]
-poem = ["alloc", "dep:poem"]
-rocket = ["alloc", "dep:rocket"]
-salvo = ["alloc", "dep:salvo_core"]
-tide = ["alloc", "dep:tide"]
-warp = ["alloc", "dep:warp"]
-
-[lints]
-workspace = true
-

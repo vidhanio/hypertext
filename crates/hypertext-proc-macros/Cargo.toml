@@ -23,4 +23,3 @@ syn = { version = "2", features = ["extra-traits", "full"] }
 
 [lints]
 workspace = true
-
