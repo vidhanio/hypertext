@@ -62,9 +62,7 @@
 //! If the framework is widely used, consider contributing the trait to this
 //! crate so that others can use it too!
 #![expect(non_upper_case_globals)]
-use crate::validation::{Attribute, Element};
-#[allow(unused_imports)]
-use crate::validation::{AttributeNamespace, AttributeSymbol};
+use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol, Element};
 
 /// Global HTML attributes.
 ///
@@ -329,7 +327,6 @@ pub trait EventHandlerAttributes: GlobalAttributes {
 impl<T: GlobalAttributes> EventHandlerAttributes for T {}
 
 /// Attributes for use with [htmx](https://htmx.org/).
-#[cfg(feature = "htmx")]
 pub trait HtmxAttributes: GlobalAttributes {
     /// Issues a `GET` to the specified URL
     const hx_get: Attribute = Attribute;
@@ -440,21 +437,17 @@ pub trait HtmxAttributes: GlobalAttributes {
     const hx_vars: Attribute = Attribute;
 }
 
-#[cfg(feature = "htmx")]
 impl<T: GlobalAttributes> HtmxAttributes for T {}
 
-#[cfg(feature = "hyperscript")]
 /// Attributes for use with [hyperscript](https://hyperscript.org/).
 pub trait HyperscriptAttributes: GlobalAttributes {
     /// The `_` hyperscript tag
     const __: Attribute = Attribute;
 }
 
-#[cfg(feature = "hyperscript")]
 impl<T: GlobalAttributes> HyperscriptAttributes for T {}
 
 /// Attributes for use with [Alpine.js](https://alpinejs.dev/).
-#[cfg(feature = "alpine")]
 pub trait AlpineJsAttributes: GlobalAttributes {
     /// Declare a new Alpine component and its data for a block of HTML
     const x_data: Attribute = Attribute;
@@ -517,10 +510,8 @@ pub trait AlpineJsAttributes: GlobalAttributes {
     const x_ignore: Attribute = Attribute;
 }
 
-#[cfg(feature = "alpine")]
 impl<T: GlobalAttributes> AlpineJsAttributes for T {}
 
-#[cfg(feature = "mathml")]
 #[expect(missing_docs)]
 pub trait MathMlGlobalAttributes: Element {
     const autofocus: Attribute = Attribute;

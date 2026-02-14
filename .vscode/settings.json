@@ -1,0 +1,4 @@
+{
+  "rust-analyzer.server.path": "rust-analyzer",
+  "claudeCode.selectedModel": "sonnet"
+}

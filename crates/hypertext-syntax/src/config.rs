@@ -3,7 +3,7 @@ use syn::{
     parse::{Parse, ParseStream},
 };
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub struct Config {
     pub syntax: MacroSyntax,
     pub quotes: Quotes,
@@ -75,7 +75,7 @@ impl Parse for Config {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub enum MacroSyntax {
     Maud,
     Rsx,
@@ -105,7 +105,7 @@ impl Parse for MacroSyntax {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub enum Quotes {
     Double,
     Single,
@@ -130,7 +130,7 @@ impl Parse for Quotes {
     }
 }
 
-#[cfg_attr(test, derive(Debug, PartialEq))]
+#[cfg_attr(test, derive(Debug, PartialEq, Eq))]
 pub enum Output {
     Simple,
     Lazy { move_: bool },

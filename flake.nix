@@ -1,21 +1,17 @@
 {
-  description = "Build a cargo workspace";
-
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
     crane.url = "github:ipetkov/crane";
     systems.url = "github:nix-systems/default-linux";
     treefmt-nix.url = "github:numtide/treefmt-nix";
+    rust-overlay.url = "github:oxalica/rust-overlay";
   };
 
   outputs =
     inputs:
     inputs.flake-parts.lib.mkFlake { inherit inputs; } (
-      {
-        inputs,
-        ...
-      }:
+      { inputs, ... }:
       {
         imports = [ inputs.treefmt-nix.flakeModule ];
 
@@ -23,6 +19,7 @@
 
         perSystem =
           {
+            system,
             pkgs,
             self',
             config,
@@ -30,6 +27,8 @@
           }:
           let
             craneLib = inputs.crane.mkLib pkgs;
+            nightlyCraneLib = craneLib.overrideToolchain (p: p.rust-bin.nightly.latest.default);
+
             src = craneLib.cleanCargoSource ./.;
             commonArgs = {
               inherit src;
@@ -39,8 +38,13 @@
             cargoArtifacts = craneLib.buildDepsOnly commonArgs;
           in
           {
+            _module.args.pkgs = import inputs.nixpkgs {
+              inherit system;
+              overlays = [ inputs.rust-overlay.overlays.default ];
+            };
+
             checks = {
-              clippy = craneLib.cargoClippy (
+              clippy = nightlyCraneLib.cargoClippy (
                 commonArgs
                 // {
                   inherit cargoArtifacts;
@@ -48,7 +52,7 @@
                 }
               );
 
-              doc = craneLib.cargoDoc (
+              doc = nightlyCraneLib.cargoDoc (
                 commonArgs
                 // {
                   inherit cargoArtifacts;
@@ -56,7 +60,7 @@
                 }
               );
 
-              fmt = craneLib.cargoFmt {
+              fmt = nightlyCraneLib.cargoFmt {
                 inherit src;
               };
 
@@ -80,6 +84,7 @@
 
               packages = [
                 pkgs.nil
+                pkgs.rust-analyzer
                 config.treefmt.build.wrapper
               ];
             };
@@ -89,9 +94,10 @@
                 nixfmt.enable = true;
                 statix.enable = true;
                 deadnix.enable = true;
-
-                rustfmt.enable = true;
-
+                rustfmt = {
+                  enable = true;
+                  package = pkgs.rust-bin.nightly.latest.rustfmt;
+                };
                 taplo.enable = true;
               };
             };

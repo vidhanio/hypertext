@@ -1,7 +1,6 @@
 [package]
 name = "hypertext-syntax"
 version.workspace = true
-authors.workspace = true
 edition.workspace = true
 description.workspace = true
 documentation = "https://docs.rs/hypertext-syntax"
