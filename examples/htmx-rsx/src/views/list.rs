@@ -1,6 +1,6 @@
 use hypertext::prelude::*;
 
-#[component]
+#[renderable]
 pub fn list() -> impl Renderable {
     let list_items = vec!["Hypertext", "is", "fun!"];
     rsx! {

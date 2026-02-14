@@ -1,33 +1,37 @@
 [workspace]
 resolver = "2"
-members = ["examples/*", "hypertext", "hypertext-macros"]
-default-members = ["hypertext", "hypertext-macros"]
+members = ["crates/*"]
+default-members = ["crates/*"]
 
 [workspace.package]
 version = "0.12.1"
-authors = ["Vidhan Bhatt <me@vidhan.io>"]
 edition = "2024"
-description = "A blazing fast type-checked HTML macro crate."
+description = "A blazing fast type checked HTML macro crate."
 readme = "README.md"
 homepage = "https://github.com/vidhanio/hypertext"
 repository = "https://github.com/vidhanio/hypertext"
 license = "MIT"
-keywords = ["html", "macro"]
+keywords = ["html", "macro", "maud", "rsx"]
 categories = ["template-engine"]
 
+[workspace.metadata.crane]
+name = "hypertext"
+
 [workspace.dependencies]
+hypertext = { version = "0.12.1", path = "./crates/hypertext" }
+hypertext-macros = { version = "0.12.1", path = "./crates/hypertext-macros" }
+hypertext-proc-macros = { version = "0.12.1", path = "./crates/hypertext-proc-macros" }
+hypertext-syntax = { version = "0.12.1", path = "./crates/hypertext-syntax" }
+
 html-escape = { version = "0.2", default-features = false }
-hypertext-macros = { version = "0.12.1", path = "./hypertext-macros" }
 
 [workspace.lints]
 [workspace.lints.clippy]
 cargo = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
-too_long_first_doc_paragraph = "allow"
 
 [workspace.lints.rust]
 missing_copy_implementations = "warn"
 missing_debug_implementations = "warn"
 missing_docs = "warn"
-

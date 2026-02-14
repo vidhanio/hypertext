@@ -1,0 +1,25 @@
+[package]
+name = "hypertext-syntax"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+documentation = "https://docs.rs/hypertext-syntax"
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+html-escape.workspace = true
+proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", default-features = false, features = [
+  "clone-impls",
+  "parsing",
+  "printing",
+] }
+
+[lints]
+workspace = true

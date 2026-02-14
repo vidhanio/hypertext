@@ -8,6 +8,8 @@ name = "hypertext"
 changelog_update = true
 changelog_include = [
   "hypertext-macros",
+  "hypertext-proc-macros",
+  "hypertext-syntax",
 ]
 changelog_path = "./CHANGELOG.md"
 git_release_enable = true

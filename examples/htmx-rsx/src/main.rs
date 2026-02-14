@@ -1,6 +1,5 @@
-use std::net::Ipv4Addr;
+use std::{error::Error, net::Ipv4Addr};
 
-use anyhow::Result;
 use axum::{Router, routing::get};
 use handlers::{handle_about, handle_home, handle_list};
 use tokio::net::TcpListener;
@@ -10,7 +9,7 @@ mod handlers;
 mod views;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), Box<dyn Error>> {
     // build our application with a route
     let app = Router::new()
         .route("/", get(handle_home))
