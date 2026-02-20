@@ -398,6 +398,25 @@ pub trait HtmxAttributes: GlobalAttributes {
     /// (deprecated, please use [`hx-vals`](Self::hx_vals))
     #[deprecated = "use `hx-vals` instead"]
     const hx_vars: Attribute = Attribute;
+
+    /// The URL of the SSE server.
+    const sse_connect: Attribute = Attribute;
+
+    /// The name of the message to swap into the DOM
+    const sse_swap: Attribute = Attribute;
+
+    /// To close the `EventStream` gracefully when that message is received.
+    /// This might be helpful if you want to send information
+    /// to a client that will eventually stop.
+    const sse_close: Attribute = Attribute;
+
+    ///  A URL to establish a WebSocket connection against
+    const ws_connect: Attribute = Attribute;
+
+    /// Sends a message to the nearest websocket based on the trigger value for
+    /// the element (either the natural event or the event specified by
+    /// [`hx-trigger`](Self::hx_trigger))
+    const ws_send: Attribute = Attribute;
 }
 
 #[cfg(feature = "htmx")]
