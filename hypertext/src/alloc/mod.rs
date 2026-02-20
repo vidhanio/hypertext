@@ -312,6 +312,13 @@ impl<F: Fn(&mut Buffer<C>), C: Context> Debug for Lazy<F, C> {
     }
 }
 
+impl<C: Context> Default for Lazy<fn(&mut Buffer<C>), C> {
+    #[inline]
+    fn default() -> Lazy<fn(&mut Buffer<C>), C> {
+        Lazy::dangerously_create(|_| ())
+    }
+}
+
 /// A value rendered via its [`Display`] implementation.
 ///
 /// This will handle escaping special characters for you.
