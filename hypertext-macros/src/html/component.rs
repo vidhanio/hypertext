@@ -8,7 +8,7 @@ use syn::{
 };
 
 use super::{ElementBody, Generate, Generator, Literal, ParenExpr, Syntax};
-use crate::{AttributeValueNode, Context};
+use crate::{AttributeValueNode, Context, component::ComponentInstantiationMode};
 
 pub struct Component<S: Syntax> {
     pub name: Ident,
@@ -21,11 +21,16 @@ impl<S: Syntax> Generate for Component<S> {
     const CONTEXT: Context = Context::Node;
 
     fn generate(&self, g: &mut Generator) {
+        let instantiation_mode = g.instantiation_mode().unwrap_or_default();
+
         let fields = self.attrs.iter().map(|attr| {
             let name = &attr.name;
             let value = &attr.value_expr();
 
-            quote!(#name: #value,)
+            match instantiation_mode {
+                ComponentInstantiationMode::StructLiteral => quote!(#name: #value,),
+                ComponentInstantiationMode::Builder => quote!(.#name(#value)),
+            }
         });
 
         let children = match &self.body {
@@ -45,9 +50,12 @@ impl<S: Syntax> Generate for Component<S> {
 
                 let children_ident = Ident::new("children", self.name.span());
 
-                quote!(
-                    #children_ident: #lazy,
-                )
+                match instantiation_mode {
+                    ComponentInstantiationMode::StructLiteral => quote!(
+                        #children_ident: #lazy,
+                    ),
+                    ComponentInstantiationMode::Builder => quote!(.#children_ident(#lazy)),
+                }
             }
             ElementBody::Void => quote!(),
         };
@@ -60,12 +68,19 @@ impl<S: Syntax> Generate for Component<S> {
             .map(|dotdot| quote_spanned!(dotdot.span()=> ..::core::default::Default::default()))
             .unwrap_or_default();
 
-        let init = quote! {
-            #name {
-                #(#fields)*
-                #children
-                #default
-            }
+        let init = match instantiation_mode {
+            ComponentInstantiationMode::StructLiteral => quote! {
+                #name {
+                    #(#fields)*
+                    #children
+                    #default
+                }
+            },
+            ComponentInstantiationMode::Builder => quote! {
+                #name::default()
+                    #(#fields)*
+                    #children
+            },
         };
 
         g.push_expr(Paren::default(), Self::CONTEXT, &init);

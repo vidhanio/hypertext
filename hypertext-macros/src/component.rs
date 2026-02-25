@@ -4,6 +4,13 @@ use syn::{FnArg, Ident, ItemFn, Pat, PatType, Type, Visibility, parse::Parse};
 
 use crate::html::generate::Generator;
 
+#[derive(Default, Clone, Copy)]
+pub enum ComponentInstantiationMode {
+    #[default]
+    StructLiteral,
+    Builder,
+}
+
 pub struct ComponentArgs {
     visibility: Visibility,
     ident: Option<Ident>,

@@ -12,9 +12,17 @@ use syn::{
 };
 
 use super::UnquotedName;
+use crate::component::ComponentInstantiationMode;
 
-pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Result<TokenStream> {
+pub fn lazy<T: Parse + Generate>(
+    tokens: TokenStream,
+    move_: bool,
+    instantiation_mode: Option<ComponentInstantiationMode>,
+) -> syn::Result<TokenStream> {
     let mut g = Generator::new_closure(T::CONTEXT);
+    if let Some(mode) = instantiation_mode {
+        g.set_instantiation_mode(mode);
+    }
 
     g.push(syn::parse2::<T>(tokens)?);
 
@@ -56,6 +64,7 @@ pub struct Generator {
     brace_token: Brace,
     parts: Vec<Part>,
     checks: Checks,
+    instantiation_mode: Option<ComponentInstantiationMode>,
 }
 
 impl Generator {
@@ -78,7 +87,16 @@ impl Generator {
             brace_token,
             parts: Vec::new(),
             checks: Checks::new(),
+            instantiation_mode: None,
         }
+    }
+
+    const fn set_instantiation_mode(&mut self, instantiation_mode: ComponentInstantiationMode) {
+        self.instantiation_mode = Some(instantiation_mode);
+    }
+
+    pub const fn instantiation_mode(&self) -> Option<ComponentInstantiationMode> {
+        self.instantiation_mode
     }
 
     fn finish(self) -> AnyBlock {

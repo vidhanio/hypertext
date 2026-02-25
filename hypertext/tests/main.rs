@@ -4,6 +4,7 @@
 use std::fmt::{self, Display, Formatter};
 
 use hypertext::{Buffer, Lazy, Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
+use hypertext_macros::{Builder, maud_cb, rsx_cb};
 
 #[test]
 fn readme() {
@@ -754,9 +755,9 @@ fn toggles() {
 fn derive_default() {
     #[derive(Default)]
     struct Element<'a> {
-        pub id: &'a str,
-        pub tabindex: u32,
-        pub children: Lazy<fn(&mut Buffer)>,
+        id: &'a str,
+        tabindex: u32,
+        children: Lazy<fn(&mut Buffer)>,
     }
 
     impl<'a> Renderable for Element<'a> {
@@ -770,25 +771,150 @@ fn derive_default() {
         }
     }
 
-    let with_children = rsx! {
+    let maud_with_children = maud! {
+        Element .. {
+          h1 { "hello" }
+        }
+    }
+    .render();
+
+    let rsx_with_children = rsx! {
         <Element ..>
           <h1>hello</h1>
         </Element>
     }
     .render();
 
-    assert_eq!(
-        with_children.as_inner(),
-        r#"<div id="" tabindex="0"><h1>hello</h1></div>"#
-    );
+    let expected_result = r#"<div id="" tabindex="0"><h1>hello</h1></div>"#;
+    assert_eq!(maud_with_children.as_inner(), expected_result);
+    assert_eq!(rsx_with_children.as_inner(), expected_result);
 
-    let without_children = rsx! {
+    let maud_without_children = maud! {
+        Element ..;
+    }
+    .render();
+
+    let rsx_without_children = rsx! {
         <Element ../>
     }
     .render();
 
-    assert_eq!(
-        without_children.as_inner(),
-        r#"<div id="" tabindex="0"></div>"#
-    );
+    let expected_result = r#"<div id="" tabindex="0"></div>"#;
+    assert_eq!(maud_without_children.as_inner(), expected_result);
+    assert_eq!(rsx_without_children.as_inner(), expected_result);
+}
+
+#[test]
+fn component_builder() {
+    #[derive(Default, Builder)]
+    struct Element<'a> {
+        id: &'a str,
+        tabindex: u32,
+        children: Lazy<fn(&mut Buffer)>,
+
+        #[builder(skip)]
+        _skipped: (),
+    }
+
+    impl<'a> Renderable for Element<'a> {
+        fn render_to(&self, buf: &mut Buffer) {
+            rsx! {
+                <div id=(self.id) tabindex=(self.tabindex)>
+                    (self.children)
+                </div>
+            }
+            .render_to(buf)
+        }
+    }
+
+    let maud_cb_result = maud_cb! {
+        Element;
+    }
+    .render();
+
+    let rsx_cb_result = rsx_cb! {
+        <Element />
+    }
+    .render();
+
+    let expected_result = r#"<div id="" tabindex="0"></div>"#;
+    assert_eq!(maud_cb_result.as_inner(), expected_result);
+    assert_eq!(rsx_cb_result.as_inner(), expected_result);
+
+    let maud_without_children = maud_cb! {
+        Element id="test";
+    }
+    .render();
+
+    let rsx_without_children = rsx_cb! {
+        <Element id="test" />
+    }
+    .render();
+
+    let expected_result = r#"<div id="test" tabindex="0"></div>"#;
+    assert_eq!(maud_without_children.as_inner(), expected_result);
+    assert_eq!(rsx_without_children.as_inner(), expected_result);
+
+    let maud_cb_result = maud_cb! {
+        Element {
+          h1 { "hello" }
+        }
+    }
+    .render();
+
+    let rsx_cb_result = rsx_cb! {
+        <Element>
+          <h1>hello</h1>
+        </Element>
+    }
+    .render();
+
+    let expected_result = r#"<div id="" tabindex="0"><h1>hello</h1></div>"#;
+    assert_eq!(maud_cb_result.as_inner(), expected_result);
+    assert_eq!(rsx_cb_result.as_inner(), expected_result);
+
+    let maud_cb_result = maud_cb! {
+        Element tabindex=2 id="element-cb" {
+          h1 { "hello" }
+        }
+    }
+    .render();
+
+    let rsx_cb_result = rsx_cb! {
+        <Element tabindex=2 id="element-cb">
+          <h1>hello</h1>
+        </Element>
+    }
+    .render();
+
+    let expected_result = r#"<div id="element-cb" tabindex="2"><h1>hello</h1></div>"#;
+    assert_eq!(maud_cb_result.as_inner(), expected_result);
+    assert_eq!(rsx_cb_result.as_inner(), expected_result);
+
+    let maud_result = maud! {
+        Element .. {(
+            maud_cb! {
+                Element id="nested-cb" {
+                    h1 { "hello" }
+                }
+            }
+        )}
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <Element ..>(
+            rsx_cb! {
+                <Element id="nested-cb">
+                    <h1>"hello"</h1>
+                </Element>
+            }
+        )</Element>
+    }
+    .render();
+
+    let expected_result =
+        r#"<div id="" tabindex="0"><div id="nested-cb" tabindex="0"><h1>hello</h1></div></div>"#;
+    assert_eq!(maud_result.as_inner(), expected_result);
+    assert_eq!(rsx_result.as_inner(), expected_result);
 }
