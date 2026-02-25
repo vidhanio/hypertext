@@ -4,7 +4,7 @@
 use std::fmt::{self, Display, Formatter};
 
 use hypertext::{Buffer, Lazy, Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
-use hypertext_macros::{maud_cb, rsx_cb};
+use hypertext_macros::{Builder, maud_cb, rsx_cb};
 
 #[test]
 fn readme() {
@@ -806,28 +806,14 @@ fn derive_default() {
 
 #[test]
 fn component_builder() {
-    #[derive(Default)]
+    #[derive(Default, Builder)]
     struct Element<'a> {
         id: &'a str,
         tabindex: u32,
         children: Lazy<fn(&mut Buffer)>,
-    }
 
-    impl<'a> Element<'a> {
-        fn id(mut self, id: &'a str) -> Self {
-            self.id = id;
-            self
-        }
-
-        fn tabindex(mut self, tabindex: u32) -> Self {
-            self.tabindex = tabindex;
-            self
-        }
-
-        fn children(mut self, children: Lazy<fn(&mut Buffer)>) -> Self {
-            self.children = children;
-            self
-        }
+        #[builder(skip)]
+        _skipped: (),
     }
 
     impl<'a> Renderable for Element<'a> {
@@ -888,20 +874,20 @@ fn component_builder() {
     assert_eq!(rsx_cb_result.as_inner(), expected_result);
 
     let maud_cb_result = maud_cb! {
-        Element tabindex=2 {
+        Element tabindex=2 id="element-cb" {
           h1 { "hello" }
         }
     }
     .render();
 
     let rsx_cb_result = rsx_cb! {
-        <Element tabindex=2>
+        <Element tabindex=2 id="element-cb">
           <h1>hello</h1>
         </Element>
     }
     .render();
 
-    let expected_result = r#"<div id="" tabindex="2"><h1>hello</h1></div>"#;
+    let expected_result = r#"<div id="element-cb" tabindex="2"><h1>hello</h1></div>"#;
     assert_eq!(maud_cb_result.as_inner(), expected_result);
     assert_eq!(rsx_cb_result.as_inner(), expected_result);
 

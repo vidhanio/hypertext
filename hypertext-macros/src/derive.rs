@@ -1,6 +1,6 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{DeriveInput, Error, spanned::Spanned};
+use syn::{Data, DeriveInput, Error, spanned::Spanned};
 
 use crate::{
     AttributeValueNode, ComponentInstantiationMode, Context, Document, Maud, Nodes, Rsx,
@@ -166,4 +166,64 @@ fn attribute_renderable(input: &DeriveInput) -> syn::Result<Option<TokenStream>>
     };
 
     Ok(Some(output))
+}
+
+#[allow(clippy::needless_pass_by_value)]
+pub fn builder(input: DeriveInput) -> syn::Result<TokenStream> {
+    let Data::Struct(data_struct) = &input.data else {
+        return Err(syn::Error::new(
+            input.span(),
+            "#[derive(Builder)] may only be used on structs",
+        ));
+    };
+
+    let struct_name = &input.ident;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let mut methods = Vec::new();
+    for field in &data_struct.fields {
+        if let Some(name) = &field.ident {
+            let vis = &field.vis;
+            let ty = &field.ty;
+
+            let is_skipped = field
+                .attrs
+                .iter()
+                .find(|attr| attr.path().is_ident("builder"))
+                .map_or(Ok(false), |builder_attr| {
+                    builder_attr
+                        .parse_nested_meta(|meta| {
+                            if meta.path.is_ident("skip") {
+                                return Ok(());
+                            }
+
+                            Err(meta.error("unrecognized builder"))
+                        })
+                        .map(|()| true)
+                })?;
+
+            if !is_skipped {
+                methods.push(quote! {
+                    #[must_use]
+                    #vis fn #name(mut self, #name: #ty) -> Self {
+                        self.#name = #name;
+                        self
+                    }
+                });
+            }
+        }
+    }
+
+    let output = if methods.is_empty() {
+        quote! {}
+    } else {
+        quote! {
+            #[automatically_derived]
+            impl #impl_generics #struct_name #ty_generics #where_clause {
+                #(#methods)*
+            }
+        }
+    };
+
+    Ok(output)
 }

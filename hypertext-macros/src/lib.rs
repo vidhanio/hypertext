@@ -126,3 +126,10 @@ pub fn component(attr: TokenStream, item: TokenStream) -> TokenStream {
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
+
+#[proc_macro_derive(Builder, attributes(builder))]
+pub fn derive_builder(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive::builder(parse_macro_input!(input as DeriveInput))
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
