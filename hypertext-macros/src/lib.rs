@@ -110,7 +110,7 @@ pub fn attribute_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStr
         .into()
 }
 
-#[proc_macro_derive(Renderable, attributes(maud, rsx, attribute))]
+#[proc_macro_derive(Renderable, attributes(maud, maud_cb, rsx, rsx_cb, attribute))]
 pub fn derive_renderable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     derive::renderable(parse_macro_input!(input as DeriveInput))
         .unwrap_or_else(|err| err.to_compile_error())
