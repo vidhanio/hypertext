@@ -3,7 +3,7 @@ use quote::quote;
 use syn::{DeriveInput, Error, spanned::Spanned};
 
 use crate::{
-    AttributeValueNode, Context, Document, Maud, Nodes, Rsx,
+    AttributeValueNode, ComponentInstantiationMode, Context, Document, Maud, Nodes, Rsx,
     html::{self, generate::Generator},
 };
 
@@ -35,13 +35,45 @@ fn renderable_element(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
                 Some((
                     attr,
                     html::generate::lazy::<Document<Maud>>
-                        as fn(TokenStream, bool) -> syn::Result<TokenStream>,
+                        as fn(
+                            TokenStream,
+                            bool,
+                            Option<ComponentInstantiationMode>,
+                        ) -> syn::Result<TokenStream>,
+                    Some(ComponentInstantiationMode::StructLiteral),
+                ))
+            } else if attr.path().is_ident("maud_cb") {
+                Some((
+                    attr,
+                    html::generate::lazy::<Document<Maud>>
+                        as fn(
+                            TokenStream,
+                            bool,
+                            Option<ComponentInstantiationMode>,
+                        ) -> syn::Result<TokenStream>,
+                    Some(ComponentInstantiationMode::Builder),
                 ))
             } else if attr.path().is_ident("rsx") {
                 Some((
                     attr,
                     html::generate::lazy::<Document<Rsx>>
-                        as fn(TokenStream, bool) -> syn::Result<TokenStream>,
+                        as fn(
+                            TokenStream,
+                            bool,
+                            Option<ComponentInstantiationMode>,
+                        ) -> syn::Result<TokenStream>,
+                    Some(ComponentInstantiationMode::StructLiteral),
+                ))
+            } else if attr.path().is_ident("rsx_cb") {
+                Some((
+                    attr,
+                    html::generate::lazy::<Document<Rsx>>
+                        as fn(
+                            TokenStream,
+                            bool,
+                            Option<ComponentInstantiationMode>,
+                        ) -> syn::Result<TokenStream>,
+                    Some(ComponentInstantiationMode::Builder),
                 ))
             } else {
                 None
@@ -49,14 +81,14 @@ fn renderable_element(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
         })
         .peekable();
 
-    let (lazy_fn, tokens) = match (attrs.next(), attrs.peek()) {
-        (Some((attr, f)), None) => (f, attr.meta.require_list()?.tokens.clone()),
-        (Some((attr, _)), Some(_)) => {
+    let (lazy_fn, tokens, instantiation_mode) = match (attrs.next(), attrs.peek()) {
+        (Some((attr, f, mode)), None) => (f, attr.meta.require_list()?.tokens.clone(), mode),
+        (Some((attr, _, _)), Some(_)) => {
             let mut error = Error::new(
                 attr.span(),
                 "cannot have multiple `maud` or `rsx` attributes",
             );
-            for (attr, _) in attrs {
+            for (attr, _, _) in attrs {
                 error.combine(syn::Error::new(
                     attr.span(),
                     "cannot have multiple `maud` or `rsx` attributes",
@@ -69,7 +101,7 @@ fn renderable_element(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
         }
     };
 
-    let lazy = lazy_fn(tokens, true)?;
+    let lazy = lazy_fn(tokens, true, instantiation_mode)?;
 
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
@@ -112,7 +144,7 @@ fn attribute_renderable(input: &DeriveInput) -> syn::Result<Option<TokenStream>>
         }
     };
 
-    let lazy = html::generate::lazy::<Nodes<AttributeValueNode>>(tokens, true)?;
+    let lazy = html::generate::lazy::<Nodes<AttributeValueNode>>(tokens, true, None)?;
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let buffer_ident = Generator::buffer_ident();
