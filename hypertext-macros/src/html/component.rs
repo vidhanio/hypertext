@@ -1,9 +1,8 @@
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote, quote_spanned};
+use quote::{ToTokens, quote};
 use syn::{
     Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
     parse::{Parse, ParseStream},
-    spanned::Spanned,
     token::{Brace, Paren},
 };
 
@@ -13,7 +12,6 @@ use crate::{AttributeValueNode, Context};
 pub struct Component<S: Syntax> {
     pub name: Ident,
     pub attrs: Vec<ComponentAttribute>,
-    pub dotdot: Option<Token![..]>,
     pub body: ElementBody<S>,
 }
 
@@ -21,11 +19,11 @@ impl<S: Syntax> Generate for Component<S> {
     const CONTEXT: Context = Context::Node;
 
     fn generate(&self, g: &mut Generator) {
-        let fields = self.attrs.iter().map(|attr| {
+        let props = self.attrs.iter().map(|attr| {
             let name = &attr.name;
             let value = &attr.value_expr();
 
-            quote!(#name: #value,)
+            quote!(.#name(#value))
         });
 
         let children = match &self.body {
@@ -46,7 +44,7 @@ impl<S: Syntax> Generate for Component<S> {
                 let children_ident = Ident::new("children", self.name.span());
 
                 quote!(
-                    #children_ident: #lazy,
+                    .#children_ident(#lazy)
                 )
             }
             ElementBody::Void => quote!(),
@@ -54,18 +52,11 @@ impl<S: Syntax> Generate for Component<S> {
 
         let name = &self.name;
 
-        let default = self
-            .dotdot
-            .as_ref()
-            .map(|dotdot| quote_spanned!(dotdot.span()=> ..::core::default::Default::default()))
-            .unwrap_or_default();
-
         let init = quote! {
-            #name {
-                #(#fields)*
+            #name::builder()
+                #(#props)*
                 #children
-                #default
-            }
+                .build()
         };
 
         g.push_expr(Paren::default(), Self::CONTEXT, &init);

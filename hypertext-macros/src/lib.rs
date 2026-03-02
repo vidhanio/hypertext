@@ -95,7 +95,14 @@ pub fn component(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr = parse_macro_input!(attr as ComponentArgs);
     let item = parse_macro_input!(item as ItemFn);
 
-    component::generate(attr, &item)
+    component::generate(attr, item)
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
+#[proc_macro_derive(DefaultBuilder, attributes(builder))]
+pub fn derive_builder(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    derive::default_builder(parse_macro_input!(input as DeriveInput))
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }

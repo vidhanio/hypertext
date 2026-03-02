@@ -152,8 +152,9 @@
 //! components.
 //!
 //! ```rust
-//! use hypertext::{Buffer, prelude::*};
+//! use hypertext::{Buffer, TypedBuilder, prelude::*};
 //!
+//! #[derive(TypedBuilder)]
 //! struct Repeater<R: Renderable> {
 //!     count: usize,
 //!     children: R,
@@ -206,6 +207,8 @@ pub mod validation;
 mod web_frameworks;
 
 use core::{fmt::Debug, marker::PhantomData};
+
+pub use typed_builder::{self, TypedBuilder};
 
 #[cfg(feature = "alloc")]
 pub use self::alloc::*;

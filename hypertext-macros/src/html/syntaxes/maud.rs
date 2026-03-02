@@ -132,7 +132,6 @@ impl Parse for Component<Maud> {
 
                 attrs
             },
-            dotdot: input.parse()?,
             body: input.parse()?,
         })
     }

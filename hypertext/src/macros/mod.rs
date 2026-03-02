@@ -1,6 +1,7 @@
 #[cfg(feature = "alloc")]
 mod alloc;
 
+pub use hypertext_macros::DefaultBuilder;
 /// Generate static HTML attributes.
 ///
 /// This will return a [`RawAttribute<&'static str>`](crate::RawAttribute),

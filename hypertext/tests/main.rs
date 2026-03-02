@@ -3,7 +3,9 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use hypertext::{Buffer, Lazy, Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
+use hypertext::{
+    Buffer, Raw, TypedBuilder, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static,
+};
 
 #[test]
 fn readme() {
@@ -543,6 +545,7 @@ fn void_elements() {
 
 #[test]
 fn component() {
+    #[derive(TypedBuilder)]
     struct Repeater<R> {
         count: usize,
         children: R,
@@ -748,47 +751,4 @@ fn toggles() {
         r#"<input id="value" type="checkbox" checked>"#
     );
     assert_eq!(rsx_result.as_inner(), r#"<input type="checkbox" checked>"#);
-}
-
-#[test]
-fn derive_default() {
-    #[derive(Default)]
-    struct Element<'a> {
-        pub id: &'a str,
-        pub tabindex: u32,
-        pub children: Lazy<fn(&mut Buffer)>,
-    }
-
-    impl<'a> Renderable for Element<'a> {
-        fn render_to(&self, buf: &mut Buffer) {
-            rsx! {
-                <div id=(self.id) tabindex=(self.tabindex)>
-                    (self.children)
-                </div>
-            }
-            .render_to(buf)
-        }
-    }
-
-    let with_children = rsx! {
-        <Element ..>
-          <h1>hello</h1>
-        </Element>
-    }
-    .render();
-
-    assert_eq!(
-        with_children.as_inner(),
-        r#"<div id="" tabindex="0"><h1>hello</h1></div>"#
-    );
-
-    let without_children = rsx! {
-        <Element ../>
-    }
-    .render();
-
-    assert_eq!(
-        without_children.as_inner(),
-        r#"<div id="" tabindex="0"></div>"#
-    );
 }
