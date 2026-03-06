@@ -29,11 +29,73 @@ pub fn lazy<T: Parse + Generate>(tokens: TokenStream, move_: bool) -> syn::Resul
     Ok(quote! {
         ::hypertext::Lazy::<_, #marker_ident>::dangerously_create(
             #move_token |#buffer_ident: &mut ::hypertext::Buffer<#marker_ident>| {
-
                 #block
             }
         )
     })
+}
+
+pub fn lazy_file<T: Parse + Generate>(
+    tokens: TokenStream,
+    move_: bool,
+) -> syn::Result<TokenStream> {
+    let path_lit = syn::parse2::<LitStr>(tokens)?;
+    let (file_tokens, dep_tracking) = read_file_tokens(&path_lit)?;
+
+    let mut g = Generator::new_closure(T::CONTEXT);
+    g.push(syn::parse2::<T>(file_tokens)?);
+    let block = g.finish();
+
+    let buffer_ident = Generator::buffer_ident();
+    let move_token = move_.then(|| quote!(move));
+    let marker_ident = T::CONTEXT.marker_type();
+
+    Ok(quote! {
+        {
+            #dep_tracking
+            ::hypertext::Lazy::<_, #marker_ident>::dangerously_create(
+                #move_token |#buffer_ident: &mut ::hypertext::Buffer<#marker_ident>| {
+                    #block
+                }
+            )
+        }
+    })
+}
+
+fn read_file_tokens(path_lit: &LitStr) -> syn::Result<(TokenStream, TokenStream)> {
+    let path_str = path_lit.value();
+    let path = std::path::PathBuf::from(&path_str);
+
+    if path.is_absolute() {
+        return Err(syn::Error::new_spanned(
+            path_lit,
+            "absolute paths are not allowed",
+        ));
+    }
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
+        .map_err(|_| syn::Error::new_spanned(path_lit, "CARGO_MANIFEST_DIR not set"))?;
+
+    let full_path = std::path::Path::new(&manifest_dir).join(&path);
+    let full_path_str = full_path.to_string_lossy().to_string();
+
+    let contents = std::fs::read_to_string(&full_path).map_err(|e| {
+        syn::Error::new_spanned(
+            path_lit,
+            format!("failed to read \"{}\": {e}", full_path.display()),
+        )
+    })?;
+
+    let file_tokens = contents
+        .parse::<TokenStream>()
+        .map_err(|e| syn::Error::new_spanned(path_lit, format!("failed to tokenize file: {e}")))?;
+
+    let full_path_lit = LitStr::new(&full_path_str, path_lit.span());
+    let dep_tracking = quote! {
+        const _: &[u8] = ::core::include_bytes!(#full_path_lit);
+    };
+
+    Ok((file_tokens, dep_tracking))
 }
 
 pub fn literal<T: Parse + Generate>(tokens: TokenStream) -> syn::Result<TokenStream> {

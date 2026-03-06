@@ -3,7 +3,10 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use hypertext::{Buffer, Lazy, Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_static};
+use hypertext::{
+    Buffer, Lazy, Raw, maud_borrow, maud_static, prelude::*, rsx_borrow, rsx_file,
+    rsx_file_borrow, rsx_static,
+};
 
 #[test]
 fn readme() {
@@ -790,5 +793,28 @@ fn derive_default() {
     assert_eq!(
         without_children.as_inner(),
         r#"<div id="" tabindex="0"></div>"#
+    );
+}
+
+#[test]
+fn rsx_file_basic() {
+    let result = rsx_file!("tests/templates/hello.html").render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<div><h1>Hello, world!</h1></div>"
+    );
+}
+
+#[test]
+fn rsx_file_borrow_basic() {
+    let name = "world".to_owned();
+    let result = rsx_file_borrow!("tests/templates/hello.html").render();
+    // `name` is still usable after the borrow
+    let _ = &name;
+
+    assert_eq!(
+        result.as_inner(),
+        "<div><h1>Hello, world!</h1></div>"
     );
 }
