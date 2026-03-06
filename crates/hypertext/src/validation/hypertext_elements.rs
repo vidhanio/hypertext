@@ -5,6 +5,8 @@
 //! [`GlobalAttributes`](crate::validation::attributes::GlobalAttributes) for
 //! more information.
 
+#![expect(clippy::too_long_first_doc_paragraph)]
+
 use crate::{define_elements, define_void_elements};
 
 define_elements! {
