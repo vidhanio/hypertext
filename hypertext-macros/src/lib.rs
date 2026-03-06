@@ -43,6 +43,31 @@ pub fn rsx_file_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStre
 }
 
 #[proc_macro]
+pub fn html(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy::<Rsx>(tokens, true)
+}
+
+#[proc_macro]
+pub fn html_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy::<Rsx>(tokens, false)
+}
+
+#[proc_macro]
+pub fn html_file(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy_file::<Rsx>(tokens, true)
+}
+
+#[proc_macro]
+pub fn html_file_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy_file::<Rsx>(tokens, false)
+}
+
+#[proc_macro]
+pub fn html_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    static_::<Rsx>(tokens)
+}
+
+#[proc_macro]
 pub fn maud_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     static_::<Maud>(tokens)
 }

@@ -7,4 +7,4 @@
 //! well as the [`GlobalAttributes`] trait.
 pub use crate::validation::{attributes::*, hypertext_elements};
 #[cfg(feature = "alloc")]
-pub use crate::{Renderable, RenderableExt as _, Rendered, attribute, component, maud, rsx};
+pub use crate::{Renderable, RenderableExt as _, Rendered, attribute, component, html, maud, rsx};
