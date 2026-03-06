@@ -7,7 +7,6 @@ on:
   push:
     paths:
       - "**/Cargo.toml"
-      - "**/Cargo.lock"
       - "**/deny.toml"
 
   pull_request:
