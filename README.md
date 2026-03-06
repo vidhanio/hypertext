@@ -50,6 +50,23 @@ let shopping_list_rsx = rsx! {
 .render();
 ```
 
+## Hot patching using subsecond
+
+Hypertext supports subsecond hotpatching using dioxus-cli.
+
+Try out the hotpatch example in this repository:
+
+```bash
+cargo install dioxus-cli
+dx serve --hotpatch -p hotpatch
+```
+
+Editing the `html!` or `maud!` templates will instantly update the running server.
+Simply refresh the page to see the changes.
+
+Unfortunately, `dx` does not support `rsx!` hotpatching at this time. This is an
+upstream limitation.
+
 ## Projects Using `hypertext`
 
 - [vidhan.io](https://github.com/vidhanio/site) (my website!)

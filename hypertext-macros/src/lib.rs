@@ -33,6 +33,41 @@ pub fn rsx_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 }
 
 #[proc_macro]
+pub fn rsx_file(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy_file::<Rsx>(tokens, true)
+}
+
+#[proc_macro]
+pub fn rsx_file_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy_file::<Rsx>(tokens, false)
+}
+
+#[proc_macro]
+pub fn html(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy::<Rsx>(tokens, true)
+}
+
+#[proc_macro]
+pub fn html_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy::<Rsx>(tokens, false)
+}
+
+#[proc_macro]
+pub fn html_file(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy_file::<Rsx>(tokens, true)
+}
+
+#[proc_macro]
+pub fn html_file_borrow(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    lazy_file::<Rsx>(tokens, false)
+}
+
+#[proc_macro]
+pub fn html_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    static_::<Rsx>(tokens)
+}
+
+#[proc_macro]
 pub fn maud_static(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
     static_::<Maud>(tokens)
 }
@@ -47,6 +82,15 @@ where
     Document<S>: Parse,
 {
     html::generate::lazy::<Document<S>>(tokens.into(), move_)
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
+fn lazy_file<S: Syntax>(tokens: proc_macro::TokenStream, move_: bool) -> proc_macro::TokenStream
+where
+    Document<S>: Parse,
+{
+    html::generate::lazy_file::<Document<S>>(tokens.into(), move_)
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
