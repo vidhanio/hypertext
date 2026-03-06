@@ -26,8 +26,16 @@
             ...
           }:
           let
-            craneLib = inputs.crane.mkLib pkgs;
-            nightlyCraneLib = craneLib.overrideToolchain (p: p.rust-bin.nightly.latest.default);
+            craneLib = (inputs.crane.mkLib pkgs).overrideToolchain (
+              p:
+              p.rust-bin.nightly.latest.default.override {
+                extensions = [
+                  "rust-src"
+                  "rust-analyzer"
+                  "miri"
+                ];
+              }
+            );
 
             src = craneLib.cleanCargoSource ./.;
             commonArgs = {
@@ -44,7 +52,7 @@
             };
 
             checks = {
-              clippy = nightlyCraneLib.cargoClippy (
+              clippy = craneLib.cargoClippy (
                 commonArgs
                 // {
                   inherit cargoArtifacts;
@@ -52,7 +60,7 @@
                 }
               );
 
-              doc = nightlyCraneLib.cargoDoc (
+              doc = craneLib.cargoDoc (
                 commonArgs
                 // {
                   inherit cargoArtifacts;
@@ -60,7 +68,7 @@
                 }
               );
 
-              fmt = nightlyCraneLib.cargoFmt {
+              fmt = craneLib.cargoFmt {
                 inherit src;
               };
 
@@ -84,7 +92,6 @@
 
               packages = [
                 pkgs.nil
-                pkgs.rust-analyzer
                 config.treefmt.build.wrapper
               ];
             };
