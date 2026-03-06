@@ -1,0 +1,14 @@
+[package]
+name = "hotpatch"
+
+edition.workspace = true
+license.workspace = true
+publish = false
+version = "0.0.0"
+
+[dependencies]
+axum = "0.8"
+hypertext = { path = "../../hypertext", features = ["axum"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+subsecond = "0.7"
+dioxus-devtools = "0.7"
