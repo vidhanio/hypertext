@@ -5,12 +5,11 @@ use std::{
 };
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    braced,
+    Error, LitStr, braced,
     parse::Parse,
     token::{Brace, Paren},
-    Error, LitStr,
 };
 
 use super::UnquotedName;

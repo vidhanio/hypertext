@@ -6,9 +6,7 @@ changelog_update = false
 [[package]]
 name = "hypertext"
 changelog_update = true
-changelog_include = [
-  "hypertext-macros",
-]
+changelog_include = ["hypertext-macros"]
 changelog_path = "./CHANGELOG.md"
 git_release_enable = true
 
