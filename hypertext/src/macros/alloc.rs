@@ -226,3 +226,15 @@ pub use hypertext_macros::rsx;
 /// [`Lazy`]: crate::Lazy
 #[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::rsx_borrow;
+/// Generate HTML from an external file using rsx syntax, returning a
+/// [`Lazy`](crate::Lazy).
+///
+/// The file path is relative to `CARGO_MANIFEST_DIR`.
+/// The file must contain valid RSX syntax (same rules as [`rsx!`]).
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub use hypertext_macros::rsx_file;
+/// Like [`rsx_file!`], but borrows the environment.
+///
+/// [`Lazy`]: crate::Lazy
+#[cfg_attr(docsrs, doc(cfg(feature = "alloc")))]
+pub use hypertext_macros::rsx_file_borrow;
