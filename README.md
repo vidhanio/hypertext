@@ -1,10 +1,10 @@
 # `hypertext`
 
-A blazing fast type-checked HTML macro crate.
+A blazing fast type checked HTML macro crate.
 
 ## Features
 
-- Type checking for element names/attributes, including extensible support for custom frameworks like [htmx](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/)
+- Compile-time type checking for element names/attributes, including extensible support for custom frameworks like [htmx](https://htmx.org/) and [Alpine.js](https://alpinejs.dev/)
 - `#![no_std]` support
 - [Extremely fast](https://github.com/askama-rs/template-benchmark#benchmark-results),
   using lazy rendering to minimize allocation
@@ -55,6 +55,5 @@ let shopping_list_rsx = rsx! {
 - [vidhan.io](https://github.com/vidhanio/site) (my website!)
 - [The Brainmade Mark](https://github.com/0atman/BrainMade-org)
 - [Lipstick on a pig -- a website for hosting volunteer-built tarballs for KISS Linux](https://github.com/kiedtl/loap)
-- [web.youwen.dev](https://web.youwen.dev) ― [@youwen5](https://github.com/youwen5)'s personal website
 
 Make a pull request to list your project here!
