@@ -55,5 +55,6 @@ let shopping_list_rsx = rsx! {
 - [vidhan.io](https://github.com/vidhanio/site) (my website!)
 - [The Brainmade Mark](https://github.com/0atman/BrainMade-org)
 - [Lipstick on a pig -- a website for hosting volunteer-built tarballs for KISS Linux](https://github.com/kiedtl/loap)
+- [web.youwen.dev](https://web.youwen.dev) ― [@youwen5](https://github.com/youwen5)'s personal website
 
 Make a pull request to list your project here!
