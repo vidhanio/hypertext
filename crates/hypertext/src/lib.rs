@@ -113,10 +113,7 @@
 #![no_std]
 #![warn(clippy::missing_inline_in_public_items)]
 #![cfg_attr(all(docsrs, not(doctest)), expect(internal_features))]
-#![cfg_attr(
-    all(docsrs, not(doctest)),
-    feature(rustdoc_internals, doc_cfg, doc_auto_cfg)
-)]
+#![cfg_attr(all(docsrs, not(doctest)), feature(rustdoc_internals, doc_cfg))]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
