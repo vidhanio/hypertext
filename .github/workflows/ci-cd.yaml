@@ -1,0 +1,241 @@
+name: CI/CD
+
+on:
+  - push
+  - pull_request
+
+env:
+  RUSTFLAGS: -D warnings
+  RUSTDOCFLAGS: -D warnings
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        features:
+          - name: No Default Features
+            flag: ""
+          - name: Default Features
+            flag: --features default
+          - name: All Features
+            flag: --all-features
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test --tests --no-default-features ${{ matrix.features.flag }}
+
+  miri:
+    name: Miri
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        features:
+          - name: No Default Features
+            flag: ""
+          - name: Default Features
+            flag: --features default
+          - name: All Features
+            flag: --all-features
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Miri
+        run: cargo miri setup
+
+      - name: Run Miri
+        run: cargo miri test --tests --no-default-features ${{ matrix.features.flag }}
+
+  clippy:
+    name: Clippy
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        features:
+          - name: No Default Features
+            flag: ""
+          - name: Default Features
+            flag: --features default
+          - name: All Features
+            flag: --all-features
+      fail-fast: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run Clippy
+        run: cargo clippy --no-default-features ${{ matrix.features.flag }}
+
+  test-docs:
+    name: Test Documentation
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run documentation tests
+        run: cargo test --doc --all-features
+
+  check-docs:
+    name: Check Documentation
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install `cargo-docs-rs`
+        uses: dtolnay/install@cargo-docs-rs
+
+      - name: Check documentation
+        run: cargo docs-rs
+
+  check-format:
+    name: Check Formatting
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+  release:
+    name: Release
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    needs:
+      - test
+      - miri
+      - clippy
+      - test-docs
+      - check-docs
+      - check-format
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run release-plz
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  release-pr:
+    name: Release PR
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    needs:
+      - test
+      - miri
+      - clippy
+      - test-docs
+      - check-docs
+      - check-format
+
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run release-plz
+        uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
