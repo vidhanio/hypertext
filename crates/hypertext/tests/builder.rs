@@ -7,7 +7,7 @@ use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, prelude::*, renderable};
 #[allow(clippy::too_many_lines)]
 fn default() {
     #[renderable]
-    fn element_a<'a>(
+    fn component_a<'a>(
         #[builder(default)] id: &'a str,
         #[builder(default = 1)] tabindex: u32,
         #[builder(default)] children: Lazy<fn(&mut Buffer)>,
@@ -20,7 +20,7 @@ fn default() {
     }
 
     #[renderable(builder = Builder, attrs = [builder])]
-    fn element_b<'a>(
+    fn component_b<'a>(
         #[builder(default)] id: &'a str,
         #[builder(default = 1)] tabindex: u32,
         #[builder(default)] children: Lazy<fn(&mut Buffer)>,
@@ -33,7 +33,7 @@ fn default() {
     }
 
     #[renderable(builder = DefaultBuilder)]
-    fn element_c<'a>(
+    fn component_c<'a>(
         id: &'a str,
         tabindex: u32,
         children: Lazy<fn(&mut Buffer)>,
@@ -45,7 +45,7 @@ fn default() {
         }
     }
 
-    impl Default for ElementC<'_> {
+    impl Default for ComponentC<'_> {
         fn default() -> Self {
             Self {
                 id: Default::default(),
@@ -57,7 +57,7 @@ fn default() {
 
     #[renderable(builder = DefaultBuilder)]
     #[derive(Default)]
-    fn element_d<'a>(
+    fn component_d<'a>(
         id: &'a str,
         tabindex: u32,
         children: Lazy<fn(&mut Buffer)>,
@@ -70,148 +70,148 @@ fn default() {
     }
 
     let maud_result = maud! {
-        ElementA;
-        ElementB;
-        ElementC;
-        ElementD;
+        ComponentA;
+        ComponentB;
+        ComponentC;
+        ComponentD;
     }
     .render();
 
     let rsx_result = rsx! {
-        <ElementA />
-        <ElementB />
-        <ElementC />
-        <ElementD />
+        <ComponentA />
+        <ComponentB />
+        <ComponentC />
+        <ComponentD />
     }
     .render();
 
-    let element_html = r#"<div id="" tabindex="1"></div>"#;
+    let component_html = r#"<div id="" tabindex="1"></div>"#;
     let expected_result = format!(
         r#"{}<div id="" tabindex="0"></div>"#,
-        element_html.repeat(3)
+        component_html.repeat(3)
     );
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
 
     let maud_result = maud! {
-        ElementA id="test";
-        ElementB id="test";
-        ElementC id="test";
-        ElementD id="test";
+        ComponentA id="test";
+        ComponentB id="test";
+        ComponentC id="test";
+        ComponentD id="test";
     }
     .render();
 
     let rsx_result = rsx! {
-        <ElementA id="test" />
-        <ElementB id="test" />
-        <ElementC id="test" />
-        <ElementD id="test" />
+        <ComponentA id="test" />
+        <ComponentB id="test" />
+        <ComponentC id="test" />
+        <ComponentD id="test" />
     }
     .render();
 
-    let element_html = r#"<div id="test" tabindex="1"></div>"#;
+    let component_html = r#"<div id="test" tabindex="1"></div>"#;
     let expected_result = format!(
         r#"{}<div id="test" tabindex="0"></div>"#,
-        element_html.repeat(3)
+        component_html.repeat(3)
     );
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
 
     let maud_result = maud! {
-        ElementA {
+        ComponentA {
             h1 { "hello" }
         }
-        ElementB {
+        ComponentB {
             h1 { "hello" }
         }
-        ElementC {
+        ComponentC {
             h1 { "hello" }
         }
-        ElementD {
+        ComponentD {
             h1 { "hello" }
         }
     }
     .render();
 
     let rsx_result = rsx! {
-        <ElementA>
+        <ComponentA>
             <h1>hello</h1>
-        </ElementA>
-        <ElementB>
+        </ComponentA>
+        <ComponentB>
             <h1>hello</h1>
-        </ElementB>
-        <ElementC>
+        </ComponentB>
+        <ComponentC>
             <h1>hello</h1>
-        </ElementC>
-        <ElementD>
+        </ComponentC>
+        <ComponentD>
             <h1>hello</h1>
-        </ElementD>
+        </ComponentD>
     }
     .render();
 
-    let element_html = r#"<div id="" tabindex="1"><h1>hello</h1></div>"#;
+    let component_html = r#"<div id="" tabindex="1"><h1>hello</h1></div>"#;
     let expected_result = format!(
         r#"{}<div id="" tabindex="0"><h1>hello</h1></div>"#,
-        element_html.repeat(3)
+        component_html.repeat(3)
     );
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
 
     let maud_result = maud! {
-        ElementA tabindex=2 id="element" {
+        ComponentA tabindex=2 id="component" {
             h1 { "hello" }
         }
-        ElementB tabindex=2 id="element" {
+        ComponentB tabindex=2 id="component" {
             h1 { "hello" }
         }
-        ElementC tabindex=2 id="element" {
+        ComponentC tabindex=2 id="component" {
             h1 { "hello" }
         }
-        ElementD tabindex=2 id="element" {
+        ComponentD tabindex=2 id="component" {
             h1 { "hello" }
         }
     }
     .render();
 
     let rsx_result = rsx! {
-        <ElementA tabindex=2 id="element">
+        <ComponentA tabindex=2 id="component">
             <h1>hello</h1>
-        </ElementA>
-        <ElementB tabindex=2 id="element">
+        </ComponentA>
+        <ComponentB tabindex=2 id="component">
             <h1>hello</h1>
-        </ElementB>
-        <ElementC tabindex=2 id="element">
+        </ComponentB>
+        <ComponentC tabindex=2 id="component">
             <h1>hello</h1>
-        </ElementC>
-        <ElementD tabindex=2 id="element">
+        </ComponentC>
+        <ComponentD tabindex=2 id="component">
             <h1>hello</h1>
-        </ElementD>
+        </ComponentD>
     }
     .render();
 
-    let element_html = r#"<div id="element" tabindex="2"><h1>hello</h1></div>"#;
-    let expected_result = element_html.repeat(4);
+    let component_html = r#"<div id="component" tabindex="2"><h1>hello</h1></div>"#;
+    let expected_result = component_html.repeat(4);
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
 
     let maud_result = maud! {
-        ElementA {
-            ElementA id="nested" {
+        ComponentA {
+            ComponentA id="nested" {
                 h1 { "hello" }
             }
         }
-        ElementB {
-            ElementB id="nested" {
+        ComponentB {
+            ComponentB id="nested" {
                 h1 { "hello" }
             }
         }
-        ElementC {
-            ElementC id="nested" {
+        ComponentC {
+            ComponentC id="nested" {
                 h1 { "hello" }
             }
         }
-        ElementD {
-            ElementD id="nested" {
+        ComponentD {
+            ComponentD id="nested" {
                 h1 { "hello" }
             }
         }
@@ -219,34 +219,34 @@ fn default() {
     .render();
 
     let rsx_result = rsx! {
-        <ElementA>
-            <ElementA id="nested">
+        <ComponentA>
+            <ComponentA id="nested">
                 <h1>"hello"</h1>
-            </ElementA>
-        </ElementA>
-        <ElementB>
-            <ElementB id="nested">
+            </ComponentA>
+        </ComponentA>
+        <ComponentB>
+            <ComponentB id="nested">
                 <h1>"hello"</h1>
-            </ElementB>
-        </ElementB>
-        <ElementC>
-            <ElementC id="nested">
+            </ComponentB>
+        </ComponentB>
+        <ComponentC>
+            <ComponentC id="nested">
                 <h1>"hello"</h1>
-            </ElementC>
-        </ElementC>
-        <ElementD>
-            <ElementD id="nested">
+            </ComponentC>
+        </ComponentC>
+        <ComponentD>
+            <ComponentD id="nested">
                 <h1>"hello"</h1>
-            </ElementD>
-        </ElementD>
+            </ComponentD>
+        </ComponentD>
     }
     .render();
 
-    let element_html =
+    let component_html =
         r#"<div id="" tabindex="1"><div id="nested" tabindex="1"><h1>hello</h1></div></div>"#;
     let expected_result = format!(
         r#"{}<div id="" tabindex="0"><div id="nested" tabindex="0"><h1>hello</h1></div></div>"#,
-        element_html.repeat(3)
+        component_html.repeat(3)
     );
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
@@ -256,7 +256,7 @@ fn default() {
 #[allow(clippy::too_many_lines)]
 fn custom() {
     #[renderable(builder = false)]
-    fn element_a<'a>(
+    fn component_a<'a>(
         id: &'a str,
         tabindex: u32,
         children: Lazy<fn(&mut Buffer)>,
@@ -268,7 +268,7 @@ fn custom() {
         }
     }
 
-    impl<'a> ElementA<'a> {
+    impl<'a> ComponentA<'a> {
         fn builder() -> Self {
             Self {
                 id: "custom",
@@ -295,7 +295,7 @@ fn custom() {
     }
 
     #[derive(Builder)]
-    struct ElementB<'a> {
+    struct ComponentB<'a> {
         #[builder(default = "custom")]
         id: &'a str,
 
@@ -306,7 +306,7 @@ fn custom() {
         children: Lazy<fn(&mut Buffer)>,
     }
 
-    impl Renderable for ElementB<'_> {
+    impl Renderable for ComponentB<'_> {
         fn render_to(&self, buf: &mut Buffer) {
             rsx! {
                 <div id=(self.id) tabindex=(self.tabindex)>
@@ -318,97 +318,97 @@ fn custom() {
     }
 
     let maud_result = maud! {
-        ElementA;
-        ElementB;
+        ComponentA;
+        ComponentB;
     }
     .render();
 
     let rsx_result = rsx! {
-        <ElementA />
-        <ElementB />
+        <ComponentA />
+        <ComponentB />
     }
     .render();
 
-    let element_html = r#"<div id="custom" tabindex="2"></div>"#;
-    let expected_result = element_html.repeat(2);
+    let component_html = r#"<div id="custom" tabindex="2"></div>"#;
+    let expected_result = component_html.repeat(2);
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
 
     let maud_result = maud! {
-        ElementA id="test";
-        ElementB id="test";
+        ComponentA id="test";
+        ComponentB id="test";
     }
     .render();
 
     let rsx_result = rsx! {
-        <ElementA id="test" />
-        <ElementB id="test" />
+        <ComponentA id="test" />
+        <ComponentB id="test" />
     }
     .render();
 
-    let element_html = r#"<div id="test" tabindex="2"></div>"#;
-    let expected_result = element_html.repeat(2);
+    let component_html = r#"<div id="test" tabindex="2"></div>"#;
+    let expected_result = component_html.repeat(2);
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
 
     let maud_result = maud! {
-        ElementA {
+        ComponentA {
             h1 { "hello" }
         }
-        ElementB {
-            h1 { "hello" }
-        }
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <ElementA>
-            <h1>hello</h1>
-        </ElementA>
-        <ElementB>
-            <h1>hello</h1>
-        </ElementB>
-    }
-    .render();
-
-    let element_html = r#"<div id="custom" tabindex="2"><h1>hello</h1></div>"#;
-    let expected_result = element_html.repeat(2);
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
-
-    let maud_result = maud! {
-        ElementA tabindex=1 id="element" {
-            h1 { "hello" }
-        }
-        ElementB tabindex=1 id="element" {
+        ComponentB {
             h1 { "hello" }
         }
     }
     .render();
 
     let rsx_result = rsx! {
-        <ElementA tabindex=1 id="element">
+        <ComponentA>
             <h1>hello</h1>
-        </ElementA>
-        <ElementB tabindex=1 id="element">
+        </ComponentA>
+        <ComponentB>
             <h1>hello</h1>
-        </ElementB>
+        </ComponentB>
     }
     .render();
 
-    let element_html = r#"<div id="element" tabindex="1"><h1>hello</h1></div>"#;
-    let expected_result = element_html.repeat(2);
+    let component_html = r#"<div id="custom" tabindex="2"><h1>hello</h1></div>"#;
+    let expected_result = component_html.repeat(2);
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
 
     let maud_result = maud! {
-        ElementA {
-            ElementA id="nested" {
+        ComponentA tabindex=1 id="component" {
+            h1 { "hello" }
+        }
+        ComponentB tabindex=1 id="component" {
+            h1 { "hello" }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <ComponentA tabindex=1 id="component">
+            <h1>hello</h1>
+        </ComponentA>
+        <ComponentB tabindex=1 id="component">
+            <h1>hello</h1>
+        </ComponentB>
+    }
+    .render();
+
+    let component_html = r#"<div id="component" tabindex="1"><h1>hello</h1></div>"#;
+    let expected_result = component_html.repeat(2);
+    assert_eq!(maud_result.as_inner(), &expected_result);
+    assert_eq!(rsx_result.as_inner(), &expected_result);
+
+    let maud_result = maud! {
+        ComponentA {
+            ComponentA id="nested" {
                 h1 { "hello" }
             }
         }
-        ElementB {
-            ElementB id="nested" {
+        ComponentB {
+            ComponentB id="nested" {
                 h1 { "hello" }
             }
         }
@@ -416,22 +416,22 @@ fn custom() {
     .render();
 
     let rsx_result = rsx! {
-        <ElementA>
-            <ElementA id="nested">
+        <ComponentA>
+            <ComponentA id="nested">
                 <h1>"hello"</h1>
-            </ElementA>
-        </ElementA>
-        <ElementB>
-            <ElementB id="nested">
+            </ComponentA>
+        </ComponentA>
+        <ComponentB>
+            <ComponentB id="nested">
                 <h1>"hello"</h1>
-            </ElementB>
-        </ElementB>
+            </ComponentB>
+        </ComponentB>
     }
     .render();
 
-    let element_html =
+    let component_html =
         r#"<div id="custom" tabindex="2"><div id="nested" tabindex="2"><h1>hello</h1></div></div>"#;
-    let expected_result = element_html.repeat(2);
+    let expected_result = component_html.repeat(2);
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
 }
