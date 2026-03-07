@@ -101,7 +101,7 @@ pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenS
                 component_attrs = vec![parse_quote!(builder)];
             }
 
-            Some(BuilderArg::Path(parse_quote!(::hypertext::TypedBuilder)))
+            Some(BuilderArg::Path(parse_quote!(::hypertext::Builder)))
         }
     });
 

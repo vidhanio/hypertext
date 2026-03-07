@@ -1,7 +1,7 @@
 //! Tests for the `hypertext` crate.
 #![cfg(feature = "alloc")]
 
-use hypertext::{Buffer, DefaultBuilder, Lazy, TypedBuilder, prelude::*, renderable};
+use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, prelude::*, renderable};
 
 #[test]
 #[allow(clippy::too_many_lines)]
@@ -19,7 +19,7 @@ fn default() {
         }
     }
 
-    #[renderable(builder = TypedBuilder, attrs = [builder])]
+    #[renderable(builder = Builder, attrs = [builder])]
     fn element_b<'a>(
         #[builder(default)] id: &'a str,
         #[builder(default = 1)] tabindex: u32,
@@ -294,7 +294,7 @@ fn custom() {
         }
     }
 
-    #[derive(TypedBuilder)]
+    #[derive(Builder)]
     struct ElementB<'a> {
         #[builder(default = "custom")]
         id: &'a str,
