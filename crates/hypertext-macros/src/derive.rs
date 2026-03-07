@@ -31,7 +31,7 @@ pub fn default_builder(input: DeriveInput) -> syn::Result<TokenStream> {
                                 return Ok(());
                             }
 
-                            Err(meta.error("unrecognized builder"))
+                            Err(meta.error("unexpected param for `#[builder(...)]`"))
                         })
                         .map(|()| true)
                 })?;

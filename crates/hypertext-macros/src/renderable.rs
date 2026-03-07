@@ -86,7 +86,7 @@ impl Parse for RenderableArgs {
     }
 }
 
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenStream> {
     let mut fields = Vec::new();
     let mut field_names = Vec::new();

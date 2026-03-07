@@ -4,7 +4,7 @@
 use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, prelude::*, renderable};
 
 #[test]
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn default() {
     #[renderable]
     fn component_a<'a>(
@@ -253,7 +253,7 @@ fn default() {
 }
 
 #[test]
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn custom() {
     #[renderable(builder = false)]
     fn component_a<'a>(
