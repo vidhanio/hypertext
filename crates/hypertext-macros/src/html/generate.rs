@@ -300,7 +300,7 @@ impl Generator {
         self.checks.push(el_checks);
     }
 
-    pub fn elements_module(&self) -> ElementsModule {
+    pub const fn elements_module(&self) -> ElementsModule {
         self.checks.module
     }
 

@@ -5,8 +5,6 @@
 //! [`GlobalAttributes`](crate::validation::attributes::GlobalAttributes) for
 //! more information.
 
-#![expect(clippy::too_long_first_doc_paragraph)]
-
 use crate::{define_elements, define_void_elements};
 
 define_elements! {
@@ -993,7 +991,7 @@ define_void_elements! {
 
     /// Used to create interactive controls for web-based forms to
     /// accept data from the user. How an `<input>` works varies
-    /// depending on the value of its [`type`](Self::r#type) attribute.
+    /// depending on the value of its [`type`](Self::type) attribute.
     input {
         /// A hint for the expected file type in file upload controls.
         accept
