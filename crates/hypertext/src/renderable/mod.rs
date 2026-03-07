@@ -66,34 +66,6 @@ use crate::{
 /// );
 /// ```
 ///
-/// ### [`#[derive(Renderable)]`](derive@crate::Renderable)
-///
-/// ```
-/// use hypertext::prelude::*;
-///
-/// #[derive(Renderable)]
-/// #[maud(
-///     div {
-///         h1 { (self.name) }
-///         p { "Age: " (self.age) }
-///     }
-/// )]
-/// struct Person {
-///     name: String,
-///     age: u8,
-/// }
-///
-/// let person = Person {
-///     name: "Alice".into(),
-///     age: 20,
-/// };
-///
-/// assert_eq!(
-///     maud! { main { (person) } }.render().as_inner(),
-///     "<main><div><h1>Alice</h1><p>Age: 20</p></div></main>",
-/// );
-/// ```
-///
 /// ### [`#[renderable]`](crate::renderable)
 ///
 /// ```
