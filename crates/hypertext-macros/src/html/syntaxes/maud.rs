@@ -2,16 +2,15 @@ use std::marker::PhantomData;
 
 use proc_macro2::Span;
 use syn::{
-    braced,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced,
     ext::IdentExt,
     parse::{Parse, ParseStream},
     token::{Brace, Paren},
-    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 use crate::html::{
-    kw, Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName,
-    XmlDecl,
+    Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName,
+    XmlDecl, kw,
 };
 
 pub struct Maud;

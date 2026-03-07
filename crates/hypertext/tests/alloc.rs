@@ -4,7 +4,7 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use hypertext::{prelude::*, Buffer, Builder, Raw};
+use hypertext::{Buffer, Builder, Raw, prelude::*};
 
 #[test]
 fn readme() {

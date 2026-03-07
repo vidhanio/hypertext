@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    parse::Parse, parse_quote, Error, FnArg, Ident, ItemFn, LitBool, Pat, PatType, Path, Token,
-    Type, Visibility,
+    Error, FnArg, Ident, ItemFn, LitBool, Pat, PatType, Path, Token, Type, Visibility,
+    parse::Parse, parse_quote,
 };
 
 use crate::html::generate::Generator;

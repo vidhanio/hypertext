@@ -80,7 +80,7 @@ use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol, Element}
 ///     #![expect(non_camel_case_types)]
 ///
 ///     pub use hypertext::validation::hypertext_elements::*;
-///     use hypertext::validation::{attributes::GlobalAttributes, Element, Normal};
+///     use hypertext::validation::{Element, Normal, attributes::GlobalAttributes};
 ///
 ///     pub struct custom_element;
 ///
@@ -550,7 +550,7 @@ impl<T: GlobalAttributes> AlpineJsAttributes for T {}
 ///     #![expect(non_camel_case_types)]
 ///
 ///     pub use hypertext::validation::hypertext_svg_elements::*;
-///     use hypertext::validation::{attributes::SvgGlobalAttributes, Element, Xml};
+///     use hypertext::validation::{Element, Xml, attributes::SvgGlobalAttributes};
 ///
 ///     pub struct custom_shape;
 ///

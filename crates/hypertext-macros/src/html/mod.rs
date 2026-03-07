@@ -9,16 +9,15 @@ mod syntaxes;
 use std::{borrow::Cow, convert::Infallible, marker::PhantomData};
 
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    braced, bracketed,
+    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
     parse_quote_spanned,
     spanned::Spanned,
     token::{Brace, Bracket, Paren},
-    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 pub use self::syntaxes::{Maud, Rsx};

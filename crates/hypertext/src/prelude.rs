@@ -11,6 +11,8 @@ pub use crate::validation::attributes::AlpineJsAttributes;
 pub use crate::validation::attributes::HtmxAttributes;
 #[cfg(feature = "hyperscript")]
 pub use crate::validation::attributes::HyperscriptAttributes;
+#[cfg(feature = "alloc")]
+pub use crate::{Renderable, RenderableExt as _, Rendered};
 pub use crate::{
     macros::*,
     validation::{
@@ -21,5 +23,3 @@ pub use crate::{
         hypertext_elements, hypertext_svg_elements,
     },
 };
-#[cfg(feature = "alloc")]
-pub use crate::{Renderable, RenderableExt as _, Rendered};

@@ -5,6 +5,61 @@ mod renderable;
 pub mod rsx;
 pub mod svg;
 
+/// Generates simple implementations of the builder methods
+/// for a type implementing `Default`.
+///
+/// # Example
+///
+/// ```
+/// use hypertext::{Buffer, DefaultBuilder, Lazy, prelude::*};
+///
+/// #[renderable(builder = DefaultBuilder)]
+/// #[derive(Default)]
+/// fn component<'a>(
+///     id: &'a str,
+///     tabindex: u32,
+///     children: Lazy<fn(&mut Buffer)>,
+/// ) -> impl Renderable {
+///     rsx! {
+///         <div id=(id) tabindex=(tabindex)>
+///             (children)
+///         </div>
+///     }
+/// }
+/// ```
+///
+/// Expands to:
+///
+/// ```ignore
+/// impl<'a> Component<'a> {
+///     fn builder() -> Self {
+///         Self::default()
+///     }
+///
+///     fn build(self) -> Self {
+///         self
+///     }
+///
+///     #[must_use]
+///     fn id(mut self, id: &'a str) -> Self {
+///         self.id = id;
+///         self
+///     }
+///
+///     #[must_use]
+///     fn tabindex(mut self, tabindex: u32) -> Self {
+///         self.tabindex = tabindex;
+///         self
+///     }
+///
+///     #[must_use]
+///     fn children(mut self, children: Lazy<fn(&mut Buffer)>) -> Self {
+///         self.children = children;
+///         self
+///     }
+/// }
+/// ```
+pub use hypertext_macros::DefaultBuilder;
 /// Generates an attribute value, returning a
 /// [`LazyAttribute`](crate::LazyAttribute).
 ///
@@ -240,61 +295,6 @@ pub use hypertext_macros::maud;
 #[cfg(feature = "alloc")]
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::rsx;
-/// Generates simple implementations of the builder methods
-/// for a type implementing `Default`.
-///
-/// # Example
-///
-/// ```
-/// use hypertext::{prelude::*, Buffer, DefaultBuilder, Lazy};
-///
-/// #[renderable(builder = DefaultBuilder)]
-/// #[derive(Default)]
-/// fn component<'a>(
-///     id: &'a str,
-///     tabindex: u32,
-///     children: Lazy<fn(&mut Buffer)>,
-/// ) -> impl Renderable {
-///     rsx! {
-///         <div id=(id) tabindex=(tabindex)>
-///             (children)
-///         </div>
-///     }
-/// }
-/// ```
-///
-/// Expands to:
-///
-/// ```ignore
-/// impl<'a> Component<'a> {
-///     fn builder() -> Self {
-///         Self::default()
-///     }
-///
-///     fn build(self) -> Self {
-///         self
-///     }
-///
-///     #[must_use]
-///     fn id(mut self, id: &'a str) -> Self {
-///         self.id = id;
-///         self
-///     }
-///
-///     #[must_use]
-///     fn tabindex(mut self, tabindex: u32) -> Self {
-///         self.tabindex = tabindex;
-///         self
-///     }
-///
-///     #[must_use]
-///     fn children(mut self, children: Lazy<fn(&mut Buffer)>) -> Self {
-///         self.children = children;
-///         self
-///     }
-/// }
-/// ```
-pub use hypertext_macros::DefaultBuilder;
 
 #[cfg(feature = "alloc")]
 pub use self::renderable::*;
