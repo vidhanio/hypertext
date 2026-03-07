@@ -1,11 +1,12 @@
 use std::convert::Infallible;
 
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::{quote, ToTokens};
 use syn::{
-    Expr, Pat, PatType, Token, braced,
+    braced,
     parse::{Parse, ParseStream},
     token::Brace,
+    Expr, Pat, PatType, Token,
 };
 
 use super::{AnyBlock, Context, Generate, Generator, Many};

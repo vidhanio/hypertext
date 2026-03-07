@@ -1,13 +1,13 @@
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::{quote, ToTokens};
 use syn::{
-    Ident, Lit, Token,
     parse::{Parse, ParseStream},
     token::{Brace, Paren},
+    Ident, Lit, Token,
 };
 
 use super::{ElementBody, Generate, Generator, ParenExpr, Syntax};
-use crate::{AttributeValue, html::Node};
+use crate::{html::Node, AttributeValue};
 
 pub struct Component<S: Syntax> {
     pub name: Ident,

@@ -17,6 +17,7 @@
 //! will not be validated, so you can use them freely.
 pub mod attributes;
 pub mod hypertext_elements;
+pub mod hypertext_svg_elements;
 
 /// A marker trait for type checked elements.
 pub trait Element {
@@ -115,12 +116,82 @@ pub struct Void;
 
 impl ElementKind for Void {}
 
+/// A marker type to represent an XML element.
+///
+/// Types that implement [`Element<Kind = Xml>`] can either have a closing tag
+/// with children, or be self-closing (emitting `/>` instead of `>`). This
+/// is used for XML-based markup languages like SVG, where all elements can
+/// be self-closed.
+///
+/// # Examples
+///
+/// ## [`svg::maud!`](crate::svg::maud!)
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// // Self-closing element:
+/// assert_eq!(
+///     svg::maud! {
+///         circle cx="50" cy="50" r="40";
+///     }
+///     .render()
+///     .as_inner(),
+///     r#"<circle cx="50" cy="50" r="40"/>"#,
+/// );
+///
+/// // Element with children:
+/// assert_eq!(
+///     svg::maud! {
+///         g transform="translate(10,10)" {
+///             circle cx="50" cy="50" r="40";
+///         }
+///     }
+///     .render()
+///     .as_inner(),
+///     r#"<g transform="translate(10,10)"><circle cx="50" cy="50" r="40"/></g>"#,
+/// );
+/// ```
+///
+/// ## [`svg::rsx!`](crate::svg::rsx!)
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// // Self-closing element:
+/// assert_eq!(
+///     svg::rsx! {
+///         <circle cx="50" cy="50" r="40" />
+///     }
+///     .render()
+///     .as_inner(),
+///     r#"<circle cx="50" cy="50" r="40"/>"#,
+/// );
+///
+/// // Element with children:
+/// assert_eq!(
+///     svg::rsx! {
+///         <g transform="translate(10,10)">
+///             <circle cx="50" cy="50" r="40" />
+///         </g>
+///     }
+///     .render()
+///     .as_inner(),
+///     r#"<g transform="translate(10,10)"><circle cx="50" cy="50" r="40"/></g>"#,
+/// );
+/// ```
+#[derive(Debug, Clone, Copy)]
+pub struct Xml;
+
+impl ElementKind for Xml {}
+
 mod sealed {
-    use super::{Normal, Void};
+    use super::{Normal, Void, Xml};
 
     pub trait Sealed {}
     impl Sealed for Normal {}
     impl Sealed for Void {}
+    impl Sealed for Xml {}
 }
 
 /// A standard attribute.
@@ -318,6 +389,84 @@ macro_rules! define_elements {
             }
 
             impl $crate::validation::attributes::GlobalAttributes for $name {}
+        )*
+    }
+}
+
+/// Define custom SVG elements.
+///
+/// This macro should be called from within a module named
+/// `hypertext_svg_elements`.
+///
+/// # Example
+///
+/// ```
+/// mod hypertext_svg_elements {
+///     use hypertext::define_svg_elements;
+///     // Re-export all standard SVG elements
+///     pub use hypertext::validation::hypertext_svg_elements::*;
+///
+///     define_svg_elements! {
+///         /// A custom SVG shape element.
+///         custom_shape {
+///             /// The radius of the shape.
+///             r
+///         }
+///     }
+/// }
+///
+/// // Now, you can use the custom elements like this:
+///
+/// use hypertext::prelude::*;
+///
+/// assert_eq!(
+///     svg::maud! {
+///         custom-shape r="10";
+///     }
+///     .render()
+///     .as_inner(),
+///     r#"<custom-shape r="10"/>"#,
+/// )
+/// ```
+#[macro_export]
+macro_rules! define_svg_elements {
+    {
+        $(
+            $(#[$meta:meta])*
+            $name:ident $(
+                {
+                    $(
+                        $(#[$attr_meta:meta])*
+                        $attr:ident
+                    )*
+                }
+            )?
+        )*
+    } => {
+        $(
+            $(#[$meta])*
+            #[expect(
+                non_camel_case_types,
+                reason = "camel case types will be interpreted as renderable structs"
+            )]
+            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
+            pub struct $name;
+
+            $(
+                #[allow(non_upper_case_globals)]
+                impl $name {
+                    $(
+                        $(#[$attr_meta])*
+                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
+                    )*
+                }
+            )?
+
+            impl $crate::validation::Element for $name {
+                type Kind = $crate::validation::Xml;
+            }
+
+            impl $crate::validation::attributes::SvgGlobalAttributes for $name {}
         )*
     }
 }

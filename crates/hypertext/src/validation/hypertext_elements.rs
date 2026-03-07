@@ -10,1181 +10,1223 @@
 use crate::{define_elements, define_void_elements};
 
 define_elements! {
-    /// The root of an HTML document.
+    /// Represents the root (top-level element) of an HTML document, so it
+    /// is also referred to as the *root element*. All other elements must
+    /// be descendants of this element.
     html
 
-    /// A collection of metadata for the document.
+    /// Contains machine-readable information (metadata) about the
+    /// document, like its title, scripts, and style sheets.
     head
 
-    /// The document's title or name.
+    /// Defines the document's title that is shown in a browser's title
+    /// bar or a page's tab.
     title
 
-    /// Allows authors to embed CSS style sheets in their documents.
+    /// Contains style information (typically CSS) for a document or part
+    /// of a document.
     style {
-        /// Applicable media
+        /// The media the style should be applied to.
         media
 
-        /// Whether the element is potentially render-blocking
+        /// Whether the element is potentially render-blocking.
         blocking
     }
 
-    /// The contents of the document.
+    /// Represents the content of an HTML document. There can be only one
+    /// `<body>` element in a document.
     body
 
-    /// A complete, or self-contained, composition in a document, page,
-    /// application, or site and that is, in principle, independently
-    /// distributable or reusable, e.g. in syndication.
+    /// Represents a self-contained composition in a document, page,
+    /// application, or site, which is intended to be independently
+    /// distributable or reusable (e.g., in syndication).
     article
 
-    /// A generic section of a document or application.
+    /// Represents a generic standalone section of a document, which
+    /// doesn't have a more specific semantic element to represent it.
     section
 
-    /// A section of a page that links to other pages or to parts within the
-    /// page: a section with navigation links.
+    /// Represents a section of a page whose purpose is to provide
+    /// navigation links, either within the current document or to other
+    /// documents.
     nav
 
-    /// A section of a page that consists of content that is tangentially
-    /// related to the content around the `aside` element, and which could be
-    /// considered separate from that content.
+    /// Represents a portion of a document whose content is only
+    /// indirectly related to the document's main content. Asides are
+    /// frequently presented as sidebars or call-out boxes.
     aside
 
-    /// Heading for its section.
+    /// A level 1 section heading. `<h1>` is the highest section level.
     h1
 
-    /// Heading for its section.
+    /// A level 2 section heading.
     h2
 
-    /// Heading for its section.
+    /// A level 3 section heading.
     h3
 
-    /// Heading for its section.
+    /// A level 4 section heading.
     h4
 
-    /// Heading for its section.
+    /// A level 5 section heading.
     h5
 
-    /// Heading for its section.
+    /// A level 6 section heading. `<h6>` is the lowest section level.
     h6
 
-    /// A heading and related content.
+    /// Represents a heading grouped with any secondary content, such as
+    /// subheadings, an alternative title, or a tagline.
     hgroup
 
-    /// A group of introductory or navigational aids.
+    /// Represents introductory content, typically a group of
+    /// introductory or navigational aids.
     header
 
-    /// A footer for its nearest ancestor sectioning content element, or for the
-    /// body element if there is no such ancestor.
+    /// Represents a footer for its nearest ancestor sectioning content
+    /// or sectioning root element. Typically contains information about
+    /// the author, copyright data, or links to related documents.
     footer
 
-    /// The contact information for its nearest article or body element
-    /// ancestor.
+    /// Indicates that its contents provide contact information for the
+    /// nearest ancestor `<article>` or `<body>` element.
     address
 
-    /// A paragraph.
+    /// Represents a paragraph.
     p
 
-    /// A block of preformatted text, in which structure is represented by
-    /// typographic conventions rather than by elements.
+    /// Represents preformatted text which is to be presented exactly as
+    /// written in the HTML file.
     pre
 
-    /// A section that is quoted from another source.
+    /// Indicates that the enclosed text is an extended quotation.
+    /// Usually rendered with indentation.
     blockquote {
-        /// Link to the source of the quotation or more information about the
-        /// edit
+        /// A URL that designates a source document or message for the
+        /// quoted information.
         cite
     }
 
-    /// A list of items, where the items have been intentionally ordered, such
-    /// that changing the order would change the meaning of the document.
+    /// Represents an ordered list of items, typically rendered as a
+    /// numbered list.
     ol {
-        /// Number the list backwards
+        /// Whether the list should be displayed in descending order.
         reversed
 
-        /// Starting value of the list
+        /// The starting value of the list.
         start
 
-        /// Kind of list marker
+        /// The numbering type of the list marker.
         r#type
     }
 
-    /// A list of items, where the order of the items is not important — that
-    /// is, where changing the order would not materially change the meaning of
-    /// the document.
+    /// Represents an unordered list of items, typically rendered as a
+    /// bulleted list.
     ul
 
-    /// A toolbar consisting of its contents, in the form of an unordered list
-    /// of items (represented by li elements), each of which represents a
-    /// command that the user can perform or activate.
+    /// A semantic alternative to `<ul>`, representing an unordered list
+    /// of items displayed as an interactive menu of commands.
     menu
 
-    /// A list item.
+    /// Represents an item in a list.
     li {
-        /// Ordinal value of the list item
+        /// The ordinal value of the list item.
         value
     }
 
-    /// An association list consisting of zero or more name-value groups (a
-    /// description list).
+    /// Represents a description list, containing groups of terms (using
+    /// `<dt>`) and descriptions (using `<dd>`).
     dl
 
-    /// The term, or name, part of a term-description group in a description
-    /// list (`dl` element).
+    /// Specifies a term in a description or definition list.
     dt
 
-    /// The description, definition, or value, part of a term-description group
-    /// in a description list (`dl` element).
+    /// Provides the description, definition, or value for the preceding
+    /// term (`<dt>`) in a description list (`<dl>`).
     dd
 
-    /// Some flow content, optionally with a caption, that is self-contained
-    /// (like a complete sentence) and is typically referenced as a single unit
-    /// from the main flow of the document.
+    /// Represents self-contained content, potentially with an optional
+    /// caption specified using the `<figcaption>` element.
     figure
 
-    /// A caption or legend for the rest of the contents of the `figcaption`
-    /// element's parent `figure` element, if any.
+    /// Represents a caption or legend describing the rest of the
+    /// contents of its parent `<figure>` element.
     figcaption
 
-    /// The dominant contents of the document.
+    /// Represents the dominant content of the `<body>` of a document.
+    /// The main content area consists of content that is directly
+    /// related to the central topic of a document.
     main
 
-    /// A part of a document or application that contains a set of form controls
-    /// or other content related to performing a search or filtering operation.
+    /// Represents a part that contains a set of form controls or other
+    /// content related to performing a search or filtering operation.
     search
 
-    /// No special meaning at all.
+    /// A generic container for flow content. It has no effect on the
+    /// content or layout until styled in some way using CSS.
     div
 
-    /// A hyperlink (a hypertext anchor) labeled by its contents.
+    /// Creates a hyperlink to web pages, files, email addresses,
+    /// locations in the same page, or anything else a URL can address.
+    /// The destination is specified by the [`href`](Self::href)
+    /// attribute.
     a {
-        /// Address of the hyperlink
+        /// The URL that the hyperlink points to.
         href
 
-        /// Navigable for hyperlink navigation
+        /// Where to display the linked URL.
         target
 
-        /// Whether to download the resource instead of navigating to it, and
-        /// its filename if so
+        /// Causes the browser to treat the linked URL as a download.
         download
 
-        /// URLs to ping
+        /// A space-separated list of URLs to ping when the hyperlink
+        /// is followed.
         ping
 
-        /// Relationship between the location in the document containing the
-        /// hyperlink and the destination resource
+        /// The relationship of the linked URL as space-separated link
+        /// types.
         rel
 
-        /// Language of the linked resource
+        /// The language of the linked resource.
         hreflang
 
-        /// Hint for the type of the referenced resource
+        /// A hint of the MIME type of the linked URL.
         r#type
 
-        /// Referrer policy for fetches initiated by the element
+        /// How much of the referrer to send when following the link.
         referrerpolicy
     }
 
-    /// Stress emphasis of its contents.
+    /// Marks text that has stress emphasis.
     em
 
-    /// Strong importance, seriousness, or urgency for its contents.
+    /// Indicates that its contents have strong importance, seriousness,
+    /// or urgency.
     strong
 
-    /// Side comments such as small print.
+    /// Represents side-comments and small print, like copyright and
+    /// legal text.
     small
 
-    /// Contents that are no longer accurate or no longer relevant.
+    /// Renders text with a strikethrough, representing content that is
+    /// no longer accurate or no longer relevant.
     s
 
-    /// The title of a work (e.g. a book, a paper, an essay, a poem, a score, a
-    /// song, a script, a film, a TV show, a game, a sculpture, a painting, a
-    /// theatre production, a play, an opera, a musical, an exhibition, a legal
-    /// case report, a computer program, etc.).
+    /// Used to mark the title of a cited creative work, such as a book,
+    /// paper, essay, poem, song, film, or other work.
     cite
 
-    /// Some phrasing content quoted from another source.
+    /// Indicates that the enclosed text is a short inline quotation.
     q {
-        /// Link to the source of the quotation or more information about the
-        /// edit
+        /// A URL that designates a source document or message for the
+        /// quoted information.
         cite
     }
 
-    /// The defining instance of a term.
+    /// Indicates the defining instance of a term.
     dfn
 
-    /// An abbreviation or acronym, optionally with its expansion.
+    /// Represents an abbreviation or acronym, optionally providing a
+    /// full description via the `title` global attribute.
     abbr
 
-    /// Allows one or more spans of phrasing content to be marked with ruby
-    /// annotations.
+    /// Represents small annotations rendered above, below, or next to
+    /// base text, used for showing pronunciation of East Asian
+    /// characters.
     ruby
 
-    /// The ruby text component of a ruby annotation.
+    /// Specifies the ruby text component of a ruby annotation, used to
+    /// provide pronunciation, translation, or transliteration
+    /// information for East Asian typography.
     rt
 
-    /// Parentheses or other content around a ruby text component of a ruby
-    /// annotation, to be shown by user agents that don't support ruby
-    /// annotations.
+    /// Provides fall-back parentheses for browsers that do not support
+    /// display of ruby annotations using the `<ruby>` element.
     rp
 
-    /// Provide a machine-readable form of those contents in the `value`
-    /// attribute.
+    /// Links its content with a machine-readable equivalent specified
+    /// in the [`value`](Self::value) attribute.
     data {
-        /// Machine-readable value
+        /// The machine-readable translation of the element's content.
         value
     }
 
-    /// Provide a machine-readable form of those contents in the `datetime`
-    /// attribute.
+    /// Represents a specific period in time. It may include the
+    /// [`datetime`](Self::datetime) attribute to translate dates into a
+    /// machine-readable format.
     time {
-        /// Machine-readable value
+        /// The machine-readable date/time value of the element.
         datetime
     }
 
-    /// A fragment of computer code.
+    /// Displays its contents styled in a fashion intended to indicate
+    /// that the text is a short fragment of computer code.
     code
 
-    /// A variable.
+    /// Represents the name of a variable in a mathematical expression
+    /// or a programming context.
     var
 
-    /// Sample or quoted output from another program or computing system.
+    /// Used to enclose inline text which represents sample (or quoted)
+    /// output from a computer program.
     samp
 
-    /// User input (typically keyboard input, although it may also be used to
-    /// represent other input, such as voice commands).
+    /// Represents a span of inline text denoting textual user input
+    /// from a keyboard, voice input, or any other text entry device.
     kbd
 
-    /// A superscript.
+    /// Specifies inline text which is to be displayed as superscript.
     sup
 
-    /// A subscript.
+    /// Specifies inline text which is to be displayed as subscript.
     sub
 
-    /// A span of text in an alternate voice or mood, or otherwise offset from
-    /// the normal prose in a manner indicating a different quality of text,
-    /// such as a taxonomic designation, a technical term, an idiomatic phrase
-    /// from another language, transliteration, a thought, or a ship name in
-    /// Western texts.
+    /// Represents a range of text that is set off from the normal text
+    /// for some reason, such as idiomatic text, technical terms, or
+    /// taxonomic designations, rendered in italic type.
     i
 
-    /// A span of text to which attention is being drawn for utilitarian
-    /// purposes without conveying any extra importance and with no implication
-    /// of an alternate voice or mood, such as key words in a document abstract,
-    /// product names in a review, actionable words in interactive text-driven
-    /// software, or an article lede.
+    /// Used to draw attention to the element's contents, without
+    /// indicating extra importance. Typically rendered in boldface.
     b
 
-    /// A span of text with an unarticulated, though explicitly rendered,
-    /// non-textual annotation, such as labeling the text as being a proper name
-    /// in Chinese text (a Chinese proper name mark), or labeling the text as
-    /// being misspelt.
+    /// Represents a span of inline text which should be rendered in a
+    /// way that indicates that it has a non-textual annotation, such as
+    /// a misspelling. Rendered as an underline by default.
     u
 
-    /// A run of text in one document marked or highlighted for reference
-    /// purposes, due to its relevance in another context.
+    /// Represents text which is marked or highlighted for reference or
+    /// notation purposes.
     mark
 
-    /// A span of text that is to be isolated from its surroundings for the
-    /// purposes of bidirectional text formatting.
+    /// Tells the browser's bidirectional algorithm to treat the text it
+    /// contains in isolation from its surrounding text.
     bdi
 
-    /// Explicit text directionality formatting control for its children.
+    /// Overrides the current directionality of text, so that the text
+    /// within is rendered in a different direction.
     bdo
 
-    /// No special meaning.
+    /// A generic inline container for phrasing content, which does not
+    /// inherently represent anything.
     span
 
-    /// An addition to the document.
+    /// Represents a range of text that has been added to a document.
     ins {
-        /// Link to the source of the quotation or more information about the
-        /// edit
+        /// A URL to a resource that explains the change.
         cite
 
-        /// Date and (optionally) time of the change
+        /// The date and (optionally) time of the change.
         datetime
     }
 
-    /// A removal from the document.
+    /// Represents a range of text that has been deleted from a
+    /// document.
     del {
-        /// Link to the source of the quotation or more information about the
-        /// edit
+        /// A URL to a resource that explains the change.
         cite
 
-        /// Date and (optionally) time of the change
+        /// The date and (optionally) time of the change.
         datetime
     }
 
-    /// A container which provides multiple sources to its contained `img`
-    /// element to allow authors to declaratively control or give hints to the
-    /// user agent about which image resource to use, based on the screen pixel
-    /// density, viewport size, image format, and other factors.
+    /// Contains zero or more `<source>` elements and one `<img>`
+    /// element to offer alternative versions of an image for different
+    /// display/device scenarios.
     picture
 
-    /// Contains a content navigable.
+    /// Embeds a nested browsing context, embedding another HTML page
+    /// into the current one.
     iframe {
-        /// Address of the resource
+        /// The URL of the page to embed.
         src
 
-        /// A document to render in the `iframe`
+        /// Inline HTML to embed, overriding the `src` attribute.
         srcdoc
 
-        /// Name of content navigable
+        /// A targetable name for the embedded browsing context.
         name
 
-        /// Security rules for nested content
+        /// Controls the restrictions applied to the content embedded in
+        /// the `<iframe>`.
         sandbox
 
-        ///  Permissions policy to be applied to the `iframe`'s contents
+        /// Specifies a permissions policy for the `<iframe>`.
         allow
 
-        /// Whether to allow the `iframe`'s contents to use
-        /// `requestFullscreen()`
+        /// Whether to allow the `<iframe>` to activate fullscreen mode.
         allowfullscreen
 
-        /// Horizontal dimension
+        /// The width of the frame in CSS pixels.
         width
 
-        /// Vertical dimension
+        /// The height of the frame in CSS pixels.
         height
 
-        /// Referrer policy for fetches initiated by the element
+        /// How much of the referrer to send when fetching the frame's
+        /// resource.
         referrerpolicy
 
-        /// Used when determining loading deferral
+        /// Indicates when the browser should load the iframe.
         loading
     }
 
-    /// An external resource, which, depending on the type of the resource, will
-    /// either be treated as an image or as a child navigable.
+    /// Represents an external resource, which can be treated as an
+    /// image, a nested browsing context, or a resource to be handled by
+    /// a plugin.
     object {
-        /// Address of the resource
+        /// The address of the resource.
         data
 
-        /// Type of embedded resource
+        /// The content type of the resource specified by `data`.
         r#type
 
-        /// Name of content navigable
+        /// The name of a valid browsing context.
         name
 
-        /// Associates the element with a `form` element
+        /// Associates the element with a `<form>` element.
         form
 
-        /// Horizontal dimension
+        /// The width of the display resource in CSS pixels.
         width
 
-        /// Vertical dimension
+        /// The height of the display resource in CSS pixels.
         height
     }
 
-    /// Used for playing videos or movies, and audio files with captions.
+    /// Embeds a media player which supports video playback into the
+    /// document. Can also be used for audio content, but the `<audio>`
+    /// element may provide a more appropriate user experience.
     video {
-        /// Address of the resource
+        /// The URL of the video to embed.
         src
 
-        /// How the element handles crossorigin requests
+        /// How the element handles crossorigin requests.
         crossorigin
 
-        /// Poster frame to show prior to video playback
+        /// A URL for an image to show while the video is downloading.
         poster
 
-        /// Hints how much buffering the media resource will likely need
+        /// Hints how much buffering the media resource will likely need.
         preload
 
-        /// Hint that the media resource can be started automatically when the
-        /// page is loaded
+        /// Whether the media will automatically start playing.
         autoplay
 
-        /// Encourage the user agent to display video content within the
-        /// element's playback area
+        /// Whether the video should be played inline rather than
+        /// fullscreen.
         playsinline
 
-        /// Whether to loop the media resource
+        /// Whether the media should restart after reaching the end.
         r#loop
 
-        /// Whether to mute the media resource by default
+        /// Whether the audio will be initially silenced.
         muted
 
-        /// Show user agent controls
+        /// Whether to display playback controls to the user.
         controls
 
-        /// Horizontal dimension
+        /// The width of the video's display area in CSS pixels.
         width
 
-        /// Vertical dimension
+        /// The height of the video's display area in CSS pixels.
         height
     }
 
-    /// A sound or audio stream.
+    /// Used to embed sound content in documents. It may contain one or
+    /// more audio sources, represented using the `src` attribute or the
+    /// `<source>` element.
     audio {
-        /// Address of the resource
+        /// The URL of the audio to embed.
         src
 
-        /// How the element handles crossorigin requests
+        /// How the element handles crossorigin requests.
         crossorigin
 
-        /// Hints how much buffering the media resource will likely need
+        /// Hints how much buffering the media resource will likely need.
         preload
 
-        /// Hint that the media resource can be started automatically when the
-        /// page is loaded
+        /// Whether the media will automatically start playing.
         autoplay
 
-        /// Whether to loop the media resource
+        /// Whether the media should restart after reaching the end.
         r#loop
 
-        /// Whether to mute the media resource by default
+        /// Whether the audio will be initially silenced.
         muted
 
-        /// Show user agent controls
+        /// Whether to display playback controls to the user.
         controls
     }
 
-    /// Defines an image map.
+    /// Used with `<area>` elements to define an image map (a clickable
+    /// link area).
     map {
-        /// Name of image map to reference from the `usemap` attribute
+        /// The name of the map to reference from the `usemap` attribute.
         name
     }
 
-    /// Data with more than one dimension, in the form of a table.
+    /// Represents tabular data — information presented in a
+    /// two-dimensional table.
     table
 
-    /// The title of the `table` that is its parent, if it has a parent and that
-    /// is a `table` element.
+    /// Specifies the caption (or title) of a table.
     caption
 
-    /// A group of one or more columns in the `table` that is its parent, if it
-    /// has a parent and that is a `table` element.
+    /// Defines a group of columns within a table.
     colgroup {
-        /// Number of columns spanned by the element
+        /// The number of consecutive columns the element spans.
         span
     }
 
-    /// A block of rows that consist of a body of data for the parent `table`
-    /// element, if the `tbody` element has a parent and it is a `table`.
+    /// Encapsulates a set of table rows, indicating that they comprise
+    /// the body of the table.
     tbody
 
-    /// The block of rows that consist of the column labels (headers) and any
-    /// ancillary non-header cells for the parent `table` element, if the
-    /// `thead` element has a parent and it is a `table`.
+    /// Defines a set of rows that constitute the head of the columns of
+    /// the table.
     thead
 
-    /// The block of rows that consist of the column summaries (footers) for the
-    /// parent `table` element, if the `tfoot` element has a parent and it is a
-    /// `table`.
+    /// Defines a set of rows summarizing the columns of the table
+    /// (the table footer).
     tfoot
 
-    /// A row of cells in a table.
+    /// Defines a row of cells in a table.
     tr
 
-    /// A data cell in a table.
+    /// Defines a cell of a table that contains data.
     td {
-        /// Number of columns that the cell is to span
+        /// The number of columns the cell extends.
         colspan
 
-        /// Number of rows that the cell is to span
+        /// The number of rows the cell extends.
         rowspan
 
-        /// The header cells for this cell
+        /// A list of `id` values of the `<th>` elements that apply to
+        /// this cell.
         headers
     }
 
-    /// A header cell in a table.
+    /// Defines a cell as the header of a group of table cells.
     th {
-        /// Number of columns that the cell is to span
+        /// The number of columns the header cell extends.
         colspan
 
-        /// Number of rows that the cell is to span
+        /// The number of rows the header cell extends.
         rowspan
 
-        /// The header cells for this cell
+        /// A list of `id` values of the `<th>` elements that apply to
+        /// this cell.
         headers
 
-        /// Specifies which cells the header cell applies to
+        /// The group of cells the header element relates to.
         scope
 
-        /// Alternative label to use for the header cell when referencing the
-        /// cell in other contexts
+        /// A short abbreviated description of the header cell's
+        /// content.
         abbr
     }
 
-    /// A hyperlink that can be manipulated through a collection of
-    /// form-associated elements, some of which can represent editable values
-    /// that can be submitted to a server for processing.
+    /// Represents a document section containing interactive controls
+    /// for submitting information.
     form {
-        /// Character encodings to use for form submission
+        /// The character encodings to use for form submission.
         accept_charset
 
-        /// URL to use for form submission
+        /// The URL that processes the form submission.
         action
 
-        /// Default setting for autofill feature for controls in the form
+        /// The default setting for autofill for controls in the form.
         autocomplete
 
-        /// Entry list encoding type to use for form submission
+        /// The encoding type to use for form submission.
         enctype
 
-        /// Variant to use for form submission
+        /// The HTTP method to use for form submission.
         method
 
-        /// Name of form to use in the `document.forms` API
+        /// The name of the form, used in the `document.forms` API.
         name
 
-        /// Bypass form control validation for form submission
+        /// Whether to skip form control validation on submission.
         novalidate
 
-        /// Navigable for form submission
+        /// Where to display the response after submitting the form.
         target
 
-        /// Relationship between the location in the document containing the
-        /// hyperlink and the destination resource
+        /// The relationship between the current document and the linked
+        /// resource.
         rel
     }
 
-    /// A caption in a user interface.
+    /// Represents a caption for an item in a user interface. Associating
+    /// a `<label>` with a form control provides usability and
+    /// accessibility benefits.
     label {
-        /// Associate the label with form control
+        /// The `id` of the form control to associate with this label.
         r#for
     }
 
-    /// A button labeled by its contents.
+    /// An interactive element activated by a user, used to submit forms
+    /// or trigger actions anywhere in a document.
     button {
-        /// Whether the form control is disabled
+        /// Whether the button is disabled.
         disabled
 
-        /// Associates the element with a `form` element
+        /// Associates the button with a `<form>` element.
         form
 
-        /// URL to use for form submission
+        /// The URL that processes the form submission (overrides the
+        /// form's `action`).
         formaction
 
-        /// Entry list encoding type to use for form submission
+        /// The encoding type for form submission (overrides the form's
+        /// `enctype`).
         formenctype
 
-        /// Variant to use for form submission
+        /// The HTTP method for form submission (overrides the form's
+        /// `method`).
         formmethod
 
-        /// Bypass form control validation for form submission
+        /// Whether to skip validation on form submission (overrides the
+        /// form's `novalidate`).
         formnovalidate
 
-        /// Navigable for form submission
+        /// Where to display the response from form submission (overrides
+        /// the form's `target`).
         formtarget
 
-        /// Name of the element to use for form submission and in the
-        /// `form.elements` API
+        /// The name of the button, submitted as part of form data.
         name
 
-        /// Targets a popover element to toggle, show, or hide
+        /// Targets a popover element to toggle, show, or hide.
         popovertarget
 
-        /// Indicates whether a targeted popover element is to be toggled,
-        /// shown, or hidden
+        /// Indicates whether a targeted popover element is to be
+        /// toggled, shown, or hidden.
         popovertargetaction
 
-        /// Type of button
+        /// The default behavior of the button.
         r#type
 
-        /// Value to be used for form submission
+        /// The value associated with the button's `name` when submitted
+        /// with form data.
         value
     }
 
-    /// A control for selecting amongst a set of options.
+    /// Represents a control that provides a menu of options for the user
+    /// to select from.
     select {
-        /// Hint for form autofill feature
+        /// Hint for form autofill feature.
         autocomplete
 
-        /// Whether the form control is disabled
+        /// Whether the select control is disabled.
         disabled
 
-        /// Associates the element with a `form` element
+        /// Associates the element with a `<form>` element.
         form
 
-        /// Whether to allow multiple values
+        /// Whether multiple options can be selected at once.
         multiple
 
-        /// Name of the element to use for form submission and in the
-        /// `form.elements` API
+        /// The name of the control, submitted with form data.
         name
 
-        /// Whether the control is required for form submission
+        /// Whether selecting an option is required for form submission.
         required
 
-        /// Size of the control
+        /// The number of visible option rows in the list.
         size
     }
 
-    /// A set of option elements that represent predefined options for other
-    /// controls.
+    /// Contains a set of `<option>` elements that represent the
+    /// permissible or recommended options available to choose from
+    /// within other controls.
     datalist
 
-    /// A group of `option` elements with a common label.
+    /// Creates a grouping of options within a `<select>` element.
     optgroup {
-        /// Whether the form control is disabled
+        /// Whether the options in this group are disabled.
         disabled
 
-        /// User-visible label
+        /// The label for the option group, displayed by the browser.
         label
     }
 
-    /// An option in a `select` element or as part of a list of suggestions in a
-    /// `datalist` element.
+    /// Represents an item contained in a `<select>`, an `<optgroup>`,
+    /// or a `<datalist>` element.
     option {
-        /// Whether the form control is disabled
+        /// Whether the option is disabled.
         disabled
 
-        /// User-visible label
+        /// The text label for the option.
         label
 
-        /// Whether the option is selected by default
+        /// Whether the option is selected by default.
         selected
 
-        /// Value to be used for form submission
+        /// The value to be submitted with form data.
         value
     }
 
-    /// A multiline plain text edit control for the element's **raw value**.
+    /// Represents a multi-line plain-text editing control, useful for
+    /// cases like allowing users to enter comments or reviews.
     textarea {
-        /// Hint for form autofill feature
+        /// Hint for form autofill feature.
         autocomplete
 
-        /// Maximum number of characters per line
+        /// The visible width of the text control, in average character
+        /// widths.
         cols
 
-        /// Name of form control to use for sending the element's directionality
-        /// in form submission
+        /// The name used to send the element's directionality in form
+        /// submission.
         dirname
 
-        /// Whether the form control is disabled
+        /// Whether the text control is disabled.
         disabled
 
-        /// Associates the element with a `form` element
+        /// Associates the element with a `<form>` element.
         form
 
-        /// Maximum length of value
+        /// The maximum number of characters the user can enter.
         maxlength
 
-        /// Minimum length of value
+        /// The minimum number of characters required.
         minlength
 
-        /// Name of the element to use for form submission and in the
-        /// `form.elements` API
+        /// The name of the control, submitted with form data.
         name
 
-        /// User-visible label to be placed within the form control
+        /// A hint to the user of what can be entered in the control.
         placeholder
 
-        /// Whether to allow the value to be edited by the user
+        /// Whether the text is read-only.
         readonly
 
-        /// Whether the control is required for form submission
+        /// Whether the control is required for form submission.
         required
 
-        /// Number of lines to show
+        /// The number of visible text lines for the control.
         rows
 
-        /// How the value of the form control is to be wrapped for form
-        /// submission
+        /// How the value of the control is to be wrapped for form
+        /// submission.
         wrap
     }
 
-    /// The result of a calculation performed by the application, or the result
-    /// of a user action.
+    /// Represents the result of a calculation or user action.
     output {
-        /// Specifies controls from which the output was calculated
+        /// A space-separated list of `id` values of elements that
+        /// contributed to the output.
         r#for
 
-        /// Associates the element with a `form` element
+        /// Associates the element with a `<form>` element.
         form
 
-        /// Name of the element to use for form submission and in the
-        /// `form.elements` API
+        /// The name of the element, used for form submission.
         name
     }
 
-    /// The completion progress of a task.
+    /// Displays an indicator showing the completion progress of a task,
+    /// typically displayed as a progress bar.
     progress {
-        /// Current value of the element
+        /// The current value of the progress indicator.
         value
 
-        /// Upper bound of range
+        /// The maximum value of the progress indicator.
         max
     }
 
-    /// A scalar measurement within a known range, or a fractional value; for
-    /// example disk usage, the relevance of a query result, or the fraction of
-    /// a voting population to have selected a particular candidate.
+    /// Represents either a scalar value within a known range or a
+    /// fractional value.
     meter {
-        /// Current value of the element
+        /// The current numeric value of the element.
         value
 
-        /// Lower bound of range
+        /// The lower bound of the measured range.
         min
 
-        /// Upper bound of range
+        /// The upper bound of the measured range.
         max
 
-        /// High limit of low range
+        /// The upper numeric bound of the low end of the range.
         low
 
-        /// Low limit of high range
+        /// The lower numeric bound of the high end of the range.
         high
 
-        /// Optimum value in gauge
+        /// The optimal numeric value of the element.
         optimum
     }
 
-    /// A set of form controls (or other content) grouped together, optionally
-    /// with a caption.
+    /// Groups several controls as well as labels within a web form,
+    /// typically rendered with a border.
     fieldset {
-        /// Whether the descendant form controls, except any inside legend, are
-        /// disabled
+        /// Whether the descendant form controls are disabled.
         disabled
 
-        /// Associates the element with a `form` element
+        /// Associates the element with a `<form>` element.
         form
 
-        /// Name of the element to use in the `form.elements` API
+        /// The name of the group, used in the `form.elements` API.
         name
     }
 
-    /// A caption for the rest of the contents of the `legend` element's parent
-    /// `fieldset` element, if any.
+    /// Represents a caption for the content of its parent `<fieldset>`.
     legend
 
-    /// A disclosure widget from which the user can obtain additional
-    /// information or controls.
+    /// Creates a disclosure widget in which information is visible only
+    /// when the widget is toggled into an open state.
     details {
-        /// Name of group of mutually-exclusive details elements
+        /// The name of a group of mutually-exclusive `<details>`
+        /// elements.
         name
 
-        /// Whether the details are visible
+        /// Whether the details content is currently visible.
         open
     }
 
-    /// A summary, caption, or legend for the rest of the contents of the
-    /// summary element's parent details element, if any.
+    /// Specifies a summary, caption, or legend for a `<details>`
+    /// element's disclosure box.
     summary
 
-    /// A transitory part of an application, in the form of a small window
-    /// ("dialog box"), which the user interacts with to perform a task or
-    /// gather information.
+    /// Represents a dialog box or other interactive component, such as
+    /// a dismissible alert, inspector, or subwindow.
     dialog {
-        /// Whether the dialog box is showing
+        /// Whether the dialog is active and can be interacted with.
         open
     }
 
-    /// Allows authors to include dynamic script and data blocks in their
-    /// documents.
+    /// Used to embed executable code or data, typically JavaScript. It
+    /// can also be used with other languages such as WebGL's shader
+    /// programming language and JSON.
     script {
-        /// Address of the resource
+        /// The URL of an external script to load.
         src
 
-        /// Type of script
+        /// The type of script represented.
         r#type
 
-        /// Prevents execution in user agents that support module scripts
+        /// Prevents execution in user agents that support module
+        /// scripts.
         nomodule
 
-        /// Execute script when available, without blocking while fetching
+        /// Execute the script asynchronously, without blocking parsing.
         r#async
 
-        /// Defer script execution
+        /// Defer script execution until the document has been parsed.
         defer
 
-        /// How the element handles crossorigin requests
+        /// How the element handles crossorigin requests.
         crossorigin
 
-        /// Integrity metadata used in _Subresource Integrity_ checks
+        /// Integrity metadata for Subresource Integrity checks.
         integrity
 
-        /// Referrer policy for fetches initiated by the element
+        /// How much of the referrer to send when fetching the script.
         referrerpolicy
 
-        /// Whether the element is potentially render-blocking
+        /// Whether the element is potentially render-blocking.
         blocking
 
-        /// Sets the priority for fetches initiated by the element
+        /// Sets the priority for fetches initiated by the element.
         fetchpriority
     }
 
-    /// Does nothing if scripting is enabled, shows the fallback content if
-    /// scripting is disabled.
+    /// Defines a section of HTML to be inserted if a script type on the
+    /// page is unsupported or scripting is turned off in the browser.
     noscript
 
-    /// Used to declare fragments of HTML that can be cloned and inserted in the
-    /// document by script.
+    /// A mechanism for holding HTML that is not to be rendered
+    /// immediately when a page is loaded but may be instantiated
+    /// subsequently during runtime using JavaScript.
     template {
-        /// Enables streaming declarative shadow roots
+        /// Enables streaming declarative shadow roots.
         shadowrootmode
 
-        /// Sets delegates focus on a declarative shadow root
+        /// Sets delegates focus on a declarative shadow root.
         shadowrootdelegatesfocus
     }
 
-    /// A slot in a shadow tree that can be filled with an arbitrary node.
+    /// A placeholder inside a web component that you can fill with your
+    /// own markup, letting you create separate DOM trees and present
+    /// them together.
     slot {
-        /// Name of shadow tree slot
+        /// The name of the slot.
         name
     }
 
-    /// A resolution-dependent bitmap canvas, which can be used for rendering
-    /// graphs, game graphics, art, or other visual images on the fly.
-    /// A canvas element.
+    /// A container element used to draw graphics and animations via
+    /// scripting (usually JavaScript), such as 2D graphics and WebGL.
     canvas {
-        /// Horizontal dimension
+        /// The width of the canvas in CSS pixels.
         width
 
-        /// Vertical dimension
+        /// The height of the canvas in CSS pixels.
         height
     }
 }
 
 define_void_elements! {
-    /// Either a hyperlink with some text and a corresponding area on an image
-    /// map, or a dead area on an image map.
+    /// Defines a hot-spot region on an image map, and optionally
+    /// associates it with a hypertext link. This element is used only
+    /// within a `<map>` element.
     area {
-        /// Replacement text for use when images are not available
+        /// Alternative text for the area, displayed when the image is
+        /// not available.
         alt
 
-        /// Coordinates for the shape to be created in an image map
+        /// The coordinates that define the hot-spot region.
         coords
 
-        /// The kind of shape to be created in an image map
+        /// The shape of the associated hot spot.
         shape
 
-        /// Address of the hyperlink
+        /// The hyperlink target for the area.
         href
 
-        /// Navigable for hyperlink navigation
+        /// Where to display the linked URL.
         target
 
-        /// Whether to download the resource instead of navigating to it, and
-        /// its filename if so
+        /// Causes the browser to treat the linked URL as a download.
         download
 
-        /// URLs to ping
+        /// A space-separated list of URLs to ping when the hyperlink
+        /// is followed.
         ping
 
-        /// Relationship between the location in the document containing the
-        /// hyperlink and the destination resource
+        /// The relationship of the linked URL as space-separated link
+        /// types.
         rel
 
-        /// Referrer policy for fetches initiated by the element
+        /// How much of the referrer to send when following the link.
         referrerpolicy
     }
 
-    /// Allows authors to specify the document base URL for the purposes of
-    /// parsing URLs, and the name of the default navigable for the purposes of
-    /// following hyperlinks.
+    /// Specifies the base URL to use for all relative URLs in a
+    /// document. There can be only one `<base>` element in a document.
     base {
-        /// Document base URL
+        /// The base URL to be used throughout the document for relative
+        /// URLs.
         href
 
-        /// Default navigable for hyperlink navigation and form submission
+        /// The default browsing context for hyperlink navigation and
+        /// form submission.
         target
     }
 
-    /// A line break.
+    /// Produces a line break in text (carriage-return).
     br
 
-    /// One or more columns in the column group represented by a parent
-    /// `colgroup`.
+    /// Defines one or more columns in a column group represented by
+    /// its parent `<colgroup>`.
     col {
-        /// Number of columns spanned by the element
+        /// The number of consecutive columns the element spans.
         span
     }
 
-    /// An integration point for an external application or interactive content.
+    /// Embeds external content at the specified point in the document.
+    /// This content is provided by an external application or other
+    /// source of interactive content such as a browser plug-in.
     embed {
-        /// Address of the resource
+        /// The URL of the resource being embedded.
         src
 
-        /// Type of embedded resource
+        /// The MIME type of the embedded resource.
         r#type
 
-        /// Horizontal dimension
+        /// The width of the embedded content in CSS pixels.
         width
 
-        /// Vertical dimension
+        /// The height of the embedded content in CSS pixels.
         height
     }
 
-    /// A paragraph-level thematic break, e.g., a scene change in a story, or a
-    /// transition to another topic within a section of a reference book;
-    /// alternatively, it represents a separator between a set of options of a
-    /// select element.
+    /// Represents a thematic break between paragraph-level elements,
+    /// typically rendered as a horizontal rule.
     hr
 
-    /// An image.
+    /// Embeds an image into the document.
     img {
-        /// Replacement text for use when images are not available
+        /// Alternative text describing the image for accessibility.
         alt
 
-        /// Address of the resource
+        /// The image URL.
         src
 
-        /// Images to use in different situations, e.g., high-resolution
-        /// displays, small monitors, etc.
+        /// A list of one or more source sizes and URLs for responsive
+        /// images.
         srcset
 
-        /// Image sizes for different page layouts
+        /// A set of source size descriptors for responsive images.
         sizes
 
-        /// How the element handles crossorigin requests
+        /// How the element handles crossorigin requests.
         crossorigin
 
-        /// Name of image map to use
+        /// The partial URL of an image map associated with the element.
         usemap
 
-        /// Whether the image is a server-side image map
+        /// Whether the image is a server-side image map.
         ismap
 
-        /// Horizontal dimension
+        /// The intrinsic width of the image in pixels.
         width
 
-        /// Vertical dimension
+        /// The intrinsic height of the image in pixels.
         height
 
-        /// Referrer policy for fetches initiated by the element
+        /// How much of the referrer to send when fetching the image.
         referrerpolicy
 
-        /// Decoding hint to use when processing this image for presentation
+        /// A hint to the browser as to whether to decode the image
+        /// synchronously or asynchronously.
         decoding
 
-        /// Used when determining loading deferral
+        /// Indicates when the browser should load the image.
         loading
 
-        /// Sets the priority for fetches initiated by the element
+        /// Sets the priority for fetches initiated by the element.
         fetchpriority
     }
 
-    /// A typed data field, usually with a form control to allow the user to
-    /// edit the data.
+    /// Used to create interactive controls for web-based forms to
+    /// accept data from the user. How an `<input>` works varies
+    /// depending on the value of its [`type`](Self::r#type) attribute.
     input {
-        /// Hint for expected file type in file upload controls
+        /// A hint for the expected file type in file upload controls.
         accept
 
-        /// Replacement text for use when images are not available
+        /// Alternative text for image inputs.
         alt
 
-        /// Hint for form autofill feature
+        /// Hint for form autofill feature.
         autocomplete
 
-        /// Media capture input method in file upload controls
+        /// The media capture method in file upload controls.
         capture
 
-        /// Whether the control is checked
+        /// Whether the control is checked (for checkboxes and radio
+        /// buttons).
         checked
 
-        /// Name of form control to use for sending the element's directionality
-        /// in form submission
+        /// The name used to send the element's directionality in form
+        /// submission.
         dirname
 
-        /// Whether the form control is disabled
+        /// Whether the form control is disabled.
         disabled
 
-        /// Associates the element with a `form` element
+        /// Associates the element with a `<form>` element.
         form
 
-        /// URL to use for form submission
+        /// The URL that processes the form submission (for submit
+        /// buttons).
         formaction
 
-        /// Entry list encoding type to use for form submission
+        /// The encoding type for form submission (for submit buttons).
         formenctype
 
-        /// Variant to use for form submission
+        /// The HTTP method for form submission (for submit buttons).
         formmethod
 
-        /// Bypass form control validation for form submission
+        /// Whether to skip validation on form submission (for submit
+        /// buttons).
         formnovalidate
 
-        /// Navigable for form submission
+        /// Where to display the response from form submission (for
+        /// submit buttons).
         formtarget
 
-        /// Vertical dimension
+        /// The height of an image input in pixels.
         height
 
-        /// List of autocomplete options
+        /// Identifies a `<datalist>` of pre-defined options to suggest.
         list
 
-        /// Maximum value
+        /// The maximum value for numeric or date inputs.
         max
 
-        /// Maximum length of value
+        /// The maximum number of characters the user can enter.
         maxlength
 
-        /// Minimum value
+        /// The minimum value for numeric or date inputs.
         min
 
-        /// Minimum length of value
+        /// The minimum number of characters required.
         minlength
 
-        /// Whether to allow multiple values
+        /// Whether to allow multiple values.
         multiple
 
-        /// Name of the element to use for form submission and in the
-        /// `form.elements` API
+        /// The name of the control, submitted with form data.
         name
 
-        /// Pattern to be matched by the form control's value
+        /// A regex pattern the value must match to be valid.
         pattern
 
-        /// User-visible label to be placed within the form control
+        /// A hint to the user of what can be entered in the control.
         placeholder
 
-        /// Targets a popover element to toggle, show, or hide
+        /// Targets a popover element to toggle, show, or hide.
         popovertarget
 
-        /// Indicates whether a targeted popover element is to be toggled,
-        /// shown, or hidden
+        /// Indicates whether a targeted popover element is to be
+        /// toggled, shown, or hidden.
         popovertargetaction
 
-        /// Whether to allow the value to be edited by the user
+        /// Whether the value is read-only.
         readonly
 
-        /// Whether the control is required for form submission
+        /// Whether the control is required for form submission.
         required
 
-        /// Size of the control
+        /// The width of the control, in characters.
         size
 
-        /// Address of the resource
+        /// The URL for image or submit inputs.
         src
 
-        /// Granularity to be matched by the form control's value
+        /// The stepping interval for numeric or date inputs.
         step
 
-        /// Type of form control
+        /// The type of control to display.
         r#type
 
-        /// Value of the form control
+        /// The initial value of the control.
         value
 
-        /// Horizontal dimension
+        /// The width of an image input in pixels.
         width
     }
 
-    /// Allows authors to link their document to other resources.
+    /// Specifies relationships between the current document and an
+    /// external resource, most commonly used to link to stylesheets but
+    /// also used for site icons and other things.
     link {
-        /// Address of the hyperlink
+        /// The URL of the linked resource.
         href
 
-        /// How the element handles crossorigin requests
+        /// How the element handles crossorigin requests.
         crossorigin
 
-        /// Relationship between the document containing the hyperlink and the
-        /// destination resource
+        /// The relationship of the linked resource to the current
+        /// document.
         rel
 
-        /// Applicable media
+        /// The media the linked resource applies to.
         media
 
-        /// Integrity metadata used in _Subresource Integrity_ checks
+        /// Integrity metadata for Subresource Integrity checks.
         integrity
 
-        /// Language of the linked resource
+        /// The language of the linked resource.
         hreflang
 
-        /// Hint for the type of the referenced resource
+        /// A hint of the MIME type of the linked resource.
         r#type
 
-        /// Referrer policy for fetches initiated by the element
+        /// How much of the referrer to send when fetching the resource.
         referrerpolicy
 
-        /// Sizes of the icons (for `rel="icon"`)
+        /// The sizes of the icons (for `rel="icon"`).
         sizes
 
-        /// Images to use in different situations, e.g., high-resolution
-        /// displays, small monitors, etc. (for `rel="preload"`)
+        /// A list of source sizes and URLs for responsive images (for
+        /// `rel="preload"`).
         imagesrcset
 
-        /// Image sizes for different page layouts (for `rel="preload"`)
+        /// Image sizes for different page layouts (for
+        /// `rel="preload"`).
         imagesizes
 
-        /// Potential destination for a preload request (for `rel="preload"` and
-        /// `rel="modulepreload"`)
+        /// The potential destination for a preload request (for
+        /// `rel="preload"` and `rel="modulepreload"`).
         r#as
 
-        /// Whether the element is potentially render-blocking
+        /// Whether the element is potentially render-blocking.
         blocking
 
-        /// Color to use when customizing a site's icon (for `rel="mask-icon"`)
+        /// The color for a mask icon (for `rel="mask-icon"`).
         color
 
-        /// Whether the link is disabled
+        /// Whether the linked stylesheet is disabled.
         disabled
 
-        /// Sets the priority for fetches initiated by the element
+        /// Sets the priority for fetches initiated by the element.
         fetchpriority
     }
 
-    /// Various kinds of metadata that cannot be expressed using the `title`,
-    /// `base`, `link`, `style`, and `script` elements.
+    /// Represents metadata that cannot be represented by other HTML
+    /// meta-related elements, like `<base>`, `<link>`, `<script>`,
+    /// `<style>`, or `<title>`.
     meta {
-        /// Metadata name
+        /// The name of the metadata.
         name
 
-        /// Pragma directive
+        /// A pragma directive.
         http_equiv
 
-        /// Value of the element
+        /// The value of the metadata element.
         content
 
-        /// Character encoding declaration
+        /// The character encoding declaration for the document.
         charset
 
-        /// Applicable media
+        /// The media the metadata applies to.
         media
     }
 
-    /// Allows authors to specify multiple alternative source sets for `img`
-    /// elements or multiple alternative media resources for media elements.
+    /// Specifies multiple media resources for the `<picture>`,
+    /// `<audio>`, or `<video>` elements.
     source {
-        /// Type of embedded resource
+        /// The MIME type of the media resource.
         r#type
 
-        /// Applicable media
+        /// The media query for the resource's intended media.
         media
 
-        /// Address of the resource
+        /// The URL of the media resource.
         src
 
-        /// Images to use in different situations, e.g., high-resolution
-        /// displays, small monitors, etc.
+        /// A list of source sizes and URLs for responsive images.
         srcset
 
-        /// Image sizes for different page layouts
+        /// Image sizes for different page layouts.
         sizes
 
-        /// Horizontal dimension
+        /// The intrinsic width of the image in pixels.
         width
 
-        /// Vertical dimension
+        /// The intrinsic height of the image in pixels.
         height
     }
 
-    /// Allows authors to specify explicit external timed text tracks for media
-    /// elements.
+    /// Used as a child of the `<audio>` and `<video>` elements to
+    /// specify timed text tracks (such as subtitles or captions).
     track {
-        /// The type of text track
+        /// How the text track is meant to be used.
         kind
 
-        /// Address of the resource
+        /// The URL of the track file.
         src
 
-        /// Language of the text track
+        /// The language of the text track data.
         srclang
 
-        /// User-visible label
+        /// A user-readable title of the text track.
         label
 
-        /// Enable the track if no other text track is more suitable
+        /// Whether the track should be enabled by default.
         default
     }
 
-    /// A line break opportunity.
+    /// Represents a word break opportunity — a position within text
+    /// where the browser may optionally break a line.
     wbr
 }
 
-#[cfg(feature = "mathml")]
 macro_rules! define_mathml_elements {
     {
         $(
@@ -1229,7 +1271,6 @@ macro_rules! define_mathml_elements {
     }
 }
 
-#[cfg(feature = "mathml")]
 define_mathml_elements! {
     math {
         display

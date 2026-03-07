@@ -43,6 +43,31 @@ macro_rules! create_variants {
     };
 }
 
+macro_rules! create_svg_variants {
+    {
+        $($Ty:ty {
+            $lazy_move:ident
+            $lazy_borrow:ident
+            $simple:ident
+        })*
+    } => {
+        $(#[proc_macro]
+        pub fn $lazy_move(tokens: TokenStream) -> TokenStream {
+            generate::<$Ty>(Config::SvgLazy(Semantics::Move), tokens)
+        }
+
+        #[proc_macro]
+        pub fn $lazy_borrow(tokens: TokenStream) -> TokenStream {
+            generate::<$Ty>(Config::SvgLazy(Semantics::Borrow), tokens)
+        }
+
+        #[proc_macro]
+        pub fn $simple(tokens: TokenStream) -> TokenStream {
+            generate::<$Ty>(Config::SvgSimple, tokens)
+        })*
+    };
+}
+
 create_variants! {
     Document<Maud> {
         maud
@@ -60,6 +85,20 @@ create_variants! {
         attribute
         attribute_borrow
         attribute_simple
+    }
+}
+
+create_svg_variants! {
+    Document<Maud> {
+        svg_maud
+        svg_maud_borrow
+        svg_maud_simple
+    }
+
+    Document<Rsx> {
+        svg_rsx
+        svg_rsx_borrow
+        svg_rsx_simple
     }
 }
 

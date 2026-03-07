@@ -5,11 +5,12 @@ use std::{
 };
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{ToTokens, quote, quote_spanned};
+use quote::{quote, quote_spanned, ToTokens};
 use syn::{
-    Error, LitStr, braced,
+    braced,
     parse::Parse,
     token::{Brace, Paren},
+    Error, LitStr,
 };
 
 use super::UnquotedName;
@@ -19,6 +20,8 @@ use crate::html::Context;
 pub enum Config {
     Lazy(Semantics),
     Simple,
+    SvgLazy(Semantics),
+    SvgSimple,
 }
 
 impl Config {
@@ -48,6 +51,41 @@ impl Config {
             }
             Self::Simple => {
                 let mut g = Generator::new_static();
+
+                g.push(syn::parse2::<T>(tokens)?);
+
+                let literal = g.finish().to_token_stream();
+
+                let ctx = T::Context::marker_type();
+
+                Ok(quote! {
+                    ::hypertext::Raw::<_, #ctx>::dangerously_create(#literal)
+                })
+            }
+            Self::SvgLazy(move_) => {
+                let mut g = Generator::new_closure_svg();
+
+                let size_estimate = tokens.to_string().len();
+
+                g.push(syn::parse2::<T>(tokens)?);
+
+                let block = g.finish();
+
+                let buffer_ident = Generator::buffer_ident();
+
+                let ctx = T::Context::marker_type();
+
+                Ok(quote! {
+                    ::hypertext::Lazy::<_, #ctx>::dangerously_create(
+                        #move_ |#buffer_ident: &mut ::hypertext::Buffer<#ctx>| {
+                            #buffer_ident.dangerously_get_string().reserve(#size_estimate);
+                            #block
+                        }
+                    )
+                })
+            }
+            Self::SvgSimple => {
+                let mut g = Generator::new_static_svg();
 
                 g.push(syn::parse2::<T>(tokens)?);
 
@@ -94,8 +132,16 @@ impl Generator {
         Self::new_with_brace(true, Brace::default())
     }
 
+    fn new_closure_svg() -> Self {
+        Self::new_with_brace_and_module(true, Brace::default(), ElementsModule::Svg)
+    }
+
     fn new_static() -> Self {
         Self::new_with_brace(false, Brace::default())
+    }
+
+    fn new_static_svg() -> Self {
+        Self::new_with_brace_and_module(false, Brace::default(), ElementsModule::Svg)
     }
 
     const fn new_with_brace(lazy: bool, brace_token: Brace) -> Self {
@@ -104,6 +150,19 @@ impl Generator {
             brace_token,
             parts: Vec::new(),
             checks: Checks::new(),
+        }
+    }
+
+    const fn new_with_brace_and_module(
+        lazy: bool,
+        brace_token: Brace,
+        module: ElementsModule,
+    ) -> Self {
+        Self {
+            lazy,
+            brace_token,
+            parts: Vec::new(),
+            checks: Checks::new_with_module(module),
         }
     }
 
@@ -171,7 +230,7 @@ impl Generator {
     }
 
     pub fn block_with(&mut self, brace_token: Brace, f: impl FnOnce(&mut Self)) -> AnyBlock {
-        let mut g = Self::new_with_brace(true, brace_token);
+        let mut g = Self::new_with_brace_and_module(true, brace_token, self.checks.module);
 
         f(&mut g);
 
@@ -242,6 +301,10 @@ impl Generator {
         self.checks.push(el_checks);
     }
 
+    pub fn elements_module(&self) -> ElementsModule {
+        self.checks.module
+    }
+
     pub fn push_all(&mut self, values: impl IntoIterator<Item = impl Generate>) {
         for value in values {
             self.push(value);
@@ -277,14 +340,33 @@ impl<T: Generate> Generate for &T {
     }
 }
 
+/// Which elements module to use for compile-time validation.
+#[derive(Debug, Clone, Copy, Default)]
+pub enum ElementsModule {
+    /// Use `hypertext_elements` (HTML).
+    #[default]
+    Html,
+    /// Use `hypertext_svg_elements` (SVG).
+    Svg,
+}
+
 struct Checks {
     elements: Vec<ElementCheck>,
+    module: ElementsModule,
 }
 
 impl Checks {
     const fn new() -> Self {
         Self {
             elements: Vec::new(),
+            module: ElementsModule::Html,
+        }
+    }
+
+    const fn new_with_module(module: ElementsModule) -> Self {
+        Self {
+            elements: Vec::new(),
+            module,
         }
     }
 
@@ -301,10 +383,20 @@ impl ToTokens for Checks {
 
         let checks = &self.elements;
 
-        quote! {
-            const _: fn() = || {
+        let use_stmt = match self.module {
+            ElementsModule::Html => quote! {
                 #[allow(unused_imports)]
                 use hypertext_elements::*;
+            },
+            ElementsModule::Svg => quote! {
+                #[allow(unused_imports)]
+                use hypertext_svg_elements::*;
+            },
+        };
+
+        quote! {
+            const _: fn() = || {
+                #use_stmt
 
                 #[doc(hidden)]
                 fn check_element<
@@ -401,6 +493,7 @@ impl ToTokens for ElementCheck {
 pub enum ElementKind {
     Normal,
     Void,
+    Xml,
 }
 
 impl ToTokens for ElementKind {
@@ -408,6 +501,7 @@ impl ToTokens for ElementKind {
         match self {
             Self::Normal => quote!(::hypertext::validation::Normal),
             Self::Void => quote!(::hypertext::validation::Void),
+            Self::Xml => quote!(::hypertext::validation::Xml),
         }
         .to_tokens(tokens);
     }

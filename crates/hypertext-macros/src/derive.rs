@@ -1,10 +1,10 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{Data, DeriveInput, Error, spanned::Spanned};
+use syn::{spanned::Spanned, Data, DeriveInput, Error};
 
 use crate::{
+    html::{generate::Generator, Context},
     AttributeValue, Config, Document, Many, Maud, Rsx, Semantics,
-    html::{Context, generate::Generator},
 };
 
 #[allow(clippy::needless_pass_by_value)]
