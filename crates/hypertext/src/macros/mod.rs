@@ -26,7 +26,9 @@ pub mod rsx;
 ///     }
 /// }
 /// ```
-/// It will generate something like this:
+///
+/// Expands to:
+///
 /// ```ignore
 /// impl<'a> Component<'a> {
 ///     fn builder() -> Self {
