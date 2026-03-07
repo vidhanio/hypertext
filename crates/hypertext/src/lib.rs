@@ -129,6 +129,8 @@ mod web_frameworks;
 
 use core::{fmt::Debug, marker::PhantomData};
 
+pub use bon::{self, Builder};
+
 use self::context::{AttributeValue, Context, Node};
 pub use self::macros::*;
 #[cfg(feature = "alloc")]

@@ -32,8 +32,6 @@ impl Node<Rsx> {
             attrs.push(input.parse()?);
         }
 
-        let dotdot = input.parse()?;
-
         let solidus = input.parse::<Option<Token![/]>>()?;
         input.parse::<Token![>]>()?;
 
@@ -41,7 +39,6 @@ impl Node<Rsx> {
             Ok(Self::Component(Component {
                 name,
                 attrs,
-                dotdot,
                 body: ElementBody::Void,
             }))
         } else {
@@ -54,7 +51,6 @@ impl Node<Rsx> {
                         Self::Component(Component {
                             name,
                             attrs,
-                            dotdot,
                             body: ElementBody::Void,
                         }),
                     );
@@ -77,7 +73,6 @@ impl Node<Rsx> {
                     Self::Component(Component {
                         name,
                         attrs,
-                        dotdot,
                         body: ElementBody::Void,
                     }),
                 );
@@ -89,7 +84,6 @@ impl Node<Rsx> {
             Ok(Self::Component(Component {
                 name,
                 attrs,
-                dotdot,
                 body: ElementBody::Normal {
                     children: Many(children),
                     closing_name: Some(parse_quote!(#closing_name)),
