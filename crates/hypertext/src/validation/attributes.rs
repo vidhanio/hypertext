@@ -80,7 +80,7 @@ use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol, Element}
 ///     #![expect(non_camel_case_types)]
 ///
 ///     pub use hypertext::validation::hypertext_elements::*;
-///     use hypertext::validation::{Element, Normal, attributes::GlobalAttributes};
+///     use hypertext::validation::{attributes::GlobalAttributes, Element, Normal};
 ///
 ///     pub struct custom_element;
 ///
@@ -550,7 +550,7 @@ impl<T: GlobalAttributes> AlpineJsAttributes for T {}
 ///     #![expect(non_camel_case_types)]
 ///
 ///     pub use hypertext::validation::hypertext_svg_elements::*;
-///     use hypertext::validation::{Element, Xml, attributes::SvgGlobalAttributes};
+///     use hypertext::validation::{attributes::SvgGlobalAttributes, Element, Xml};
 ///
 ///     pub struct custom_shape;
 ///
@@ -571,8 +571,6 @@ impl<T: GlobalAttributes> AlpineJsAttributes for T {}
 /// this process.
 #[expect(missing_docs)]
 pub trait SvgGlobalAttributes: Element {
-    // ── Core attributes ──────────────────────────────────────────────
-
     /// A unique identifier for the element.
     ///
     /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/id).
@@ -604,8 +602,6 @@ pub trait SvgGlobalAttributes: Element {
     /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/lang).
     const lang: Attribute = Attribute;
 
-    // ── XML namespace attributes ─────────────────────────────────────
-
     /// The XML namespace. Values after `xml:` are not validated.
     ///
     /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/xml:lang).
@@ -617,8 +613,6 @@ pub trait SvgGlobalAttributes: Element {
     /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course).
     const xmlns: AttributeNamespace = AttributeNamespace;
 
-    // ── Conditional processing attributes ────────────────────────────
-
     /// A list of required language extensions for the element to be
     /// rendered.
     ///
@@ -629,8 +623,6 @@ pub trait SvgGlobalAttributes: Element {
     ///
     /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/systemLanguage).
     const system_language: Attribute = Attribute;
-
-    // ── Presentation attributes ──────────────────────────────────────
 
     const alignment_baseline: Attribute = Attribute;
     const baseline_shift: Attribute = Attribute;

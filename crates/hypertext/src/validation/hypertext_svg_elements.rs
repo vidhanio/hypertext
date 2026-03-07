@@ -26,8 +26,6 @@
 use crate::define_svg_elements;
 
 define_svg_elements! {
-    // ── Container elements ───────────────────────────────────────────
-
     /// A hyperlink to other web pages, files, locations in the same page,
     /// or email addresses.
     a {
@@ -150,8 +148,6 @@ define_svg_elements! {
     /// `systemLanguage` attributes.
     switch
 
-    // ── Descriptive elements ─────────────────────────────────────────
-
     /// An accessible, long-text description of any SVG container or
     /// graphics element.
     desc
@@ -163,8 +159,6 @@ define_svg_elements! {
     /// A human-readable title for the element. Only the first child
     /// `<title>` of each container or graphics element is used.
     title
-
-    // ── Basic shapes ─────────────────────────────────────────────────
 
     /// Draws circles based on a center point and a radius.
     circle {
@@ -277,7 +271,6 @@ define_svg_elements! {
         pathLength
     }
 
-    // ── Text content elements ────────────────────────────────────────
 
     /// Draws text. It can be positioned as a whole, and glyphs can be
     /// individually positioned via attributes and CSS properties.
@@ -363,8 +356,6 @@ define_svg_elements! {
         textLength
     }
 
-    // ── Gradient elements ────────────────────────────────────────────
-
     /// Defines a linear gradient used to fill or stroke graphical
     /// elements.
     linearGradient {
@@ -447,8 +438,6 @@ define_svg_elements! {
         offset
     }
 
-    // ── Clipping and masking ─────────────────────────────────────────
-
     /// Defines a clipping path. It restricts the region to which paint
     /// can be applied.
     clipPath {
@@ -477,8 +466,6 @@ define_svg_elements! {
         /// The coordinate system for the contents of the `<mask>`.
         maskContentUnits
     }
-
-    // ── Marker element ───────────────────────────────────────────────
 
     /// Defines a graphical object to be drawn at given positions along a
     /// `<path>`, `<line>`, `<polyline>`, or `<polygon>` element.
@@ -510,8 +497,6 @@ define_svg_elements! {
         /// different aspect ratio.
         preserveAspectRatio
     }
-
-    // ── Pattern element ──────────────────────────────────────────────
 
     /// Defines a pattern used to fill or stroke graphical elements.
     pattern {
@@ -552,8 +537,6 @@ define_svg_elements! {
         xlink_href
     }
 
-    // ── Filter container ─────────────────────────────────────────────
-
     /// Defines a filter effect by grouping atomic filter primitives.
     filter {
         /// The x coordinate of the filter region.
@@ -574,8 +557,6 @@ define_svg_elements! {
         /// The coordinate system for the filter primitives within.
         primitiveUnits
     }
-
-    // ── Filter primitives ────────────────────────────────────────────
 
     /// Composites two objects together using common blending modes.
     feBlend {
@@ -1245,8 +1226,6 @@ define_svg_elements! {
         result
     }
 
-    // ── Graphics elements ────────────────────────────────────────────
-
     /// Includes an image inside SVG documents. It can display raster
     /// image files or other SVG files.
     image {
@@ -1295,7 +1274,6 @@ define_svg_elements! {
         height
     }
 
-    // ── Animation elements ───────────────────────────────────────────
 
     /// Provides a way to animate an attribute of an element over time.
     animate {
@@ -1559,8 +1537,6 @@ define_svg_elements! {
         /// A URL reference to the element to animate.
         href
     }
-
-    // ── Non-rendering elements ───────────────────────────────────────
 
     /// Allows authors to include dynamic script and data blocks in SVG
     /// documents.
