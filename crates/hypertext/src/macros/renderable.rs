@@ -1,5 +1,93 @@
 #![expect(clippy::doc_markdown)]
 
+/// Derives [`Renderable`](crate::Renderable) for a type.
+///
+/// This is used in conjunction with `#[maud]`/`#[rsx]`, as well as
+/// `#[attribute]`.
+///
+/// # Examples
+///
+/// ## `#[maud(...)]`
+///
+/// Derives [`Renderable`](crate::Renderable) via the contents of
+/// `#[maud(...)]`, which will be interpreted as input to
+/// [`maud!`](crate::maud!).
+///
+/// This is mutually exclusive with `#[rsx(...)]`.
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// #[derive(Renderable)]
+/// #[maud(span { "My name is " (self.name) "!" })]
+/// pub struct Person {
+///     name: String,
+/// }
+///
+/// assert_eq!(
+///     maud! { div { (Person { name: "Alice".into() }) } }
+///         .render()
+///         .as_inner(),
+///     "<div><span>My name is Alice!</span></div>"
+/// );
+/// ```
+///
+/// ## `#[rsx(...)]`
+///
+/// Derives [`Renderable`](crate::Renderable) via the contents of `#[rsx(...)]`,
+/// which will be interpreted as input to [`rsx!`](crate::rsx!).
+///
+/// This is mutually exclusive with `#[maud(...)]`.
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// #[derive(Renderable)]
+/// #[rsx(
+///     <span>"My name is " (self.name) "!"</span>
+/// )]
+/// pub struct Person {
+///     name: String,
+/// }
+///
+/// assert_eq!(
+///     rsx! { <div> (Person { name: "Alice".into() }) </div> }
+///         .render()
+///         .as_inner(),
+///     "<div><span>My name is Alice!</span></div>"
+/// );
+/// ```
+///
+/// ## `#[attribute(...)]`
+///
+/// Derives [`Renderable<AttributeValue>`](crate::Renderable)
+/// via the contents of `#[attribute(...)]`, which will be interpreted as input
+/// to [`attribute!`](crate::attribute!).
+///
+/// This can be used in conjunction with `#[rsx]`/`#[maud]`, as this will
+/// derive the [`Renderable<AttributeValue>`](crate::Renderable) implementation,
+/// whereas `#[maud(...)]`/`#[rsx(...)]` will derive the
+/// [`Renderable<Node>`](crate::Renderable) implementation.
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// #[derive(Renderable)]
+/// #[attribute((self.x) "," (self.y))]
+/// pub struct Coordinates {
+///     x: i32,
+///     y: i32,
+/// }
+///
+/// assert_eq!(
+///     maud! { div title=(Coordinates { x: 10, y: 20 }) { "Location" } }
+///         .render()
+///         .as_inner(),
+///     r#"<div title="10,20">Location</div>"#
+/// );
+/// ```
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_macros::Renderable;
 /// Turns a function returning a [`Renderable`](crate::Renderable) into a
 /// struct that implements [`Renderable`](crate::Renderable).
 ///

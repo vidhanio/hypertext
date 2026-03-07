@@ -63,6 +63,13 @@ create_variants! {
     }
 }
 
+#[proc_macro_derive(Renderable, attributes(maud, rsx, attribute))]
+pub fn derive_renderable(input: TokenStream) -> TokenStream {
+    derive::renderable(parse_macro_input!(input))
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
 #[proc_macro_attribute]
 pub fn renderable(attr: TokenStream, item: TokenStream) -> TokenStream {
     renderable::generate(parse_macro_input!(attr), parse_macro_input!(item))
