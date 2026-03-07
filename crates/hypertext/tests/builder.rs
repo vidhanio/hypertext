@@ -1,7 +1,7 @@
 //! Tests for the `hypertext` crate.
 #![cfg(feature = "alloc")]
 
-use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, prelude::*, renderable};
+use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, Renderable, prelude::*, renderable};
 
 #[test]
 #[expect(clippy::too_many_lines)]
@@ -434,4 +434,100 @@ fn custom() {
     let expected_result = component_html.repeat(2);
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
+}
+
+#[test]
+#[expect(unused_parens)]
+fn derive_renderable_builder() {
+    #[derive(Builder, Renderable)]
+    #[maud(
+        div {
+            h1 { (self.title) }
+            p { (self.body) }
+        }
+    )]
+    struct CardMaud {
+        title: String,
+        body: String,
+    }
+
+    #[derive(Builder, Renderable)]
+    #[rsx(
+        <div>
+            <h1>(self.title)</h1>
+            <p>(self.body)</p>
+        </div>
+    )]
+    struct CardRsx {
+        title: String,
+        body: String,
+    }
+
+    #[derive(Builder, Renderable)]
+    #[maud(
+        div {
+            h1 { (self.title) }
+            @if let Some(subtitle) = &self.subtitle {
+                h2 { (subtitle) }
+            }
+        }
+    )]
+    struct Header {
+        title: String,
+        subtitle: Option<String>,
+    }
+
+    // --- CardMaud ---
+    let maud_result = maud! {
+        main {
+            CardMaud title=("My Title".to_owned()) body=("My Body".to_owned());
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <main>
+            <CardMaud title=("My Title".to_owned()) body=("My Body".to_owned())>
+        </main>
+    }
+    .render();
+
+    let expected = "<main><div><h1>My Title</h1><p>My Body</p></div></main>";
+    assert_eq!(maud_result.as_inner(), expected);
+    assert_eq!(rsx_result.as_inner(), expected);
+
+    // --- CardRsx ---
+    let maud_result = maud! {
+        main {
+            CardRsx title=("My Title".to_owned()) body=("My Body".to_owned());
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <main>
+            <CardRsx title=("My Title".to_owned()) body=("My Body".to_owned())>
+        </main>
+    }
+    .render();
+
+    assert_eq!(maud_result.as_inner(), expected);
+    assert_eq!(rsx_result.as_inner(), expected);
+
+    // --- Header (with and without optional subtitle) ---
+    let maud_result = maud! {
+        Header title=("Hello".to_owned());
+        Header title=("Hello".to_owned()) subtitle=("World".to_owned());
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <Header title=("Hello".to_owned())>
+        <Header title=("Hello".to_owned()) subtitle=("World".to_owned())>
+    }
+    .render();
+
+    let expected = "<div><h1>Hello</h1></div><div><h1>Hello</h1><h2>World</h2></div>";
+    assert_eq!(maud_result.as_inner(), expected);
+    assert_eq!(rsx_result.as_inner(), expected);
 }
