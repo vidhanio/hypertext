@@ -183,7 +183,7 @@ pub fn default_builder(input: DeriveInput) -> syn::Result<TokenStream> {
         #[automatically_derived]
         impl #impl_generics #struct_name #ty_generics #where_clause {
             #vis fn builder() -> Self {
-                Self::default()
+                <Self as ::core::default::Default>::default()
             }
 
             #vis fn build(self) -> Self {
