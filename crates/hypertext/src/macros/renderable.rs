@@ -86,6 +86,105 @@
 ///     r#"<div title="10,20">Location</div>"#
 /// );
 /// ```
+///
+/// ## Using with [`#[derive(Builder)]`](crate::Builder)
+///
+/// Combining [`#[derive(Renderable)]`](derive@crate::Renderable) with
+/// [`#[derive(Builder)]`](crate::Builder) makes a struct usable as a component
+/// in the [`maud!`](crate::maud!) and [`rsx!`](crate::rsx!) macros via the
+/// component syntax.
+///
+/// ### [`maud!`](crate::maud!)
+///
+/// ```
+/// use hypertext::{Builder, prelude::*};
+///
+/// #[derive(Builder, Renderable)]
+/// #[maud(
+///     div {
+///         h1 { (self.title) }
+///         p { (self.body) }
+///     }
+/// )]
+/// pub struct Card {
+///     title: String,
+///     body: String,
+/// }
+///
+/// assert_eq!(
+///     maud! {
+///         main {
+///             Card title=("My Title".into()) body=("My Body".into());
+///         }
+///     }
+///     .render()
+///     .as_inner(),
+///     "<main><div><h1>My Title</h1><p>My Body</p></div></main>",
+/// );
+/// ```
+///
+/// ### [`rsx!`](crate::rsx!)
+///
+/// ```
+/// use hypertext::{Builder, prelude::*};
+///
+/// #[derive(Builder, Renderable)]
+/// #[rsx(
+///     <div>
+///         <h1>(self.title)</h1>
+///         <p>(self.body)</p>
+///     </div>
+/// )]
+/// pub struct Card {
+///     title: String,
+///     body: String,
+/// }
+///
+/// assert_eq!(
+///     rsx! {
+///         <main>
+///             <Card title=("My Title".into()) body=("My Body".into())>
+///         </main>
+///     }
+///     .render()
+///     .as_inner(),
+///     "<main><div><h1>My Title</h1><p>My Body</p></div></main>",
+/// );
+/// ```
+///
+/// ### With default field values
+///
+/// [`#[derive(Builder)]`](crate::Builder) automatically treats `Option<T>`
+/// fields as optional — their setter accepts a `T` and wraps it in `Some`,
+/// and they default to `None` when omitted.
+///
+/// ```
+/// use hypertext::{Builder, prelude::*};
+///
+/// #[derive(Builder, Renderable)]
+/// #[maud(
+///     div {
+///         h1 { (self.title) }
+///         @if let Some(subtitle) = &self.subtitle {
+///             h2 { (subtitle) }
+///         }
+///     }
+/// )]
+/// pub struct Header {
+///     title: String,
+///     subtitle: Option<String>,
+/// }
+///
+/// assert_eq!(
+///     maud! {
+///         Header title=("Hello".into());
+///         Header title=("Hello".into()) subtitle=("World".into());
+///     }
+///     .render()
+///     .as_inner(),
+///     "<div><h1>Hello</h1></div><div><h1>Hello</h1><h2>World</h2></div>",
+/// );
+/// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::Renderable;
 /// Turns a function returning a [`Renderable`](crate::Renderable) into a

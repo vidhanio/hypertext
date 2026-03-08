@@ -304,6 +304,13 @@ impl<F: Fn(&mut Buffer<C>), C: Context> Lazy<F, C> {
     }
 }
 
+impl<C: Context> Default for Lazy<fn(&mut Buffer<C>), C> {
+    #[inline]
+    fn default() -> Self {
+        Self::dangerously_create(|_| ())
+    }
+}
+
 impl<F: Fn(&mut Buffer<C>), C: Context> Renderable<C> for Lazy<F, C> {
     #[inline]
     fn render_to(&self, buffer: &mut Buffer<C>) {

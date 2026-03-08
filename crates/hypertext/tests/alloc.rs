@@ -4,7 +4,7 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use hypertext::{Buffer, Raw, prelude::*};
+use hypertext::{Buffer, Builder, Raw, prelude::*};
 
 #[test]
 fn readme() {
@@ -544,6 +544,7 @@ fn void_elements() {
 
 #[test]
 fn component() {
+    #[derive(Builder)]
     struct Repeater<R> {
         count: usize,
         children: R,

@@ -76,3 +76,10 @@ pub fn renderable(attr: TokenStream, item: TokenStream) -> TokenStream {
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
+
+#[proc_macro_derive(DefaultBuilder, attributes(builder))]
+pub fn derive_default_builder(input: TokenStream) -> TokenStream {
+    derive::default_builder(parse_macro_input!(input))
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
