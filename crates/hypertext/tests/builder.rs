@@ -437,6 +437,94 @@ fn custom() {
 }
 
 #[test]
+fn children() {
+    #[renderable]
+    fn component_a<R: Renderable>(children: &R) -> impl Renderable {
+        rsx! {
+            <div>
+                (children)
+            </div>
+        }
+    }
+
+    #[derive(Builder)]
+    struct ComponentB<F: Fn(&mut Buffer)> {
+        children: Lazy<F>,
+    }
+
+    impl<F: Fn(&mut Buffer)> Renderable for ComponentB<F> {
+        fn render_to(&self, buf: &mut Buffer) {
+            rsx! {
+                <div>
+                    (self.children)
+                </div>
+            }
+            .render_to(buf);
+        }
+    }
+
+    let msg = "hello".to_string();
+
+    let maud_result = maud::borrow! {
+        ComponentA {
+            h1 { (msg) }
+        }
+        ComponentB {
+            h1 { (msg) }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx::borrow! {
+        <ComponentA>
+            <h1>(msg)</h1>
+        </ComponentA>
+        <ComponentB>
+            <h1>(msg)</h1>
+        </ComponentB>
+    }
+    .render();
+
+    let component_html = "<div><h1>hello</h1></div>";
+    let expected_result = component_html.repeat(2);
+    assert_eq!(maud_result.as_inner(), &expected_result);
+    assert_eq!(rsx_result.as_inner(), &expected_result);
+
+    let maud_result = maud::borrow! {
+        ComponentA {
+            ComponentA {
+                h1 { (msg) }
+            }
+        }
+        ComponentB {
+            ComponentB {
+                h1 { (msg) }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx::borrow! {
+        <ComponentA>
+            <ComponentA>
+                <h1>(msg)</h1>
+            </ComponentA>
+        </ComponentA>
+        <ComponentB>
+            <ComponentB>
+                <h1>(msg)</h1>
+            </ComponentB>
+        </ComponentB>
+    }
+    .render();
+
+    let component_html = "<div><div><h1>hello</h1></div></div>";
+    let expected_result = component_html.repeat(2);
+    assert_eq!(maud_result.as_inner(), &expected_result);
+    assert_eq!(rsx_result.as_inner(), &expected_result);
+}
+
+#[test]
 #[expect(unused_parens)]
 fn derive_renderable_builder() {
     #[derive(Builder, Renderable)]
