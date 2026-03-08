@@ -133,7 +133,9 @@ impl Parse for ElementBody<Maud> {
                 closing_name: None,
             })
         } else if lookahead.peek(Token![;]) {
-            input.parse::<Token![;]>().map(|_| Self::Void)
+            input.parse::<Token![;]>().map(|semi| Self::Void {
+                solidus: Some(semi.span),
+            })
         } else {
             Err(lookahead.error())
         }

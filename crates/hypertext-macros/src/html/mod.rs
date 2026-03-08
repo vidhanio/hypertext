@@ -412,7 +412,21 @@ impl<S: Syntax> Generate for Element<S> {
                 g.push_lits(name.lits());
                 g.push_str(">");
             }
-            ElementBody::Void => g.push_str(flavour.void_close()),
+            ElementBody::Void { solidus } => {
+                if matches!(flavour, NodeFlavour::Xml(_)) && solidus.is_none() {
+                    let span = self
+                        .name
+                        .spans()
+                        .first()
+                        .copied()
+                        .unwrap_or_else(Span::mixed_site);
+                    g.push_stmt(
+                        Error::new(span, "self-closing XML elements must use `/>` syntax")
+                            .to_compile_error(),
+                    );
+                }
+                g.push_str(flavour.void_close());
+            }
         }
 
         g.record_element(el_checks);
@@ -424,12 +438,18 @@ pub enum ElementBody<S: Syntax> {
         children: Many<Node<S>>,
         closing_name: Option<UnquotedName>,
     },
-    Void,
+    Void {
+        /// The span of the solidus (`/`) in `/>`, or `None` if the void was
+        /// produced by error recovery (no closing tag / mismatched closing
+        /// tag). In XML context, `None` is a compile error — `/>` is
+        /// required.
+        solidus: Option<Span>,
+    },
 }
 
 impl<S: Syntax> ElementBody<S> {
     const fn element_kind(&self, flavour: NodeFlavour) -> ElementKind {
-        flavour.element_kind(matches!(self, Self::Void))
+        flavour.element_kind(matches!(self, Self::Void { .. }))
     }
 }
 

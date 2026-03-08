@@ -36,11 +36,13 @@ impl Node<Rsx> {
         let solidus = input.parse::<Option<Token![/]>>()?;
         input.parse::<Token![>]>()?;
 
-        if solidus.is_some() {
+        if let Some(solidus) = solidus {
             Ok(Self::Component(Component {
                 name,
                 attrs,
-                body: ElementBody::Void,
+                body: ElementBody::Void {
+                    solidus: Some(solidus.span),
+                },
             }))
         } else {
             let mut children = Vec::new();
@@ -52,7 +54,7 @@ impl Node<Rsx> {
                         Self::Component(Component {
                             name,
                             attrs,
-                            body: ElementBody::Void,
+                            body: ElementBody::Void { solidus: None },
                         }),
                     );
 
@@ -74,7 +76,7 @@ impl Node<Rsx> {
                     Self::Component(Component {
                         name,
                         attrs,
-                        body: ElementBody::Void,
+                        body: ElementBody::Void { solidus: None },
                     }),
                 );
 
@@ -107,11 +109,13 @@ impl Node<Rsx> {
         let solidus = input.parse::<Option<Token![/]>>()?;
         input.parse::<Token![>]>()?;
 
-        if solidus.is_some() {
+        if let Some(solidus) = solidus {
             Ok(Self::Element(Element {
                 name,
                 attrs,
-                body: ElementBody::Void,
+                body: ElementBody::Void {
+                    solidus: Some(solidus.span),
+                },
             }))
         } else {
             let mut children = Vec::new();
@@ -123,7 +127,7 @@ impl Node<Rsx> {
                         Self::Element(Element {
                             name,
                             attrs,
-                            body: ElementBody::Void,
+                            body: ElementBody::Void { solidus: None },
                         }),
                     );
 
@@ -144,7 +148,7 @@ impl Node<Rsx> {
                     Self::Element(Element {
                         name,
                         attrs,
-                        body: ElementBody::Void,
+                        body: ElementBody::Void { solidus: None },
                     }),
                 );
 

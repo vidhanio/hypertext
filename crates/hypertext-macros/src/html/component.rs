@@ -46,7 +46,7 @@ impl<S: Syntax> Generate for Component<S> {
                     .#children_ident(#lazy)
                 )
             }
-            ElementBody::Void => quote!(),
+            ElementBody::Void { .. } => quote!(),
         };
 
         let name = &self.name;
