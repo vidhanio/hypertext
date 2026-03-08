@@ -79,7 +79,12 @@ impl ComponentAttribute {
                     expr.expr.to_tokens(tokens);
                 });
 
-                tokens
+                quote! {
+                    {
+                        #[allow(unused_parens)]
+                        #tokens
+                    }
+                }
             }
         })
     }

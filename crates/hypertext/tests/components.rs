@@ -77,7 +77,6 @@ fn struct_component_with_builder() {
 }
 
 #[test]
-#[allow(unused_parens)]
 fn component_without_children() {
     #[derive(Builder)]
     struct Greeting {
@@ -183,7 +182,6 @@ fn renderable_attr_with_params() {
 }
 
 #[test]
-#[expect(unused_parens)]
 fn derive_renderable_with_maud() {
     #[derive(Builder, Renderable)]
     #[maud(
@@ -217,7 +215,6 @@ fn derive_renderable_with_maud() {
 }
 
 #[test]
-#[expect(unused_parens)]
 fn derive_renderable_with_rsx() {
     #[derive(Builder, Renderable)]
     #[rsx(
@@ -251,7 +248,6 @@ fn derive_renderable_with_rsx() {
 }
 
 #[test]
-#[expect(unused_parens)]
 fn derive_renderable_with_optional_field() {
     #[derive(Builder, Renderable)]
     #[maud(

@@ -525,7 +525,6 @@ fn children() {
 }
 
 #[test]
-#[expect(unused_parens)]
 fn derive_renderable_builder() {
     #[derive(Builder, Renderable)]
     #[maud(
@@ -565,7 +564,6 @@ fn derive_renderable_builder() {
         subtitle: Option<String>,
     }
 
-    // --- CardMaud ---
     let maud_result = maud! {
         main {
             CardMaud title=("My Title".to_owned()) body=("My Body".to_owned());
@@ -584,7 +582,6 @@ fn derive_renderable_builder() {
     assert_eq!(maud_result.as_inner(), expected);
     assert_eq!(rsx_result.as_inner(), expected);
 
-    // --- CardRsx ---
     let maud_result = maud! {
         main {
             CardRsx title=("My Title".to_owned()) body=("My Body".to_owned());
@@ -602,7 +599,6 @@ fn derive_renderable_builder() {
     assert_eq!(maud_result.as_inner(), expected);
     assert_eq!(rsx_result.as_inner(), expected);
 
-    // --- Header (with and without optional subtitle) ---
     let maud_result = maud! {
         Header title=("Hello".to_owned());
         Header title=("Hello".to_owned()) subtitle=("World".to_owned());

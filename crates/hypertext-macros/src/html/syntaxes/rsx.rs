@@ -25,7 +25,7 @@ impl Node<Rsx> {
 
         let mut attrs = Vec::new();
 
-        #[allow(clippy::suspicious_operation_groupings)]
+        #[expect(clippy::suspicious_operation_groupings)]
         while !(input.peek(Token![..])
             || input.peek(Token![>])
             || (input.peek(Token![/]) && input.peek2(Token![>])))

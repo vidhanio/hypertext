@@ -429,7 +429,7 @@ fn htmx_attributes() {
 
 #[test]
 #[cfg(feature = "alpine")]
-#[allow(clippy::too_many_lines)]
+#[expect(clippy::too_many_lines)]
 fn alpine_attributes() {
     let tests = [
         (
