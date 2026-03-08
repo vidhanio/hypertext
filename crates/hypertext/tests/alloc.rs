@@ -682,8 +682,8 @@ fn aria() {
 
 #[test]
 fn mathml() {
-    let maud_result = maud! {
-        math  {
+    let maud_result = mathml::maud! {
+        math {
             mi { "x" }
             mo { "+" }
             mn { "1" }
@@ -691,7 +691,7 @@ fn mathml() {
     }
     .render();
 
-    let rsx_result = rsx! {
+    let rsx_result = mathml::rsx! {
         <math>
             <mi>x</mi>
             <mo>"+"</mo>

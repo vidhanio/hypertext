@@ -17,6 +17,7 @@
 //! will not be validated, so you can use them freely.
 pub mod attributes;
 pub mod hypertext_elements;
+pub mod hypertext_mathml_elements;
 pub mod hypertext_svg_elements;
 
 /// A marker trait for type checked elements.
@@ -467,6 +468,84 @@ macro_rules! define_svg_elements {
             }
 
             impl $crate::validation::attributes::SvgGlobalAttributes for $name {}
+        )*
+    }
+}
+
+/// Define custom MathML elements.
+///
+/// This macro should be called from within a module named
+/// `hypertext_mathml_elements`.
+///
+/// # Example
+///
+/// ```
+/// mod hypertext_mathml_elements {
+///     use hypertext::define_mathml_elements;
+///     // Re-export all standard MathML elements
+///     pub use hypertext::validation::hypertext_mathml_elements::*;
+///
+///     define_mathml_elements! {
+///         /// A custom MathML element.
+///         custom_op {
+///             /// A custom attribute.
+///             my_attr
+///         }
+///     }
+/// }
+///
+/// // Now, you can use the custom elements like this:
+///
+/// use hypertext::prelude::*;
+///
+/// assert_eq!(
+///     mathml::maud! {
+///         custom-op my-attr="value";
+///     }
+///     .render()
+///     .as_inner(),
+///     r#"<custom-op my-attr="value"/>"#,
+/// )
+/// ```
+#[macro_export]
+macro_rules! define_mathml_elements {
+    {
+        $(
+            $(#[$meta:meta])*
+            $name:ident $(
+                {
+                    $(
+                        $(#[$attr_meta:meta])*
+                        $attr:ident
+                    )*
+                }
+            )?
+        )*
+    } => {
+        $(
+            $(#[$meta])*
+            #[expect(
+                non_camel_case_types,
+                reason = "camel case types will be interpreted as renderable structs"
+            )]
+            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
+            pub struct $name;
+
+            $(
+                #[allow(non_upper_case_globals)]
+                impl $name {
+                    $(
+                        $(#[$attr_meta])*
+                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
+                    )*
+                }
+            )?
+
+            impl $crate::validation::Element for $name {
+                type Kind = $crate::validation::Xml;
+            }
+
+            impl $crate::validation::attributes::MathMlGlobalAttributes for $name {}
         )*
     }
 }

@@ -9,15 +9,16 @@ mod syntaxes;
 use std::{borrow::Cow, convert::Infallible, marker::PhantomData};
 
 use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, quote, quote_spanned};
+use quote::{quote, quote_spanned, ToTokens};
 use syn::{
-    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced, bracketed,
+    braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
     parse_quote_spanned,
     spanned::Spanned,
     token::{Brace, Bracket, Paren},
+    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 pub use self::syntaxes::{Maud, Rsx};
@@ -26,8 +27,8 @@ use self::{
     component::Component,
     control::Control,
     generate::{
-        AnyBlock, AttributeCheck, AttributeCheckKind, ElementCheck, ElementKind, ElementsModule,
-        Generate, Generator,
+        AnyBlock, AttributeCheck, AttributeCheckKind, ElementCheck, ElementKind, Generate,
+        Generator, NodeFlavour,
     },
 };
 
@@ -347,8 +348,8 @@ impl<S: Syntax> Generate for Element<S> {
     type Context = Node<S>;
 
     fn generate(&self, g: &mut Generator) {
-        let module = g.elements_module();
-        let mut el_checks = ElementCheck::new(&self.name, self.body.kind(module));
+        let flavour = g.node_flavour();
+        let mut el_checks = ElementCheck::new(&self.name, self.body.element_kind(flavour));
 
         g.push_str("<");
         g.push_lits(self.name.lits());
@@ -377,9 +378,9 @@ impl<S: Syntax> Generate for Element<S> {
                 g.push_lits(name.lits());
                 g.push_str(">");
             }
-            ElementBody::Void => match module {
-                ElementsModule::Svg => g.push_str("/>"),
-                ElementsModule::Html => g.push_str(">"),
+            ElementBody::Void => match flavour {
+                NodeFlavour::Xml(_) => g.push_str("/>"),
+                NodeFlavour::Html => g.push_str(">"),
             },
         }
 
@@ -396,10 +397,10 @@ pub enum ElementBody<S: Syntax> {
 }
 
 impl<S: Syntax> ElementBody<S> {
-    const fn kind(&self, module: ElementsModule) -> ElementKind {
-        match module {
-            ElementsModule::Svg => ElementKind::Xml,
-            ElementsModule::Html => match self {
+    const fn element_kind(&self, flavour: NodeFlavour) -> ElementKind {
+        match flavour {
+            NodeFlavour::Xml(_) => ElementKind::Xml,
+            NodeFlavour::Html => match self {
                 Self::Normal { .. } => ElementKind::Normal,
                 Self::Void => ElementKind::Void,
             },

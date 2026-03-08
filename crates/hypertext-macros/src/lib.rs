@@ -9,7 +9,7 @@ use proc_macro::TokenStream;
 use syn::{parse::Parse, parse_macro_input};
 
 use self::html::{Document, Maud, Rsx};
-use crate::html::generate::{Config, Generate, Semantics};
+use crate::html::generate::{Config, Generate, NodeFlavour, Semantics, XmlFlavour};
 
 fn generate<T: Parse + Generate>(config: Config, tokens: TokenStream) -> TokenStream {
     config
@@ -28,23 +28,24 @@ macro_rules! create_variants {
     } => {
         $(#[proc_macro]
         pub fn $lazy_move(tokens: TokenStream) -> TokenStream {
-            generate::<$Ty>(Config::Lazy(Semantics::Move), tokens)
+            generate::<$Ty>(Config { lazy: Some(Semantics::Move), flavour: NodeFlavour::Html }, tokens)
         }
 
         #[proc_macro]
         pub fn $lazy_borrow(tokens: TokenStream) -> TokenStream {
-            generate::<$Ty>(Config::Lazy(Semantics::Borrow), tokens)
+            generate::<$Ty>(Config { lazy: Some(Semantics::Borrow), flavour: NodeFlavour::Html }, tokens)
         }
 
         #[proc_macro]
         pub fn $simple(tokens: TokenStream) -> TokenStream {
-            generate::<$Ty>(Config::Simple, tokens)
+            generate::<$Ty>(Config { lazy: None, flavour: NodeFlavour::Html }, tokens)
         })*
     };
 }
 
-macro_rules! create_svg_variants {
+macro_rules! create_xml_variants {
     {
+        flavour = $flavour:expr;
         $($Ty:ty {
             $lazy_move:ident
             $lazy_borrow:ident
@@ -53,17 +54,17 @@ macro_rules! create_svg_variants {
     } => {
         $(#[proc_macro]
         pub fn $lazy_move(tokens: TokenStream) -> TokenStream {
-            generate::<$Ty>(Config::SvgLazy(Semantics::Move), tokens)
+            generate::<$Ty>(Config { lazy: Some(Semantics::Move), flavour: NodeFlavour::Xml($flavour) }, tokens)
         }
 
         #[proc_macro]
         pub fn $lazy_borrow(tokens: TokenStream) -> TokenStream {
-            generate::<$Ty>(Config::SvgLazy(Semantics::Borrow), tokens)
+            generate::<$Ty>(Config { lazy: Some(Semantics::Borrow), flavour: NodeFlavour::Xml($flavour) }, tokens)
         }
 
         #[proc_macro]
         pub fn $simple(tokens: TokenStream) -> TokenStream {
-            generate::<$Ty>(Config::SvgSimple, tokens)
+            generate::<$Ty>(Config { lazy: None, flavour: NodeFlavour::Xml($flavour) }, tokens)
         })*
     };
 }
@@ -88,7 +89,9 @@ create_variants! {
     }
 }
 
-create_svg_variants! {
+create_xml_variants! {
+    flavour = XmlFlavour::Svg;
+
     Document<Maud> {
         svg_maud
         svg_maud_borrow
@@ -99,6 +102,22 @@ create_svg_variants! {
         svg_rsx
         svg_rsx_borrow
         svg_rsx_simple
+    }
+}
+
+create_xml_variants! {
+    flavour = XmlFlavour::MathMl;
+
+    Document<Maud> {
+        mathml_maud
+        mathml_maud_borrow
+        mathml_maud_simple
+    }
+
+    Document<Rsx> {
+        mathml_rsx
+        mathml_rsx_borrow
+        mathml_rsx_simple
     }
 }
 

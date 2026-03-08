@@ -20,6 +20,6 @@ pub use crate::{
             AriaAttributes, EventHandlerAttributes, GlobalAttributes, MathMlGlobalAttributes,
             SvgGlobalAttributes,
         },
-        hypertext_elements, hypertext_svg_elements,
+        hypertext_elements, hypertext_mathml_elements, hypertext_svg_elements,
     },
 };

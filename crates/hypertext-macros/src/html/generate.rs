@@ -5,97 +5,70 @@ use std::{
 };
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{ToTokens, quote, quote_spanned};
+use quote::{quote, quote_spanned, ToTokens};
 use syn::{
-    Error, LitStr, braced,
+    braced,
     parse::Parse,
     token::{Brace, Paren},
+    Error, LitStr,
 };
 
 use super::UnquotedName;
 use crate::html::Context;
 
 #[derive(Debug, Clone, Copy)]
-pub enum Config {
-    Lazy(Semantics),
-    Simple,
-    SvgLazy(Semantics),
-    SvgSimple,
+pub enum XmlFlavour {
+    Svg,
+    MathMl,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum NodeFlavour {
+    Html,
+    Xml(XmlFlavour),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Config {
+    pub lazy: Option<Semantics>,
+    pub flavour: NodeFlavour,
 }
 
 impl Config {
     pub fn generate<T: Parse + Generate>(self, tokens: TokenStream) -> syn::Result<TokenStream> {
-        match self {
-            Self::Lazy(move_) => {
-                let mut g = Generator::new_closure();
+        if let Some(move_) = self.lazy {
+            let mut g = Generator::new_with_brace_and_module(true, Brace::default(), self.flavour);
 
-                let size_estimate = tokens.to_string().len();
+            let size_estimate = tokens.to_string().len();
 
-                g.push(syn::parse2::<T>(tokens)?);
+            g.push(syn::parse2::<T>(tokens)?);
 
-                let block = g.finish();
+            let block = g.finish();
 
-                let buffer_ident = Generator::buffer_ident();
+            let buffer_ident = Generator::buffer_ident();
 
-                let ctx = T::Context::marker_type();
+            let ctx = T::Context::marker_type();
 
-                Ok(quote! {
-                    ::hypertext::Lazy::<_, #ctx>::dangerously_create(
-                        #move_ |#buffer_ident: &mut ::hypertext::Buffer<#ctx>| {
-                            #buffer_ident.dangerously_get_string().reserve(#size_estimate);
-                            #block
-                        }
-                    )
-                })
-            }
-            Self::Simple => {
-                let mut g = Generator::new_static();
+            Ok(quote! {
+                ::hypertext::Lazy::<_, #ctx>::dangerously_create(
+                    #move_ |#buffer_ident: &mut ::hypertext::Buffer<#ctx>| {
+                        #buffer_ident.dangerously_get_string().reserve(#size_estimate);
+                        #block
+                    }
+                )
+            })
+        } else {
+            let mut g = Generator::new_with_brace_and_module(false, Brace::default(), self.flavour);
 
-                g.push(syn::parse2::<T>(tokens)?);
+            g.push(syn::parse2::<T>(tokens)?);
 
-                let literal = g.finish().to_token_stream();
+            let literal = g.finish().to_token_stream();
 
-                let ctx = T::Context::marker_type();
+            let ctx = T::Context::marker_type();
 
-                Ok(quote! {
-                    ::hypertext::Raw::<_, #ctx>::dangerously_create(#literal)
-                })
-            }
-            Self::SvgLazy(move_) => {
-                let mut g = Generator::new_closure_svg();
-
-                let size_estimate = tokens.to_string().len();
-
-                g.push(syn::parse2::<T>(tokens)?);
-
-                let block = g.finish();
-
-                let buffer_ident = Generator::buffer_ident();
-
-                let ctx = T::Context::marker_type();
-
-                Ok(quote! {
-                    ::hypertext::Lazy::<_, #ctx>::dangerously_create(
-                        #move_ |#buffer_ident: &mut ::hypertext::Buffer<#ctx>| {
-                            #buffer_ident.dangerously_get_string().reserve(#size_estimate);
-                            #block
-                        }
-                    )
-                })
-            }
-            Self::SvgSimple => {
-                let mut g = Generator::new_static_svg();
-
-                g.push(syn::parse2::<T>(tokens)?);
-
-                let literal = g.finish().to_token_stream();
-
-                let ctx = T::Context::marker_type();
-
-                Ok(quote! {
-                    ::hypertext::Raw::<_, #ctx>::dangerously_create(#literal)
-                })
-            }
+            Ok(quote! {
+                ::hypertext::Raw::<_, #ctx>::dangerously_create(#literal)
+            })
         }
     }
 }
@@ -127,41 +100,16 @@ impl Generator {
         Ident::new("__hypertext_buffer", Span::mixed_site())
     }
 
-    fn new_closure() -> Self {
-        Self::new_with_brace(true, Brace::default())
-    }
-
-    fn new_closure_svg() -> Self {
-        Self::new_with_brace_and_module(true, Brace::default(), ElementsModule::Svg)
-    }
-
-    fn new_static() -> Self {
-        Self::new_with_brace(false, Brace::default())
-    }
-
-    fn new_static_svg() -> Self {
-        Self::new_with_brace_and_module(false, Brace::default(), ElementsModule::Svg)
-    }
-
-    const fn new_with_brace(lazy: bool, brace_token: Brace) -> Self {
-        Self {
-            lazy,
-            brace_token,
-            parts: Vec::new(),
-            checks: Checks::new(),
-        }
-    }
-
     const fn new_with_brace_and_module(
         lazy: bool,
         brace_token: Brace,
-        module: ElementsModule,
+        flavour: NodeFlavour,
     ) -> Self {
         Self {
             lazy,
             brace_token,
             parts: Vec::new(),
-            checks: Checks::new_with_module(module),
+            checks: Checks::new_with_flavour(flavour),
         }
     }
 
@@ -229,7 +177,7 @@ impl Generator {
     }
 
     pub fn block_with(&mut self, brace_token: Brace, f: impl FnOnce(&mut Self)) -> AnyBlock {
-        let mut g = Self::new_with_brace_and_module(true, brace_token, self.checks.module);
+        let mut g = Self::new_with_brace_and_module(true, brace_token, self.checks.flavour);
 
         f(&mut g);
 
@@ -300,8 +248,8 @@ impl Generator {
         self.checks.push(el_checks);
     }
 
-    pub const fn elements_module(&self) -> ElementsModule {
-        self.checks.module
+    pub const fn node_flavour(&self) -> NodeFlavour {
+        self.checks.flavour
     }
 
     pub fn push_all(&mut self, values: impl IntoIterator<Item = impl Generate>) {
@@ -339,33 +287,16 @@ impl<T: Generate> Generate for &T {
     }
 }
 
-/// Which elements module to use for compile-time validation.
-#[derive(Debug, Clone, Copy, Default)]
-pub enum ElementsModule {
-    /// Use `hypertext_elements` (HTML).
-    #[default]
-    Html,
-    /// Use `hypertext_svg_elements` (SVG).
-    Svg,
-}
-
 struct Checks {
     elements: Vec<ElementCheck>,
-    module: ElementsModule,
+    flavour: NodeFlavour,
 }
 
 impl Checks {
-    const fn new() -> Self {
+    const fn new_with_flavour(flavour: NodeFlavour) -> Self {
         Self {
             elements: Vec::new(),
-            module: ElementsModule::Html,
-        }
-    }
-
-    const fn new_with_module(module: ElementsModule) -> Self {
-        Self {
-            elements: Vec::new(),
-            module,
+            flavour,
         }
     }
 
@@ -382,14 +313,18 @@ impl ToTokens for Checks {
 
         let checks = &self.elements;
 
-        let use_stmt = match self.module {
-            ElementsModule::Html => quote! {
+        let use_stmt = match self.flavour {
+            NodeFlavour::Html => quote! {
                 #[allow(unused_imports)]
                 use hypertext_elements::*;
             },
-            ElementsModule::Svg => quote! {
+            NodeFlavour::Xml(XmlFlavour::Svg) => quote! {
                 #[allow(unused_imports)]
                 use hypertext_svg_elements::*;
+            },
+            NodeFlavour::Xml(XmlFlavour::MathMl) => quote! {
+                #[allow(unused_imports)]
+                use hypertext_mathml_elements::*;
             },
         };
 

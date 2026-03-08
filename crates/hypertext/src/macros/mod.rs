@@ -1,4 +1,5 @@
 pub mod attribute;
+pub mod mathml;
 pub mod maud;
 #[cfg(feature = "alloc")]
 mod renderable;
