@@ -1,10 +1,10 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{DeriveInput, Error, spanned::Spanned};
+use syn::{spanned::Spanned, Data, DeriveInput, Error};
 
 use crate::{
-    AttributeValue, Config, Document, Many, Maud, Rsx, Semantics,
-    html::{Context, generate::Generator},
+    html::{generate::Generator, Context},
+    AttributeValue, Config, Document, Many, Maud, NodeFlavour, Rsx, Semantics,
 };
 
 #[allow(clippy::needless_pass_by_value)]
@@ -34,14 +34,24 @@ fn renderable_node(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
             if attr.path().is_ident("maud") {
                 Some((
                     attr,
-                    (|tokens| Config::Lazy(Semantics::Move).generate::<Document<Maud>>(tokens))
-                        as fn(_) -> _,
+                    (|tokens| {
+                        Config {
+                            lazy: Some(Semantics::Move),
+                            flavour: NodeFlavour::Html,
+                        }
+                        .generate::<Document<Maud>>(tokens)
+                    }) as fn(_) -> _,
                 ))
             } else if attr.path().is_ident("rsx") {
                 Some((
                     attr,
-                    (|tokens| Config::Lazy(Semantics::Move).generate::<Document<Rsx>>(tokens))
-                        as fn(_) -> _,
+                    (|tokens| {
+                        Config {
+                            lazy: Some(Semantics::Move),
+                            flavour: NodeFlavour::Html,
+                        }
+                        .generate::<Document<Rsx>>(tokens)
+                    }) as fn(_) -> _,
                 ))
             } else {
                 None
@@ -112,7 +122,11 @@ fn renderable_attribute(input: &DeriveInput) -> syn::Result<Option<TokenStream>>
         }
     };
 
-    let lazy = Config::Lazy(Semantics::Move).generate::<Many<AttributeValue>>(tokens)?;
+    let lazy = Config {
+        lazy: Some(Semantics::Move),
+        flavour: NodeFlavour::Html,
+    }
+    .generate::<Many<AttributeValue>>(tokens)?;
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let buffer_ident = Generator::buffer_ident();
@@ -131,4 +145,68 @@ fn renderable_attribute(input: &DeriveInput) -> syn::Result<Option<TokenStream>>
     };
 
     Ok(Some(output))
+}
+
+#[allow(clippy::needless_pass_by_value)]
+pub fn default_builder(input: DeriveInput) -> syn::Result<TokenStream> {
+    let Data::Struct(data_struct) = &input.data else {
+        return Err(Error::new(
+            input.span(),
+            "#[derive(DefaultBuilder)] may only be used on structs",
+        ));
+    };
+
+    let struct_name = &input.ident;
+    let vis = &input.vis;
+    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+
+    let mut methods = Vec::new();
+    for field in &data_struct.fields {
+        if let Some(name) = &field.ident {
+            let ty = &field.ty;
+
+            let is_skipped = field
+                .attrs
+                .iter()
+                .find(|attr| attr.path().is_ident("builder"))
+                .map_or(Ok(false), |builder_attr| {
+                    builder_attr
+                        .parse_nested_meta(|meta| {
+                            if meta.path.is_ident("skip") {
+                                return Ok(());
+                            }
+
+                            Err(meta.error("unexpected param for `#[builder(...)]`"))
+                        })
+                        .map(|()| true)
+                })?;
+
+            if !is_skipped {
+                methods.push(quote! {
+                    #[must_use]
+                    #vis fn #name(mut self, #name: #ty) -> Self {
+                        self.#name = #name;
+                        self
+                    }
+                });
+            }
+        }
+    }
+
+    let output = quote! {
+        #[automatically_derived]
+        impl #impl_generics #struct_name #ty_generics #where_clause {
+            #vis fn builder() -> Self {
+                <Self as ::core::default::Default>::default()
+            }
+
+            #vis fn build(self) -> Self {
+                self
+            }
+
+            #(#methods)*
+        }
+    };
+
+    Ok(output)
 }

@@ -1,19 +1,17 @@
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote, quote_spanned};
+use quote::{quote, ToTokens};
 use syn::{
-    Ident, Lit, Token,
     parse::{Parse, ParseStream},
-    spanned::Spanned,
     token::{Brace, Paren},
+    Ident, Lit, Token,
 };
 
 use super::{ElementBody, Generate, Generator, ParenExpr, Syntax};
-use crate::{AttributeValue, html::Node};
+use crate::{html::Node, AttributeValue};
 
 pub struct Component<S: Syntax> {
     pub name: Ident,
     pub attrs: Vec<ComponentAttribute>,
-    pub dotdot: Option<Token![..]>,
     pub body: ElementBody<S>,
 }
 
@@ -21,10 +19,10 @@ impl<S: Syntax> Generate for Component<S> {
     type Context = Node<S>;
 
     fn generate(&self, g: &mut Generator) {
-        let fields = self.attrs.iter().map(|attr| {
+        let props = self.attrs.iter().map(|attr| {
             let name = &attr.name;
             attr.value_expr()
-                .map_or_else(|| quote!(#name,), |value| quote!(#name: #value,))
+                .map_or_else(|| quote!(.#name(#name)), |value| quote!(.#name(#value)))
         });
 
         let children = match &self.body {
@@ -45,7 +43,7 @@ impl<S: Syntax> Generate for Component<S> {
                 let children_ident = Ident::new("children", self.name.span());
 
                 quote!(
-                    #children_ident: #lazy,
+                    .#children_ident(#lazy)
                 )
             }
             ElementBody::Void => quote!(),
@@ -53,18 +51,11 @@ impl<S: Syntax> Generate for Component<S> {
 
         let name = &self.name;
 
-        let default = self
-            .dotdot
-            .as_ref()
-            .map(|dotdot| quote_spanned!(dotdot.span()=> ..::core::default::Default::default()))
-            .unwrap_or_default();
-
         let init = quote! {
-            #name {
-                #(#fields)*
+            #name::builder()
+                #(#props)*
                 #children
-                #default
-            }
+                .build()
         };
 
         g.push_expr::<Self::Context>(Paren::default(), &init);

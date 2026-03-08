@@ -2,14 +2,16 @@ use std::marker::PhantomData;
 
 use proc_macro2::Span;
 use syn::{
-    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced,
+    braced,
     ext::IdentExt,
     parse::{Parse, ParseStream},
     token::{Brace, Paren},
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 use crate::html::{
-    Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName, kw,
+    kw, Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName,
+    XmlDecl,
 };
 
 pub struct Maud;
@@ -27,7 +29,13 @@ impl Parse for Node<Maud> {
                 input.parse().map(Self::Element)
             }
         } else if lookahead.peek(Token![!]) {
-            input.parse().map(Self::Doctype)
+            let fork = input.fork();
+            fork.parse::<Token![!]>()?;
+            if fork.peek(kw::xml) {
+                input.parse().map(Self::XmlDecl)
+            } else {
+                input.parse().map(Self::Doctype)
+            }
         } else if lookahead.peek(LitStr)
             || lookahead.peek(LitInt)
             || lookahead.peek(LitBool)
@@ -59,6 +67,17 @@ impl Parse for Doctype<Maud> {
             doctype_token: input.parse()?,
             html_token: kw::html(Span::mixed_site()),
             gt_token: Token![>](Span::mixed_site()),
+            phantom: PhantomData,
+        })
+    }
+}
+
+impl Parse for XmlDecl<Maud> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let _bang: Token![!] = input.parse()?;
+        let xml_token: kw::xml = input.parse()?;
+        Ok(Self {
+            xml_token,
             phantom: PhantomData,
         })
     }
@@ -131,7 +150,6 @@ impl Parse for Component<Maud> {
 
                 attrs
             },
-            dotdot: input.parse()?,
             body: input.parse()?,
         })
     }

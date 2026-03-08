@@ -17,6 +17,7 @@ all-features = true
 [dependencies]
 actix-web = { version = "4", default-features = false, optional = true }
 axum-core = { version = "0.5", default-features = false, optional = true }
+bon = "3.9"
 html-escape = { workspace = true, optional = true }
 hypertext-macros.workspace = true
 itoa = { version = "1", optional = true }
@@ -36,7 +37,6 @@ axum = ["alloc", "dep:axum-core"]
 default = ["alloc"]
 htmx = []
 hyperscript = []
-mathml = []
 ntex = ["alloc", "dep:ntex"]
 poem = ["alloc", "dep:poem"]
 rocket = ["alloc", "dep:rocket"]

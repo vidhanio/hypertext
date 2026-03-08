@@ -531,6 +531,163 @@ pub trait AlpineJsAttributes: GlobalAttributes {
 
 impl<T: GlobalAttributes> AlpineJsAttributes for T {}
 
+/// Global SVG attributes.
+///
+/// This trait provides access to the
+/// [core](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Core),
+/// [conditional processing](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Conditional_Processing),
+/// and [presentation](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/Presentation)
+/// attributes shared by all SVG elements. This trait is implemented by every
+/// SVG element specified in
+/// [`hypertext_svg_elements`](crate::validation::hypertext_svg_elements).
+///
+/// # Usage With Custom SVG Elements
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// mod hypertext_svg_elements {
+///     #![expect(non_camel_case_types)]
+///
+///     pub use hypertext::validation::hypertext_svg_elements::*;
+///     use hypertext::validation::{Element, Xml, attributes::SvgGlobalAttributes};
+///
+///     pub struct custom_shape;
+///
+///     impl Element for custom_shape {
+///         type Kind = Xml;
+///     }
+///
+///     impl SvgGlobalAttributes for custom_shape {}
+/// }
+///
+/// assert_eq!(
+///     svg::maud! { custom-shape fill="red"; }.render().as_inner(),
+///     r#"<custom-shape fill="red"/>"#
+/// );
+/// ```
+///
+/// The [`define_svg_elements!`](crate::define_svg_elements) macro simplifies
+/// this process.
+#[expect(missing_docs)]
+pub trait SvgGlobalAttributes: Element {
+    /// A unique identifier for the element.
+    ///
+    /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/id).
+    #[doc(alias = "#")]
+    const id: Attribute = Attribute;
+
+    /// A space-separated list of class names for the element.
+    ///
+    /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/class).
+    #[doc(alias = ".")]
+    const class: Attribute = Attribute;
+
+    /// Inline CSS styling for the element.
+    ///
+    /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/style).
+    const style: Attribute = Attribute;
+
+    /// The position of the element in the sequential focus navigation order.
+    ///
+    /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/tabindex).
+    const tabindex: Attribute = Attribute;
+
+    /// Indicates whether the element should be automatically focused when
+    /// the page is loaded.
+    const autofocus: Attribute = Attribute;
+
+    /// The primary language for the element's contents and text attributes.
+    ///
+    /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/lang).
+    const lang: Attribute = Attribute;
+
+    /// The XML namespace. Values after `xml:` are not validated.
+    ///
+    /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/xml:lang).
+    const xml: AttributeNamespace = AttributeNamespace;
+
+    /// The XML namespace declaration. Values after `xmlns:` are not
+    /// validated.
+    ///
+    /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Namespaces_Crash_Course).
+    const xmlns: AttributeNamespace = AttributeNamespace;
+
+    /// A list of required language extensions for the element to be
+    /// rendered.
+    ///
+    /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/requiredExtensions).
+    const required_extensions: Attribute = Attribute;
+
+    /// A list of required features for the element to be rendered.
+    ///
+    /// See [MDN](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/systemLanguage).
+    const system_language: Attribute = Attribute;
+
+    const alignment_baseline: Attribute = Attribute;
+    const baseline_shift: Attribute = Attribute;
+    const clip: Attribute = Attribute;
+    const clip_path: Attribute = Attribute;
+    const clip_rule: Attribute = Attribute;
+    const color: Attribute = Attribute;
+    const color_interpolation: Attribute = Attribute;
+    const color_interpolation_filters: Attribute = Attribute;
+    const cursor: Attribute = Attribute;
+    const d: Attribute = Attribute;
+    const direction: Attribute = Attribute;
+    const display: Attribute = Attribute;
+    const dominant_baseline: Attribute = Attribute;
+    const enable_background: Attribute = Attribute;
+    const fill: Attribute = Attribute;
+    const fill_opacity: Attribute = Attribute;
+    const fill_rule: Attribute = Attribute;
+    const filter: Attribute = Attribute;
+    const flood_color: Attribute = Attribute;
+    const flood_opacity: Attribute = Attribute;
+    const font_family: Attribute = Attribute;
+    const font_size: Attribute = Attribute;
+    const font_size_adjust: Attribute = Attribute;
+    const font_stretch: Attribute = Attribute;
+    const font_style: Attribute = Attribute;
+    const font_variant: Attribute = Attribute;
+    const font_weight: Attribute = Attribute;
+    const glyph_orientation_horizontal: Attribute = Attribute;
+    const glyph_orientation_vertical: Attribute = Attribute;
+    const image_rendering: Attribute = Attribute;
+    const kerning: Attribute = Attribute;
+    const letter_spacing: Attribute = Attribute;
+    const lighting_color: Attribute = Attribute;
+    const marker_end: Attribute = Attribute;
+    const marker_mid: Attribute = Attribute;
+    const marker_start: Attribute = Attribute;
+    const mask: Attribute = Attribute;
+    const opacity: Attribute = Attribute;
+    const overflow: Attribute = Attribute;
+    const paint_order: Attribute = Attribute;
+    const pointer_events: Attribute = Attribute;
+    const shape_rendering: Attribute = Attribute;
+    const stop_color: Attribute = Attribute;
+    const stop_opacity: Attribute = Attribute;
+    const stroke: Attribute = Attribute;
+    const stroke_dasharray: Attribute = Attribute;
+    const stroke_dashoffset: Attribute = Attribute;
+    const stroke_linecap: Attribute = Attribute;
+    const stroke_linejoin: Attribute = Attribute;
+    const stroke_miterlimit: Attribute = Attribute;
+    const stroke_opacity: Attribute = Attribute;
+    const stroke_width: Attribute = Attribute;
+    const text_anchor: Attribute = Attribute;
+    const text_decoration: Attribute = Attribute;
+    const text_rendering: Attribute = Attribute;
+    const transform: Attribute = Attribute;
+    const transform_origin: Attribute = Attribute;
+    const unicode_bidi: Attribute = Attribute;
+    const vector_effect: Attribute = Attribute;
+    const visibility: Attribute = Attribute;
+    const word_spacing: Attribute = Attribute;
+    const writing_mode: Attribute = Attribute;
+}
+
 #[expect(missing_docs)]
 pub trait MathMlGlobalAttributes: Element {
     const autofocus: Attribute = Attribute;

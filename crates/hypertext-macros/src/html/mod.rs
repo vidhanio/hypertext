@@ -9,15 +9,16 @@ mod syntaxes;
 use std::{borrow::Cow, convert::Infallible, marker::PhantomData};
 
 use proc_macro2::{Span, TokenStream};
-use quote::{ToTokens, quote, quote_spanned};
+use quote::{quote, quote_spanned, ToTokens};
 use syn::{
-    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced, bracketed,
+    braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
     parse_quote_spanned,
     spanned::Spanned,
     token::{Brace, Bracket, Paren},
+    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 pub use self::syntaxes::{Maud, Rsx};
@@ -27,7 +28,7 @@ use self::{
     control::Control,
     generate::{
         AnyBlock, AttributeCheck, AttributeCheckKind, ElementCheck, ElementKind, Generate,
-        Generator,
+        Generator, NodeFlavour,
     },
 };
 
@@ -57,6 +58,8 @@ mod kw {
             LitStr::new("html", self.span)
         }
     }
+
+    syn::custom_keyword!(xml);
 }
 
 pub trait Syntax {}
@@ -88,6 +91,7 @@ impl Context for Infallible {
 
 pub enum Node<S: Syntax> {
     Doctype(Doctype<S>),
+    XmlDecl(XmlDecl<S>),
     Element(Element<S>),
     Component(Component<S>),
     Literal(Literal),
@@ -118,6 +122,7 @@ impl<S: Syntax> Generate for Node<S> {
     fn generate(&self, g: &mut Generator) {
         match self {
             Self::Doctype(doctype) => g.push(doctype),
+            Self::XmlDecl(xml_decl) => g.push(xml_decl),
             Self::Element(element) => g.push(element),
             Self::Component(component) => g.push(component),
             Self::Literal(lit) => g.push_escaped_lit::<Self::Context>(&lit.lit_str()),
@@ -151,6 +156,22 @@ impl<S: Syntax> Generate for Doctype<S> {
             self.html_token.lit(),
             LitStr::new(">", self.gt_token.span),
         ]);
+    }
+}
+
+pub struct XmlDecl<S: Syntax> {
+    xml_token: kw::xml,
+    phantom: PhantomData<S>,
+}
+
+impl<S: Syntax> Generate for XmlDecl<S> {
+    type Context = Node<S>;
+
+    fn generate(&self, g: &mut Generator) {
+        g.push_lits(vec![LitStr::new(
+            r#"<?xml version="1.0" encoding="UTF-8"?>"#,
+            self.xml_token.span,
+        )]);
     }
 }
 
@@ -327,7 +348,8 @@ impl<S: Syntax> Generate for Element<S> {
     type Context = Node<S>;
 
     fn generate(&self, g: &mut Generator) {
-        let mut el_checks = ElementCheck::new(&self.name, self.body.kind());
+        let flavour = g.node_flavour();
+        let mut el_checks = ElementCheck::new(&self.name, self.body.element_kind(flavour));
 
         g.push_str("<");
         g.push_lits(self.name.lits());
@@ -339,13 +361,13 @@ impl<S: Syntax> Generate for Element<S> {
             }
         }
 
-        g.push_str(">");
-
         match &self.body {
             ElementBody::Normal {
                 children,
                 closing_name,
             } => {
+                g.push_str(">");
+
                 let name = closing_name.as_ref().map_or(&self.name, |closing_name| {
                     el_checks.set_closing_spans(closing_name.spans());
                     closing_name
@@ -356,7 +378,10 @@ impl<S: Syntax> Generate for Element<S> {
                 g.push_lits(name.lits());
                 g.push_str(">");
             }
-            ElementBody::Void => {}
+            ElementBody::Void => match flavour {
+                NodeFlavour::Xml(_) => g.push_str("/>"),
+                NodeFlavour::Html => g.push_str(">"),
+            },
         }
 
         g.record_element(el_checks);
@@ -372,10 +397,13 @@ pub enum ElementBody<S: Syntax> {
 }
 
 impl<S: Syntax> ElementBody<S> {
-    const fn kind(&self) -> ElementKind {
-        match self {
-            Self::Normal { .. } => ElementKind::Normal,
-            Self::Void => ElementKind::Void,
+    const fn element_kind(&self, flavour: NodeFlavour) -> ElementKind {
+        match flavour {
+            NodeFlavour::Xml(_) => ElementKind::Xml,
+            NodeFlavour::Html => match self {
+                Self::Normal { .. } => ElementKind::Normal,
+                Self::Void => ElementKind::Void,
+            },
         }
     }
 }

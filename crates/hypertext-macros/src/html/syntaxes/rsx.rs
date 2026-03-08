@@ -1,15 +1,16 @@
 use std::marker::PhantomData;
 
 use syn::{
-    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
     ext::IdentExt,
-    parse::{Parse, ParseStream, discouraged::Speculative},
+    parse::{discouraged::Speculative, Parse, ParseStream},
     parse_quote,
     token::Paren,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 use crate::html::{
-    Component, Doctype, Element, ElementBody, Group, Literal, Many, Node, Syntax, UnquotedName,
+    kw, Component, Doctype, Element, ElementBody, Group, Literal, Many, Node, Syntax, UnquotedName,
+    XmlDecl,
 };
 
 pub struct Rsx;
@@ -32,8 +33,6 @@ impl Node<Rsx> {
             attrs.push(input.parse()?);
         }
 
-        let dotdot = input.parse()?;
-
         let solidus = input.parse::<Option<Token![/]>>()?;
         input.parse::<Token![>]>()?;
 
@@ -41,7 +40,6 @@ impl Node<Rsx> {
             Ok(Self::Component(Component {
                 name,
                 attrs,
-                dotdot,
                 body: ElementBody::Void,
             }))
         } else {
@@ -54,7 +52,6 @@ impl Node<Rsx> {
                         Self::Component(Component {
                             name,
                             attrs,
-                            dotdot,
                             body: ElementBody::Void,
                         }),
                     );
@@ -77,7 +74,6 @@ impl Node<Rsx> {
                     Self::Component(Component {
                         name,
                         attrs,
-                        dotdot,
                         body: ElementBody::Void,
                     }),
                 );
@@ -89,7 +85,6 @@ impl Node<Rsx> {
             Ok(Self::Component(Component {
                 name,
                 attrs,
-                dotdot,
                 body: ElementBody::Normal {
                     children: Many(children),
                     closing_name: Some(parse_quote!(#closing_name)),
@@ -187,6 +182,8 @@ impl Parse for Node<Rsx> {
                 }
             } else if lookahead.peek(Token![!]) {
                 input.parse().map(Self::Doctype)
+            } else if lookahead.peek(Token![?]) {
+                input.parse().map(Self::XmlDecl)
             } else {
                 Err(lookahead.error())
             }
@@ -236,6 +233,20 @@ impl Parse for Doctype<Rsx> {
             doctype_token: input.parse()?,
             html_token: input.parse()?,
             gt_token: input.parse()?,
+            phantom: PhantomData,
+        })
+    }
+}
+
+impl Parse for XmlDecl<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let _lt: Token![<] = input.parse()?;
+        let _q1: Token![?] = input.parse()?;
+        let xml_token: kw::xml = input.parse()?;
+        let _q2: Token![?] = input.parse()?;
+        let _gt: Token![>] = input.parse()?;
+        Ok(Self {
+            xml_token,
             phantom: PhantomData,
         })
     }
