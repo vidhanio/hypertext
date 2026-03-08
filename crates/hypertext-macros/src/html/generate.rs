@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     convert::Infallible,
     iter,
     ops::{Deref, DerefMut},
@@ -47,6 +48,21 @@ impl NodeFlavour {
                 }
             }
             Self::Xml(_) => ElementKind::Xml,
+        }
+    }
+
+    pub fn child_flavour(self, element_name: &str) -> Self {
+        match self {
+            Self::Html => match element_name {
+                "svg" => Self::Xml(XmlFlavour::Svg),
+                "math" => Self::Xml(XmlFlavour::MathMl),
+                _ => self,
+            },
+            Self::Xml(XmlFlavour::Svg) => match element_name {
+                "foreignObject" => Self::Html,
+                _ => self,
+            },
+            Self::Xml(XmlFlavour::MathMl) => self,
         }
     }
 }
@@ -140,6 +156,7 @@ pub struct Generator {
     brace_token: Brace,
     parts: Vec<Part>,
     checks: Checks,
+    flavour: NodeFlavour,
 }
 
 impl Generator {
@@ -152,7 +169,8 @@ impl Generator {
             lazy,
             brace_token,
             parts: Vec::new(),
-            checks: Checks::new(flavour),
+            checks: Checks::new(),
+            flavour,
         }
     }
 
@@ -220,13 +238,40 @@ impl Generator {
     }
 
     pub fn block_with(&mut self, brace_token: Brace, f: impl FnOnce(&mut Self)) -> AnyBlock {
-        let mut g = Self::new(true, brace_token, self.checks.flavour);
+        self.block_with_flavour(brace_token, self.flavour, f)
+    }
+
+    pub fn block_with_flavour(
+        &mut self,
+        brace_token: Brace,
+        flavour: NodeFlavour,
+        f: impl FnOnce(&mut Self),
+    ) -> AnyBlock {
+        let mut g = Self::new(self.lazy, brace_token, flavour);
 
         f(&mut g);
 
         self.checks.append(&mut g.checks);
 
         g.finish()
+    }
+
+    /// Generate children with a different flavour and inline the result into
+    /// this generator.  In lazy mode a braced block statement is emitted; in
+    /// simple (non-lazy) mode the parts are merged directly so that static
+    /// string parts are never wrapped in a `Part::Dynamic`.
+    pub fn push_with_flavour(&mut self, flavour: NodeFlavour, f: impl FnOnce(&mut Self)) {
+        if self.lazy {
+            let block = self.block_with_flavour(Brace::default(), flavour, f);
+            self.push_stmt(block);
+        } else {
+            // Non-lazy (simple!) path: create a sub-generator, run it, then
+            // steal its parts directly so static strings stay static.
+            let mut g = Self::new(false, Brace::default(), flavour);
+            f(&mut g);
+            self.checks.append(&mut g.checks);
+            self.parts.extend(g.parts);
+        }
     }
 
     pub fn push_in_block(&mut self, brace_token: Brace, f: impl FnOnce(&mut Self)) {
@@ -292,7 +337,7 @@ impl Generator {
     }
 
     pub const fn node_flavour(&self) -> NodeFlavour {
-        self.checks.flavour
+        self.flavour
     }
 
     pub fn push_all(&mut self, values: impl IntoIterator<Item = impl Generate>) {
@@ -330,52 +375,51 @@ impl<T: Generate> Generate for &T {
     }
 }
 
-struct Checks {
-    elements: Vec<ElementCheck>,
-    flavour: NodeFlavour,
-}
+struct Checks(Vec<ElementCheck>);
 
 impl Checks {
-    const fn new(flavour: NodeFlavour) -> Self {
-        Self {
-            elements: Vec::new(),
-            flavour,
-        }
+    const fn new() -> Self {
+        Self(Vec::new())
     }
 
     fn append(&mut self, other: &mut Self) {
-        self.elements.append(&mut other.elements);
+        self.0.append(&mut other.0);
     }
 }
 
 impl ToTokens for Checks {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        if self.is_empty() {
+        if self.0.is_empty() {
             return;
         }
 
-        let checks = &self.elements;
-
-        let module = Ident::new(self.flavour.elements_module(), Span::mixed_site());
-
-        let use_stmt = quote! {
-            #[allow(unused_imports)]
-            use #module::*;
-        };
-
-        quote! {
-            const _: fn() = || {
-                #use_stmt
-
-                #[doc(hidden)]
-                fn check_element<
-                    K: ::hypertext::validation::ElementKind
-                >(_: impl ::hypertext::validation::Element<Kind = K>) {}
-
-                #(#checks)*
-            };
+        let mut by_module: BTreeMap<&'static str, Vec<&ElementCheck>> = BTreeMap::new();
+        for check in &self.0 {
+            by_module.entry(check.module).or_default().push(check);
         }
-        .to_tokens(tokens);
+
+        for (module_str, checks) in &by_module {
+            let module = Ident::new(module_str, Span::mixed_site());
+
+            let use_stmt = quote! {
+                #[allow(unused_imports)]
+                use #module::*;
+            };
+
+            quote! {
+                const _: fn() = || {
+                    #use_stmt
+
+                    #[doc(hidden)]
+                    fn check_element<
+                        K: ::hypertext::validation::ElementKind
+                    >(_: impl ::hypertext::validation::Element<Kind = K>) {}
+
+                    #(#checks)*
+                };
+            }
+            .to_tokens(tokens);
+        }
     }
 }
 
@@ -383,17 +427,18 @@ impl Deref for Checks {
     type Target = Vec<ElementCheck>;
 
     fn deref(&self) -> &Self::Target {
-        &self.elements
+        &self.0
     }
 }
 
 impl DerefMut for Checks {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.elements
+        &mut self.0
     }
 }
 
 pub struct ElementCheck {
+    module: &'static str,
     ident: String,
     kind: ElementKind,
     opening_spans: Vec<Span>,
@@ -402,8 +447,9 @@ pub struct ElementCheck {
 }
 
 impl ElementCheck {
-    pub fn new(el_name: &UnquotedName, element_kind: ElementKind) -> Self {
+    pub fn new(el_name: &UnquotedName, element_kind: ElementKind, module: &'static str) -> Self {
         Self {
+            module,
             ident: el_name.ident_string(),
             kind: element_kind,
             opening_spans: el_name.spans(),

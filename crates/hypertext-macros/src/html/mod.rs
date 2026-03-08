@@ -383,7 +383,8 @@ impl<S: Syntax> Generate for Element<S> {
 
     fn generate(&self, g: &mut Generator) {
         let flavour = g.node_flavour();
-        let mut el_checks = ElementCheck::new(&self.name, self.body.element_kind(flavour));
+        let module = flavour.elements_module();
+        let mut el_checks = ElementCheck::new(&self.name, self.body.element_kind(flavour), module);
 
         g.push_str("<");
         g.push_lits(self.name.lits());
@@ -407,7 +408,24 @@ impl<S: Syntax> Generate for Element<S> {
                     closing_name
                 });
 
-                g.push(children);
+                // Determine the child context (may differ for svg, math,
+                // foreignObject, etc.)
+                let child_flavour = flavour.child_flavour(&self.name.ident_string());
+
+                if matches!(
+                    (flavour, child_flavour),
+                    (NodeFlavour::Html, NodeFlavour::Xml(_))
+                        | (NodeFlavour::Xml(_), NodeFlavour::Html)
+                ) {
+                    // Context switch: generate children with the new flavour.
+                    // `push_with_flavour` handles both lazy and simple modes.
+                    g.push_with_flavour(child_flavour, |g| {
+                        g.push(children);
+                    });
+                } else {
+                    g.push(children);
+                }
+
                 g.push_str("</");
                 g.push_lits(name.lits());
                 g.push_str(">");

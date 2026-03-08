@@ -1035,6 +1035,45 @@ define_elements! {
         /// The height of the coordinate space in CSS pixels.
         height
     }
+
+    /// The root element of an SVG document, or an inline SVG fragment
+    /// embedded in an HTML document. When used in HTML, its children are
+    /// automatically validated as SVG elements.
+    svg {
+        /// The displayed width of the rectangular viewport.
+        width
+
+        /// The displayed height of the rectangular viewport.
+        height
+
+        /// The `x` coordinate of the SVG container.
+        x
+
+        /// The `y` coordinate of the SVG container.
+        y
+
+        /// The SVG viewport coordinates for the `<svg>` element.
+        viewBox
+
+        /// Specifies how the SVG fragment must be deformed if displayed
+        /// with a different aspect ratio.
+        preserveAspectRatio
+
+        /// The XML namespace for the SVG element.
+        xmlns
+    }
+
+    /// The top-level element for MathML. When used in HTML, its children
+    /// are automatically validated as MathML elements.
+    math {
+        /// Specifies the display rendering mode for the `<math>` element.
+        /// `block` renders the element in its own block, while `inline`
+        /// renders it inline.
+        display
+
+        /// The XML namespace for the MathML element.
+        xmlns
+    }
 }
 
 define_void_elements! {

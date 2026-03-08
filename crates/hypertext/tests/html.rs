@@ -1427,3 +1427,261 @@ fn doctype_both_syntaxes_match() {
 
     assert_eq!(maud_result.as_inner(), rsx_result.as_inner());
 }
+
+// ── Context switching: embedded SVG in HTML ─────────────────────────────────
+
+#[test]
+fn embedded_svg_basic() {
+    // SVG inside HTML should auto-switch context: children of <svg>
+    // are validated against SVG elements and self-closing elements emit `/>`.
+    let maud_result = maud! {
+        div {
+            svg width="100" height="100" {
+                circle cx="50" cy="50" r="40" fill="red";
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            <svg width="100" height="100">
+                <circle cx="50" cy="50" r="40" fill="red" />
+            </svg>
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<div><svg width="100" height="100"><circle cx="50" cy="50" r="40" fill="red"/></svg></div>"#,
+        );
+    }
+}
+
+#[test]
+fn embedded_svg_self_closing() {
+    // Self-closing SVG elements inside HTML's <svg> should emit `/>`.
+    let maud_result = maud! {
+        svg viewBox="0 0 100 100" {
+            rect x="10" y="10" width="80" height="80";
+            line x1="0" y1="0" x2="100" y2="100" stroke="black";
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <svg viewBox="0 0 100 100">
+            <rect x="10" y="10" width="80" height="80" />
+            <line x1="0" y1="0" x2="100" y2="100" stroke="black" />
+        </svg>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<svg viewBox="0 0 100 100"><rect x="10" y="10" width="80" height="80"/><line x1="0" y1="0" x2="100" y2="100" stroke="black"/></svg>"#,
+        );
+    }
+}
+
+#[test]
+fn embedded_svg_with_children() {
+    // SVG elements with children (like <g>) should use open/close tags.
+    let maud_result = maud! {
+        div {
+            svg viewBox="0 0 200 200" {
+                g transform="translate(10,10)" {
+                    circle cx="50" cy="50" r="40";
+                }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            <svg viewBox="0 0 200 200">
+                <g transform="translate(10,10)">
+                    <circle cx="50" cy="50" r="40" />
+                </g>
+            </svg>
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<div><svg viewBox="0 0 200 200"><g transform="translate(10,10)"><circle cx="50" cy="50" r="40"/></g></svg></div>"#,
+        );
+    }
+}
+
+#[test]
+fn embedded_svg_path() {
+    let maud_result = maud! {
+        svg viewBox="0 0 100 100" {
+            path d="M 10 10 H 90 V 90 H 10 Z" fill="none" stroke="black";
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <svg viewBox="0 0 100 100">
+            <path d="M 10 10 H 90 V 90 H 10 Z" fill="none" stroke="black" />
+        </svg>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<svg viewBox="0 0 100 100"><path d="M 10 10 H 90 V 90 H 10 Z" fill="none" stroke="black"/></svg>"#,
+        );
+    }
+}
+
+// ── Context switching: embedded MathML in HTML ───────────────────────────────
+
+#[test]
+fn embedded_math_basic() {
+    let maud_result = maud! {
+        p {
+            math {
+                mi { "x" }
+                mo { "+" }
+                mn { "1" }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <p>
+            <math>
+                <mi>x</mi>
+                <mo>"+"</mo>
+                <mn>1</mn>
+            </math>
+        </p>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            "<p><math><mi>x</mi><mo>+</mo><mn>1</mn></math></p>"
+        );
+    }
+}
+
+#[test]
+fn embedded_math_fraction() {
+    let maud_result = maud! {
+        div {
+            math {
+                mfrac {
+                    mi { "a" }
+                    mi { "b" }
+                }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            <math>
+                <mfrac>
+                    <mi>a</mi>
+                    <mi>b</mi>
+                </mfrac>
+            </math>
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            "<div><math><mfrac><mi>a</mi><mi>b</mi></mfrac></math></div>"
+        );
+    }
+}
+
+// ── Context switching: foreignObject switches back to HTML ───────────────────
+
+#[test]
+fn svg_foreign_object_back_to_html() {
+    // foreignObject inside SVG should switch back to HTML context:
+    // HTML void elements inside it must emit `>` (not `/>`)
+    let maud_result = maud! {
+        svg width="200" height="200" {
+            foreignObject x="10" y="10" width="180" height="180" {
+                div {
+                    p { "Hello from HTML inside SVG" }
+                    input type="text";
+                }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <svg width="200" height="200">
+            <foreignObject x="10" y="10" width="180" height="180">
+                <div>
+                    <p>Hello from HTML inside SVG</p>
+                    <input type="text">
+                </div>
+            </foreignObject>
+        </svg>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<svg width="200" height="200"><foreignObject x="10" y="10" width="180" height="180"><div><p>Hello from HTML inside SVG</p><input type="text"></div></foreignObject></svg>"#,
+        );
+    }
+}
+
+// ── Deep nesting: HTML → SVG → foreignObject → HTML ─────────────────────────
+
+#[test]
+fn deeply_nested_context_switches() {
+    let maud_result = maud! {
+        div {
+            svg width="300" height="300" {
+                rect x="0" y="0" width="300" height="300" fill="lightgray";
+                foreignObject x="10" y="10" width="280" height="280" {
+                    p { "Back in HTML!" }
+                }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            <svg width="300" height="300">
+                <rect x="0" y="0" width="300" height="300" fill="lightgray" />
+                <foreignObject x="10" y="10" width="280" height="280">
+                    <p>"Back in HTML!"</p>
+                </foreignObject>
+            </svg>
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<div><svg width="300" height="300"><rect x="0" y="0" width="300" height="300" fill="lightgray"/><foreignObject x="10" y="10" width="280" height="280"><p>Back in HTML!</p></foreignObject></svg></div>"#,
+        );
+    }
+}
