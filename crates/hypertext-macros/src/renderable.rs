@@ -38,7 +38,7 @@ pub struct RenderableArgs {
     visibility: Visibility,
     ident: Option<Ident>,
     builder: Option<BuilderArg>,
-    attrs: Option<Vec<Path>>,
+    fn_attrs: Vec<Path>,
 }
 
 impl Parse for RenderableArgs {
@@ -46,30 +46,27 @@ impl Parse for RenderableArgs {
         let mut visibility = Visibility::Inherited;
         let mut ident = None;
         let mut builder = None;
-        let mut attrs: Option<Vec<_>> = None;
+        let mut fn_attrs = Vec::new();
 
         while !input.is_empty() {
-            if input.peek(Ident) && input.peek2(Token![=]) {
-                let ident = input.fork().parse::<Ident>()?;
-                if ident == "attrs" {
-                    let _attrs = input.parse::<Ident>()?;
-
-                    input.parse::<Token![=]>()?;
-
-                    let content;
-                    syn::bracketed!(content in input);
-
-                    attrs
-                        .get_or_insert_default()
-                        .extend(content.parse_terminated(Path::parse, Token![,])?);
-                } else {
+            if input.peek(Ident) {
+                if input.peek2(Token![=]) {
                     builder = Some(input.parse()?);
+                } else {
+                    let name = input.parse::<Ident>()?;
+                    if name == "fn_attrs" {
+                        let content;
+                        syn::parenthesized!(content in input);
+
+                        fn_attrs.extend(content.parse_terminated(Path::parse, Token![,])?);
+                    } else {
+                        ident = Some(name);
+                    }
                 }
-            } else {
+            } else if input.peek(Token![pub]) {
                 visibility = input.parse()?;
-                if input.peek(Ident) {
-                    ident = Some(input.parse()?);
-                }
+            } else {
+                return Err(Error::new(input.span(), "unexpected attribute parameter"));
             }
 
             if input.peek(Token![,]) {
@@ -81,7 +78,7 @@ impl Parse for RenderableArgs {
             visibility,
             ident,
             builder,
-            attrs,
+            fn_attrs,
         })
     }
 }
@@ -91,21 +88,6 @@ pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenS
     let mut fields = Vec::new();
     let mut field_names = Vec::new();
     let mut field_refs = Vec::new();
-    let mut component_attrs = Vec::new();
-
-    let builder = args.builder.or_else(|| {
-        if fn_item.sig.inputs.is_empty() {
-            None
-        } else {
-            if args.attrs.is_none() {
-                component_attrs = vec![parse_quote!(builder)];
-            }
-
-            Some(BuilderArg::Path(parse_quote!(::hypertext::Builder)))
-        }
-    });
-
-    component_attrs.extend(args.attrs.unwrap_or_default());
 
     let vis = if args.visibility == Visibility::Inherited {
         fn_item.vis.clone()
@@ -143,7 +125,7 @@ pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenS
             };
 
             let field_attrs = attrs
-                .extract_if(.., |attr| component_attrs.contains(attr.path()))
+                .extract_if(.., |attr| !args.fn_attrs.contains(attr.path()))
                 .collect::<Vec<_>>();
 
             fields.push(quote! {
@@ -162,11 +144,17 @@ pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenS
 
     let mut struct_attrs = fn_item
         .attrs
-        .extract_if(.., |attr| {
-            attr.path().is_ident("derive") || component_attrs.contains(attr.path())
-        })
+        .extract_if(.., |attr| !args.fn_attrs.contains(attr.path()))
         .map(|attr| quote!(#attr))
         .collect::<Vec<_>>();
+
+    let builder = args.builder.or_else(|| {
+        if fields.is_empty() {
+            None
+        } else {
+            Some(BuilderArg::Path(parse_quote!(::hypertext::Builder)))
+        }
+    });
 
     if let Some(BuilderArg::Path(path)) = builder {
         struct_attrs.push(quote! {
