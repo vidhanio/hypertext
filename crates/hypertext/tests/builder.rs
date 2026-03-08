@@ -19,7 +19,7 @@ fn default() {
         }
     }
 
-    #[renderable(builder = Builder, attrs = [builder])]
+    #[renderable(builder = Builder)]
     fn component_b<'a>(
         #[builder(default)] id: &'a str,
         #[builder(default = 1)] tabindex: u32,
