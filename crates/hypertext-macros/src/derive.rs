@@ -1,10 +1,10 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{spanned::Spanned, Data, DeriveInput, Error};
+use syn::{Data, DeriveInput, Error, spanned::Spanned};
 
-use crate::{
-    html::{generate::Generator, Context},
-    AttributeValue, Config, Document, Many, Maud, NodeFlavour, Rsx, Semantics,
+use crate::html::{
+    AttributeValue, Context, Maud, Rsx,
+    generate::{Config, Generator, NodeFlavour, Semantics},
 };
 
 #[allow(clippy::needless_pass_by_value)]
@@ -37,9 +37,8 @@ fn renderable_node(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
                     (|tokens| {
                         Config {
                             lazy: Some(Semantics::Move),
-                            flavour: NodeFlavour::Html,
                         }
-                        .generate::<Document<Maud>>(tokens)
+                        .generate_nodes::<Maud>(NodeFlavour::Html, tokens)
                     }) as fn(_) -> _,
                 ))
             } else if attr.path().is_ident("rsx") {
@@ -48,9 +47,8 @@ fn renderable_node(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
                     (|tokens| {
                         Config {
                             lazy: Some(Semantics::Move),
-                            flavour: NodeFlavour::Html,
                         }
-                        .generate::<Document<Rsx>>(tokens)
+                        .generate_nodes::<Rsx>(NodeFlavour::Html, tokens)
                     }) as fn(_) -> _,
                 ))
             } else {
@@ -124,9 +122,8 @@ fn renderable_attribute(input: &DeriveInput) -> syn::Result<Option<TokenStream>>
 
     let lazy = Config {
         lazy: Some(Semantics::Move),
-        flavour: NodeFlavour::Html,
     }
-    .generate::<Many<AttributeValue>>(tokens)?;
+    .generate_attrs(tokens)?;
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let buffer_ident = Generator::buffer_ident();

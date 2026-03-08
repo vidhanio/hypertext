@@ -9,16 +9,15 @@ mod syntaxes;
 use std::{borrow::Cow, convert::Infallible, marker::PhantomData};
 
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    braced, bracketed,
+    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced, bracketed,
     ext::IdentExt,
     parenthesized,
     parse::{Parse, ParseStream},
     parse_quote_spanned,
     spanned::Spanned,
     token::{Brace, Bracket, Paren},
-    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 pub use self::syntaxes::{Maud, Rsx};
@@ -88,7 +87,6 @@ impl Context for Infallible {
         Cow::Borrowed(s)
     }
 }
-
 pub enum Node<S: Syntax> {
     Doctype(Doctype<S>),
     XmlDecl(XmlDecl<S>),
@@ -121,8 +119,29 @@ impl<S: Syntax> Generate for Node<S> {
 
     fn generate(&self, g: &mut Generator) {
         match self {
-            Self::Doctype(doctype) => g.push(doctype),
-            Self::XmlDecl(xml_decl) => g.push(xml_decl),
+            Self::Doctype(doctype) => {
+                if matches!(g.node_flavour(), NodeFlavour::Xml(_)) {
+                    g.push_stmt(
+                        syn::Error::new(doctype.span(), "DOCTYPE is not valid in XML context")
+                            .to_compile_error(),
+                    );
+                } else {
+                    g.push(doctype);
+                }
+            }
+            Self::XmlDecl(xml_decl) => {
+                if matches!(g.node_flavour(), NodeFlavour::Html) {
+                    g.push_stmt(
+                        syn::Error::new(
+                            xml_decl.span(),
+                            "XML declaration is not valid in HTML context",
+                        )
+                        .to_compile_error(),
+                    );
+                } else {
+                    g.push(xml_decl);
+                }
+            }
             Self::Element(element) => g.push(element),
             Self::Component(component) => g.push(component),
             Self::Literal(lit) => g.push_escaped_lit::<Self::Context>(&lit.lit_str()),
@@ -144,6 +163,15 @@ pub struct Doctype<S: Syntax> {
     phantom: PhantomData<S>,
 }
 
+impl<S: Syntax> Doctype<S> {
+    fn span(&self) -> Span {
+        self.bang_token
+            .span()
+            .join(self.doctype_token.span)
+            .unwrap_or_else(|| self.bang_token.span())
+    }
+}
+
 impl<S: Syntax> Generate for Doctype<S> {
     type Context = Node<S>;
 
@@ -162,6 +190,12 @@ impl<S: Syntax> Generate for Doctype<S> {
 pub struct XmlDecl<S: Syntax> {
     xml_token: kw::xml,
     phantom: PhantomData<S>,
+}
+
+impl<S: Syntax> XmlDecl<S> {
+    const fn span(&self) -> Span {
+        self.xml_token.span
+    }
 }
 
 impl<S: Syntax> Generate for XmlDecl<S> {
@@ -378,10 +412,7 @@ impl<S: Syntax> Generate for Element<S> {
                 g.push_lits(name.lits());
                 g.push_str(">");
             }
-            ElementBody::Void => match flavour {
-                NodeFlavour::Xml(_) => g.push_str("/>"),
-                NodeFlavour::Html => g.push_str(">"),
-            },
+            ElementBody::Void => g.push_str(flavour.void_close()),
         }
 
         g.record_element(el_checks);
@@ -398,13 +429,7 @@ pub enum ElementBody<S: Syntax> {
 
 impl<S: Syntax> ElementBody<S> {
     const fn element_kind(&self, flavour: NodeFlavour) -> ElementKind {
-        match flavour {
-            NodeFlavour::Xml(_) => ElementKind::Xml,
-            NodeFlavour::Html => match self {
-                Self::Normal { .. } => ElementKind::Normal,
-                Self::Void => ElementKind::Void,
-            },
-        }
+        flavour.element_kind(matches!(self, Self::Void))
     }
 }
 

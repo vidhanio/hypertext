@@ -5,16 +5,51 @@ use std::{
 };
 
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::{quote, quote_spanned, ToTokens};
+use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    braced,
+    Error, LitStr, braced,
     parse::Parse,
     token::{Brace, Paren},
-    Error, LitStr,
 };
 
 use super::UnquotedName;
-use crate::html::Context;
+use crate::html::{AttributeValue, Context, Document, Many, Syntax};
+
+#[derive(Debug, Clone, Copy)]
+pub enum NodeFlavour {
+    Html,
+    Xml(XmlFlavour),
+}
+
+impl NodeFlavour {
+    pub const fn void_close(self) -> &'static str {
+        match self {
+            Self::Html => ">",
+            Self::Xml(_) => "/>",
+        }
+    }
+
+    pub const fn elements_module(self) -> &'static str {
+        match self {
+            Self::Html => "hypertext_elements",
+            Self::Xml(XmlFlavour::Svg) => "hypertext_svg_elements",
+            Self::Xml(XmlFlavour::MathMl) => "hypertext_mathml_elements",
+        }
+    }
+
+    pub const fn element_kind(self, is_void: bool) -> ElementKind {
+        match self {
+            Self::Html => {
+                if is_void {
+                    ElementKind::Void
+                } else {
+                    ElementKind::Normal
+                }
+            }
+            Self::Xml(_) => ElementKind::Xml,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum XmlFlavour {
@@ -23,21 +58,33 @@ pub enum XmlFlavour {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum NodeFlavour {
-    Html,
-    Xml(XmlFlavour),
-}
-
-#[derive(Debug, Clone, Copy)]
 pub struct Config {
     pub lazy: Option<Semantics>,
-    pub flavour: NodeFlavour,
 }
 
 impl Config {
-    pub fn generate<T: Parse + Generate>(self, tokens: TokenStream) -> syn::Result<TokenStream> {
+    pub fn generate_nodes<S: Syntax>(
+        self,
+        flavour: NodeFlavour,
+        tokens: TokenStream,
+    ) -> syn::Result<TokenStream>
+    where
+        Document<S>: Parse,
+    {
+        self.generate_parsed::<Document<S>>(flavour, tokens)
+    }
+
+    pub fn generate_attrs(self, tokens: TokenStream) -> syn::Result<TokenStream> {
+        self.generate_parsed::<Many<AttributeValue>>(NodeFlavour::Html, tokens)
+    }
+
+    fn generate_parsed<T: Parse + Generate>(
+        self,
+        flavour: NodeFlavour,
+        tokens: TokenStream,
+    ) -> syn::Result<TokenStream> {
         if let Some(move_) = self.lazy {
-            let mut g = Generator::new_with_brace_and_module(true, Brace::default(), self.flavour);
+            let mut g = Generator::new(true, Brace::default(), flavour);
 
             let size_estimate = tokens.to_string().len();
 
@@ -58,7 +105,7 @@ impl Config {
                 )
             })
         } else {
-            let mut g = Generator::new_with_brace_and_module(false, Brace::default(), self.flavour);
+            let mut g = Generator::new(false, Brace::default(), flavour);
 
             g.push(syn::parse2::<T>(tokens)?);
 
@@ -100,16 +147,12 @@ impl Generator {
         Ident::new("__hypertext_buffer", Span::mixed_site())
     }
 
-    const fn new_with_brace_and_module(
-        lazy: bool,
-        brace_token: Brace,
-        flavour: NodeFlavour,
-    ) -> Self {
+    const fn new(lazy: bool, brace_token: Brace, flavour: NodeFlavour) -> Self {
         Self {
             lazy,
             brace_token,
             parts: Vec::new(),
-            checks: Checks::new_with_flavour(flavour),
+            checks: Checks::new(flavour),
         }
     }
 
@@ -177,7 +220,7 @@ impl Generator {
     }
 
     pub fn block_with(&mut self, brace_token: Brace, f: impl FnOnce(&mut Self)) -> AnyBlock {
-        let mut g = Self::new_with_brace_and_module(true, brace_token, self.checks.flavour);
+        let mut g = Self::new(true, brace_token, self.checks.flavour);
 
         f(&mut g);
 
@@ -293,7 +336,7 @@ struct Checks {
 }
 
 impl Checks {
-    const fn new_with_flavour(flavour: NodeFlavour) -> Self {
+    const fn new(flavour: NodeFlavour) -> Self {
         Self {
             elements: Vec::new(),
             flavour,
@@ -313,19 +356,11 @@ impl ToTokens for Checks {
 
         let checks = &self.elements;
 
-        let use_stmt = match self.flavour {
-            NodeFlavour::Html => quote! {
-                #[allow(unused_imports)]
-                use hypertext_elements::*;
-            },
-            NodeFlavour::Xml(XmlFlavour::Svg) => quote! {
-                #[allow(unused_imports)]
-                use hypertext_svg_elements::*;
-            },
-            NodeFlavour::Xml(XmlFlavour::MathMl) => quote! {
-                #[allow(unused_imports)]
-                use hypertext_mathml_elements::*;
-            },
+        let module = Ident::new(self.flavour.elements_module(), Span::mixed_site());
+
+        let use_stmt = quote! {
+            #[allow(unused_imports)]
+            use #module::*;
         };
 
         quote! {

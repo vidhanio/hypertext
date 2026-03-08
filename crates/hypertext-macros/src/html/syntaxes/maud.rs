@@ -2,16 +2,15 @@ use std::marker::PhantomData;
 
 use proc_macro2::Span;
 use syn::{
-    braced,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced,
     ext::IdentExt,
     parse::{Parse, ParseStream},
     token::{Brace, Paren},
-    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 use crate::html::{
-    kw, Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName,
-    XmlDecl,
+    Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName,
+    XmlDecl, kw,
 };
 
 pub struct Maud;
@@ -31,10 +30,14 @@ impl Parse for Node<Maud> {
         } else if lookahead.peek(Token![!]) {
             let fork = input.fork();
             fork.parse::<Token![!]>()?;
-            if fork.peek(kw::xml) {
+            let lookahead = fork.lookahead1();
+
+            if lookahead.peek(kw::DOCTYPE) {
+                input.parse().map(Self::Doctype)
+            } else if lookahead.peek(kw::xml) {
                 input.parse().map(Self::XmlDecl)
             } else {
-                input.parse().map(Self::Doctype)
+                Err(lookahead.error())
             }
         } else if lookahead.peek(LitStr)
             || lookahead.peek(LitInt)

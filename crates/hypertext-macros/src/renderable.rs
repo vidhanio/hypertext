@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-    parse::Parse, parse_quote, Error, FnArg, Ident, ItemFn, LitBool, Pat, PatType, Path, Token,
-    Type, Visibility,
+    Error, FnArg, Ident, ItemFn, LitBool, Pat, PatType, Path, Token, Type, Visibility,
+    parse::Parse, parse_quote,
 };
 
 use crate::html::generate::Generator;
@@ -210,7 +210,7 @@ pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenS
     let buffer_ident = Generator::buffer_ident();
 
     let output = quote! {
-        #[allow(clippy::needless_lifetimes)]
+        #[allow(clippy::elidable_lifetime_names, clippy::needless_lifetimes)]
         #fn_item
 
         #(#struct_attrs)*

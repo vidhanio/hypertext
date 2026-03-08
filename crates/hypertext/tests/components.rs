@@ -1,11 +1,292 @@
-//! Tests for the `hypertext` crate.
 #![cfg(feature = "alloc")]
+#![expect(missing_docs)]
 
-use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, Renderable, prelude::*, renderable};
+use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, Renderable, prelude::*};
+
+#[test]
+fn function_components() {
+    fn component() -> impl Renderable {
+        maud! { span { "Hello, world!" } }
+    }
+
+    fn wrapping_component_maud(c: impl Renderable) -> impl Renderable {
+        maud! { div { (c) } }
+    }
+
+    fn wrapping_component_rsx(c: impl Renderable) -> impl Renderable {
+        rsx! { <div>(c)</div> }
+    }
+
+    let result = maud! {
+        div {
+            (component())
+            (wrapping_component_maud(component()))
+            (wrapping_component_rsx(component()))
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r"<div><span>Hello, world!</span><div><span>Hello, world!</span></div><div><span>Hello, world!</span></div></div>"
+    );
+}
+
+#[test]
+fn struct_component_with_builder() {
+    #[derive(Builder)]
+    struct Repeater<R> {
+        count: usize,
+        children: R,
+    }
+
+    impl<R: Renderable> Renderable for Repeater<R> {
+        fn render_to(&self, buffer: &mut Buffer) {
+            buffer.push(maud! {
+                @for _ in 0..self.count {
+                    (self.children)
+                }
+            });
+        }
+    }
+
+    let maud_result = maud! {
+        div {
+            Repeater count=3 {
+                span { "Hello, world!" }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            <Repeater count=3>
+                <span>"Hello, world!"</span>
+            </Repeater>
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            "<div><span>Hello, world!</span><span>Hello, world!</span><span>Hello, world!</span></div>"
+        );
+    }
+}
+
+#[test]
+#[allow(unused_parens)]
+fn component_without_children() {
+    #[derive(Builder)]
+    struct Greeting {
+        name: String,
+    }
+
+    impl Renderable for Greeting {
+        fn render_to(&self, buffer: &mut Buffer) {
+            buffer.push(maud! {
+                span { "Hello, " (self.name) "!" }
+            });
+        }
+    }
+
+    let maud_result = maud! {
+        Greeting name=("World".to_owned());
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <Greeting name=("World".to_owned()) />
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(result.as_inner(), "<span>Hello, World!</span>");
+    }
+}
+
+#[test]
+fn renderable_attr_basic() {
+    #[renderable(HelloWorld)]
+    fn my_component() -> impl Renderable {
+        maud! { span { "Hi!" } }
+    }
+
+    assert_eq!(
+        maud! { HelloWorld; }.render().as_inner(),
+        "<span>Hi!</span>"
+    );
+    assert_eq!(
+        rsx! { <HelloWorld /> }.render().as_inner(),
+        "<span>Hi!</span>"
+    );
+}
+
+#[test]
+fn renderable_attr_custom_visibility() {
+    mod component_module {
+        use hypertext::prelude::*;
+
+        #[renderable(pub)]
+        fn private_component() -> impl Renderable {
+            maud! { span { "secret..." } }
+        }
+    }
+
+    use component_module::PrivateComponent;
+
+    assert_eq!(
+        maud! { PrivateComponent; }.render().as_inner(),
+        "<span>secret...</span>"
+    );
+}
+
+#[test]
+fn renderable_attr_combined() {
+    #[renderable(HelloWorld)]
+    fn my_component() -> impl Renderable {
+        maud! { span { "Hi!" } }
+    }
+
+    mod component_module {
+        use hypertext::prelude::*;
+
+        #[renderable(pub)]
+        fn private_component() -> impl Renderable {
+            maud! { span { "secret..." } }
+        }
+    }
+
+    use component_module::PrivateComponent;
+
+    assert_eq!(
+        maud! { HelloWorld; PrivateComponent; }.render().as_inner(),
+        "<span>Hi!</span><span>secret...</span>"
+    );
+}
+
+#[test]
+fn renderable_attr_with_params() {
+    #[renderable]
+    fn greeting<'a>(name: &'a str) -> impl Renderable + 'a {
+        maud! { span { "Hello, " (name) "!" } }
+    }
+
+    let result = maud! {
+        Greeting name="World";
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), "<span>Hello, World!</span>");
+}
+
+#[test]
+#[expect(unused_parens)]
+fn derive_renderable_with_maud() {
+    #[derive(Builder, Renderable)]
+    #[maud(
+        div {
+            h1 { (self.title) }
+            p { (self.body) }
+        }
+    )]
+    struct CardMaud {
+        title: String,
+        body: String,
+    }
+
+    let maud_result = maud! {
+        main {
+            CardMaud title=("My Title".to_owned()) body=("My Body".to_owned());
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <main>
+            <CardMaud title=("My Title".to_owned()) body=("My Body".to_owned())>
+        </main>
+    }
+    .render();
+
+    let expected = "<main><div><h1>My Title</h1><p>My Body</p></div></main>";
+    assert_eq!(maud_result.as_inner(), expected);
+    assert_eq!(rsx_result.as_inner(), expected);
+}
+
+#[test]
+#[expect(unused_parens)]
+fn derive_renderable_with_rsx() {
+    #[derive(Builder, Renderable)]
+    #[rsx(
+        <div>
+            <h1>(self.title)</h1>
+            <p>(self.body)</p>
+        </div>
+    )]
+    struct CardRsx {
+        title: String,
+        body: String,
+    }
+
+    let maud_result = maud! {
+        main {
+            CardRsx title=("My Title".to_owned()) body=("My Body".to_owned());
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <main>
+            <CardRsx title=("My Title".to_owned()) body=("My Body".to_owned())>
+        </main>
+    }
+    .render();
+
+    let expected = "<main><div><h1>My Title</h1><p>My Body</p></div></main>";
+    assert_eq!(maud_result.as_inner(), expected);
+    assert_eq!(rsx_result.as_inner(), expected);
+}
+
+#[test]
+#[expect(unused_parens)]
+fn derive_renderable_with_optional_field() {
+    #[derive(Builder, Renderable)]
+    #[maud(
+        div {
+            h1 { (self.title) }
+            @if let Some(subtitle) = &self.subtitle {
+                h2 { (subtitle) }
+            }
+        }
+    )]
+    struct Header {
+        title: String,
+        subtitle: Option<String>,
+    }
+
+    let maud_result = maud! {
+        Header title=("Hello".to_owned());
+        Header title=("Hello".to_owned()) subtitle=("World".to_owned());
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <Header title=("Hello".to_owned())>
+        <Header title=("Hello".to_owned()) subtitle=("World".to_owned())>
+    }
+    .render();
+
+    let expected = "<div><h1>Hello</h1></div><div><h1>Hello</h1><h2>World</h2></div>";
+    assert_eq!(maud_result.as_inner(), expected);
+    assert_eq!(rsx_result.as_inner(), expected);
+}
 
 #[test]
 #[expect(clippy::too_many_lines)]
-fn default() {
+fn default_builder() {
     #[renderable]
     fn component_a<'a>(
         #[builder(default)] id: &'a str,
@@ -254,7 +535,7 @@ fn default() {
 
 #[test]
 #[expect(clippy::too_many_lines)]
-fn custom() {
+fn custom_builder() {
     #[renderable(builder = false)]
     fn component_a<'a>(
         id: &'a str,
@@ -434,100 +715,4 @@ fn custom() {
     let expected_result = component_html.repeat(2);
     assert_eq!(maud_result.as_inner(), &expected_result);
     assert_eq!(rsx_result.as_inner(), &expected_result);
-}
-
-#[test]
-#[expect(unused_parens)]
-fn derive_renderable_builder() {
-    #[derive(Builder, Renderable)]
-    #[maud(
-        div {
-            h1 { (self.title) }
-            p { (self.body) }
-        }
-    )]
-    struct CardMaud {
-        title: String,
-        body: String,
-    }
-
-    #[derive(Builder, Renderable)]
-    #[rsx(
-        <div>
-            <h1>(self.title)</h1>
-            <p>(self.body)</p>
-        </div>
-    )]
-    struct CardRsx {
-        title: String,
-        body: String,
-    }
-
-    #[derive(Builder, Renderable)]
-    #[maud(
-        div {
-            h1 { (self.title) }
-            @if let Some(subtitle) = &self.subtitle {
-                h2 { (subtitle) }
-            }
-        }
-    )]
-    struct Header {
-        title: String,
-        subtitle: Option<String>,
-    }
-
-    // --- CardMaud ---
-    let maud_result = maud! {
-        main {
-            CardMaud title=("My Title".to_owned()) body=("My Body".to_owned());
-        }
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <main>
-            <CardMaud title=("My Title".to_owned()) body=("My Body".to_owned())>
-        </main>
-    }
-    .render();
-
-    let expected = "<main><div><h1>My Title</h1><p>My Body</p></div></main>";
-    assert_eq!(maud_result.as_inner(), expected);
-    assert_eq!(rsx_result.as_inner(), expected);
-
-    // --- CardRsx ---
-    let maud_result = maud! {
-        main {
-            CardRsx title=("My Title".to_owned()) body=("My Body".to_owned());
-        }
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <main>
-            <CardRsx title=("My Title".to_owned()) body=("My Body".to_owned())>
-        </main>
-    }
-    .render();
-
-    assert_eq!(maud_result.as_inner(), expected);
-    assert_eq!(rsx_result.as_inner(), expected);
-
-    // --- Header (with and without optional subtitle) ---
-    let maud_result = maud! {
-        Header title=("Hello".to_owned());
-        Header title=("Hello".to_owned()) subtitle=("World".to_owned());
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <Header title=("Hello".to_owned())>
-        <Header title=("Hello".to_owned()) subtitle=("World".to_owned())>
-    }
-    .render();
-
-    let expected = "<div><h1>Hello</h1></div><div><h1>Hello</h1><h2>World</h2></div>";
-    assert_eq!(maud_result.as_inner(), expected);
-    assert_eq!(rsx_result.as_inner(), expected);
 }

@@ -3,10 +3,10 @@ use std::fmt::{self, Display, Formatter, Write};
 use proc_macro2::{Span, TokenStream};
 use quote::ToTokens;
 use syn::{
+    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
     ext::IdentExt,
     parse::{Parse, ParseStream},
     spanned::Spanned,
-    Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 #[derive(PartialEq, Eq, Clone)]
