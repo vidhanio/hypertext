@@ -18,6 +18,13 @@ fn generate<T: Parse + Generate>(config: Config, tokens: TokenStream) -> TokenSt
         .into()
 }
 
+fn generate_file<T: Parse + Generate>(config: Config, tokens: TokenStream) -> TokenStream {
+    config
+        .generate_file::<T>(tokens.into())
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
 macro_rules! create_variants {
     {
         $($Ty:ty {
@@ -61,6 +68,41 @@ create_variants! {
         attribute_borrow
         attribute_simple
     }
+}
+
+// File-based macros: load RSX from external files.
+
+#[proc_macro]
+pub fn rsx_file(tokens: TokenStream) -> TokenStream {
+    generate_file::<Document<Rsx>>(Config::Lazy(Semantics::Move), tokens)
+}
+
+#[proc_macro]
+pub fn rsx_file_borrow(tokens: TokenStream) -> TokenStream {
+    generate_file::<Document<Rsx>>(Config::Lazy(Semantics::Borrow), tokens)
+}
+
+// html! aliases: identical to rsx! variants, avoids Dioxus CLI name collision.
+// See https://github.com/vidhanio/hypertext/issues/123.
+
+#[proc_macro]
+pub fn html(tokens: TokenStream) -> TokenStream {
+    generate::<Document<Rsx>>(Config::Lazy(Semantics::Move), tokens)
+}
+
+#[proc_macro]
+pub fn html_borrow(tokens: TokenStream) -> TokenStream {
+    generate::<Document<Rsx>>(Config::Lazy(Semantics::Borrow), tokens)
+}
+
+#[proc_macro]
+pub fn html_file(tokens: TokenStream) -> TokenStream {
+    generate_file::<Document<Rsx>>(Config::Lazy(Semantics::Move), tokens)
+}
+
+#[proc_macro]
+pub fn html_file_borrow(tokens: TokenStream) -> TokenStream {
+    generate_file::<Document<Rsx>>(Config::Lazy(Semantics::Borrow), tokens)
 }
 
 #[proc_macro_derive(Renderable, attributes(maud, rsx, attribute))]

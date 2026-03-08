@@ -2,6 +2,7 @@ use std::{
     convert::Infallible,
     iter,
     ops::{Deref, DerefMut},
+    path::PathBuf,
 };
 
 use proc_macro2::{Ident, Span, TokenStream};
@@ -22,6 +23,21 @@ pub enum Config {
 }
 
 impl Config {
+    pub fn generate_file<T: Parse + Generate>(
+        self,
+        tokens: TokenStream,
+    ) -> syn::Result<TokenStream> {
+        let path_lit = syn::parse2::<LitStr>(tokens)?;
+        let (file_tokens, dep_tracking) = read_file_tokens(&path_lit)?;
+        let inner = self.generate::<T>(file_tokens)?;
+        Ok(quote! {
+            {
+                #dep_tracking
+                #inner
+            }
+        })
+    }
+
     pub fn generate<T: Parse + Generate>(self, tokens: TokenStream) -> syn::Result<TokenStream> {
         match self {
             Self::Lazy(move_) => {
@@ -61,6 +77,41 @@ impl Config {
             }
         }
     }
+}
+
+fn read_file_tokens(path_lit: &LitStr) -> syn::Result<(TokenStream, TokenStream)> {
+    let path = PathBuf::from(path_lit.value());
+
+    if path.is_absolute() {
+        return Err(Error::new_spanned(
+            path_lit,
+            "absolute paths are not allowed",
+        ));
+    }
+
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")
+        .map_err(|_| Error::new_spanned(path_lit, "CARGO_MANIFEST_DIR not set"))?;
+
+    let full_path = PathBuf::from(&manifest_dir).join(&path);
+    let full_path_str = full_path.to_string_lossy().to_string();
+
+    let contents = std::fs::read_to_string(&full_path).map_err(|e| {
+        Error::new_spanned(
+            path_lit,
+            format!("failed to read \"{}\": {e}", full_path.display()),
+        )
+    })?;
+
+    let file_tokens = contents
+        .parse::<TokenStream>()
+        .map_err(|e| Error::new_spanned(path_lit, format!("failed to tokenize file: {e}")))?;
+
+    let full_path_lit = LitStr::new(&full_path_str, path_lit.span());
+    let dep_tracking = quote! {
+        const _: &[u8] = ::core::include_bytes!(#full_path_lit);
+    };
+
+    Ok((file_tokens, dep_tracking))
 }
 
 #[derive(Debug, Clone, Copy)]
