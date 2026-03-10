@@ -1,7 +1,7 @@
 //! Component and derive macro tests.
 #![cfg(feature = "alloc")]
 
-use hypertext::{prelude::*, Builder};
+use hypertext::{Builder, prelude::*};
 
 #[derive(Builder, Renderable)]
 #[maud(span { "Hello, " (self.name) "!" })]

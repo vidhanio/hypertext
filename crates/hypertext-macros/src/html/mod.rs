@@ -408,8 +408,6 @@ impl<S: Syntax> Generate for Element<S> {
                     closing_name
                 });
 
-                // Determine the child context (may differ for svg, math,
-                // foreignObject, etc.)
                 let child_flavour = flavour.child_flavour(&self.name.ident_string());
 
                 if matches!(
@@ -417,8 +415,6 @@ impl<S: Syntax> Generate for Element<S> {
                     (NodeFlavour::Html, NodeFlavour::Xml(_))
                         | (NodeFlavour::Xml(_), NodeFlavour::Html)
                 ) {
-                    // Context switch: generate children with the new flavour.
-                    // `push_with_flavour` handles both lazy and simple modes.
                     g.push_with_flavour(child_flavour, |g| {
                         g.push(children);
                     });
@@ -457,10 +453,6 @@ pub enum ElementBody<S: Syntax> {
         closing_name: Option<UnquotedName>,
     },
     Void {
-        /// The span of the solidus (`/`) in `/>`, or `None` if the void was
-        /// produced by error recovery (no closing tag / mismatched closing
-        /// tag). In XML context, `None` is a compile error — `/>` is
-        /// required.
         solidus: Option<Span>,
     },
 }

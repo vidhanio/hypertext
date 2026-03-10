@@ -256,17 +256,11 @@ impl Generator {
         g.finish()
     }
 
-    /// Generate children with a different flavour and inline the result into
-    /// this generator.  In lazy mode a braced block statement is emitted; in
-    /// simple (non-lazy) mode the parts are merged directly so that static
-    /// string parts are never wrapped in a `Part::Dynamic`.
     pub fn push_with_flavour(&mut self, flavour: NodeFlavour, f: impl FnOnce(&mut Self)) {
         if self.lazy {
             let block = self.block_with_flavour(Brace::default(), flavour, f);
             self.push_stmt(block);
         } else {
-            // Non-lazy (simple!) path: create a sub-generator, run it, then
-            // steal its parts directly so static strings stay static.
             let mut g = Self::new(false, Brace::default(), flavour);
             f(&mut g);
             self.checks.append(&mut g.checks);

@@ -1,7 +1,7 @@
 //! Integration tests.
 #![cfg(feature = "alloc")]
 
-use hypertext::{prelude::*, Builder};
+use hypertext::{Builder, prelude::*};
 
 #[test]
 fn shopping_list_maud() {
@@ -566,15 +566,21 @@ fn dynamic_svg_chart() {
     }
     .render();
 
-    assert!(result
-        .as_inner()
-        .starts_with(r#"<svg viewBox="0 0 100 100" width="200" height="200">"#));
-    assert!(result
-        .as_inner()
-        .contains(r#"<circle cx="10" cy="90" r="3" fill="blue"/>"#));
-    assert!(result
-        .as_inner()
-        .contains(r#"<line x1="10" y1="90" x2="30" y2="50" stroke="blue" stroke_width="1"/>"#));
+    assert!(
+        result
+            .as_inner()
+            .starts_with(r#"<svg viewBox="0 0 100 100" width="200" height="200">"#)
+    );
+    assert!(
+        result
+            .as_inner()
+            .contains(r#"<circle cx="10" cy="90" r="3" fill="blue"/>"#)
+    );
+    assert!(
+        result
+            .as_inner()
+            .contains(r#"<line x1="10" y1="90" x2="30" y2="50" stroke="blue" stroke_width="1"/>"#)
+    );
     assert!(result.as_inner().ends_with("</svg>"));
 }
 

@@ -5,7 +5,7 @@ extern crate alloc;
 
 use alloc::{boxed::Box, rc::Rc, string::String, sync::Arc, vec};
 
-use hypertext::{prelude::*, Buffer, Lazy, Raw, Rendered};
+use hypertext::{Buffer, Lazy, Raw, Rendered, prelude::*};
 
 #[test]
 fn renderable_str() {
