@@ -10,6 +10,28 @@
 #[cfg(feature = "alloc")]
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::rsx_borrow as borrow;
+/// Generates HTML from an external file using RSX syntax, returning a
+/// [`Lazy`](crate::Lazy).
+///
+/// The file path is relative to `CARGO_MANIFEST_DIR` and must contain valid
+/// RSX syntax (same rules as [`rsx!`](crate::rsx!)).
+///
+/// Changes to the file will trigger recompilation automatically.
+///
+/// # Examples
+///
+/// ```ignore
+/// use hypertext::prelude::*;
+///
+/// let page = rsx::file!("templates/page.html").render();
+/// ```
+#[cfg(feature = "alloc")]
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_macros::rsx_file as file;
+/// Like [`rsx::file!`](file), but borrows the environment.
+#[cfg(feature = "alloc")]
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_macros::rsx_file_borrow as file_borrow;
 /// Generates static HTML using [`rsx!`](crate::rsx!) syntax.
 ///
 /// This will return a [`Raw<&'static str>`](crate::Raw), which can be used

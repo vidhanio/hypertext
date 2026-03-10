@@ -4,7 +4,7 @@
 
 use std::fmt::{self, Display, Formatter};
 
-use hypertext::{Buffer, Builder, Raw, prelude::*};
+use hypertext::{Buffer, Builder, Raw, html_file, prelude::*, rsx_file, rsx_file_borrow};
 
 #[test]
 fn readme() {
@@ -753,4 +753,43 @@ fn toggles() {
         r#"<input id="value" type="checkbox" checked>"#
     );
     assert_eq!(rsx_result.as_inner(), r#"<input type="checkbox" checked>"#);
+}
+
+#[test]
+fn rsx_file_basic() {
+    let result = rsx_file!("tests/templates/hello.html").render();
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
+}
+
+#[test]
+fn rsx_file_borrow_basic() {
+    let name = "world".to_owned();
+    let result = rsx_file_borrow!("tests/templates/hello.html").render();
+    // `name` is still usable after the borrow
+    let _ = &name;
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
+}
+
+#[test]
+fn html_macro_is_rsx_alias() {
+    let rsx_result = rsx! {
+        <div id="test"><span>"hello"</span></div>
+    }
+    .render();
+
+    let html_result = html! {
+        <div id="test"><span>"hello"</span></div>
+    }
+    .render();
+
+    assert_eq!(rsx_result.as_inner(), html_result.as_inner());
+}
+
+#[test]
+fn html_file_basic() {
+    let result = html_file!("tests/templates/hello.html").render();
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
 }
