@@ -1,7 +1,7 @@
+//! Tests for component struct rendering.
 #![cfg(feature = "alloc")]
-#![expect(missing_docs)]
 
-use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, Renderable, prelude::*};
+use hypertext::{prelude::*, Buffer, Builder, DefaultBuilder, Lazy, Renderable};
 
 #[test]
 fn function_components() {

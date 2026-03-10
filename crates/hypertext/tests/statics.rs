@@ -1,6 +1,6 @@
-#![expect(missing_docs)]
+//! Tests for static and const HTML rendering.
 
-use hypertext::{Raw, Rendered, prelude::*};
+use hypertext::{prelude::*, Raw, Rendered};
 
 #[test]
 fn maud_simple_static() {

@@ -1,5 +1,5 @@
+//! Tests for MathML element and attribute rendering.
 #![cfg(feature = "alloc")]
-#![expect(missing_docs)]
 
 use hypertext::prelude::*;
 

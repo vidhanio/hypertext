@@ -1,5 +1,5 @@
+//! Tests for the `#[renderable]` attribute macro.
 #![cfg(feature = "alloc")]
-#![expect(missing_docs)]
 
 use hypertext::prelude::*;
 

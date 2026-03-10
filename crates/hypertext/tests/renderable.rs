@@ -1,9 +1,9 @@
+//! Tests for `Renderable` implementations on standard types.
 #![cfg(feature = "alloc")]
-#![expect(missing_docs)]
 
 use std::{borrow::Cow, rc::Rc, sync::Arc};
 
-use hypertext::{Buffer, Raw, Rendered, prelude::*};
+use hypertext::{prelude::*, Buffer, Raw, Rendered};
 
 #[test]
 fn str_renderable() {

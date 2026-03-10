@@ -1,7 +1,7 @@
-//! Tests for the `hypertext` crate.
+//! Tests for component builder patterns.
 #![cfg(feature = "alloc")]
 
-use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, Renderable, prelude::*, renderable};
+use hypertext::{prelude::*, renderable, Buffer, Builder, DefaultBuilder, Lazy, Renderable};
 
 #[test]
 #[expect(clippy::too_many_lines)]

@@ -1,5 +1,5 @@
+//! Tests for borrow-mode rendering macros.
 #![cfg(feature = "alloc")]
-#![expect(missing_docs)]
 
 use hypertext::prelude::*;
 

@@ -1,5 +1,5 @@
+//! Tests for HTML element and attribute rendering.
 #![cfg(feature = "alloc")]
-#![expect(missing_docs)]
 
 use std::fmt::{self, Display, Formatter};
 
