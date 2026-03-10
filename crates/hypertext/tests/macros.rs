@@ -1,3 +1,4 @@
+//! Macro variant and syntax tests.
 #![cfg(feature = "alloc")]
 
 use hypertext::prelude::*;

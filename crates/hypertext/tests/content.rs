@@ -1,3 +1,4 @@
+//! Content rendering tests.
 #![cfg(feature = "alloc")]
 
 use hypertext::prelude::*;

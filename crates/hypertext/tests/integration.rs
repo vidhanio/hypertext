@@ -1,3 +1,4 @@
+//! Integration tests.
 #![cfg(feature = "alloc")]
 
 use hypertext::{prelude::*, Builder};

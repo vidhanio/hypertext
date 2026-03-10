@@ -1,3 +1,4 @@
+//! Renderable trait and buffer type tests.
 #![cfg(feature = "alloc")]
 
 extern crate alloc;

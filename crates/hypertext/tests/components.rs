@@ -1,3 +1,4 @@
+//! Component and derive macro tests.
 #![cfg(feature = "alloc")]
 
 use hypertext::{prelude::*, Builder};

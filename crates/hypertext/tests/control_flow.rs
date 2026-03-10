@@ -1,3 +1,4 @@
+//! Control flow tests.
 #![cfg(feature = "alloc")]
 
 use hypertext::prelude::*;
