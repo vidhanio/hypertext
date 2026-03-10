@@ -78,6 +78,24 @@ pub use hypertext_macros::DefaultBuilder;
 #[cfg(feature = "alloc")]
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::attribute;
+/// Alias for [`rsx!`] that avoids the Dioxus CLI `rsx!` name collision.
+///
+/// See [`mod@html`] module for details.
+#[cfg(feature = "alloc")]
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_macros::html;
+/// Like [`html!`], but borrows the environment.
+#[cfg(feature = "alloc")]
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_macros::html_borrow;
+/// Alias for [`rsx_file!`] that avoids the Dioxus CLI `rsx!` name collision.
+#[cfg(feature = "alloc")]
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_macros::html_file;
+/// Like [`html_file!`], but borrows the environment.
+#[cfg(feature = "alloc")]
+#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
+pub use hypertext_macros::html_file_borrow;
 /// Generates HTML using Maud syntax, returning a [`Lazy`](crate::Lazy).
 ///
 /// Note that this is not a complete 1:1 port of [Maud](https://maud.lambda.xyz)'s
@@ -309,24 +327,6 @@ pub use hypertext_macros::rsx_file;
 #[cfg(feature = "alloc")]
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::rsx_file_borrow;
-/// Alias for [`rsx!`] that avoids the Dioxus CLI `rsx!` name collision.
-///
-/// See [`html`] module for details.
-#[cfg(feature = "alloc")]
-#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
-pub use hypertext_macros::html;
-/// Like [`html!`], but borrows the environment.
-#[cfg(feature = "alloc")]
-#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
-pub use hypertext_macros::html_borrow;
-/// Alias for [`rsx_file!`] that avoids the Dioxus CLI `rsx!` name collision.
-#[cfg(feature = "alloc")]
-#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
-pub use hypertext_macros::html_file;
-/// Like [`html_file!`], but borrows the environment.
-#[cfg(feature = "alloc")]
-#[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
-pub use hypertext_macros::html_file_borrow;
 
 #[cfg(feature = "alloc")]
 pub use self::renderable::*;

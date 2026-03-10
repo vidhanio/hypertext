@@ -759,10 +759,7 @@ fn toggles() {
 fn rsx_file_basic() {
     let result = rsx_file!("tests/templates/hello.html").render();
 
-    assert_eq!(
-        result.as_inner(),
-        "<div><h1>Hello, world!</h1></div>"
-    );
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
 }
 
 #[test]
@@ -772,10 +769,7 @@ fn rsx_file_borrow_basic() {
     // `name` is still usable after the borrow
     let _ = &name;
 
-    assert_eq!(
-        result.as_inner(),
-        "<div><h1>Hello, world!</h1></div>"
-    );
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
 }
 
 #[test]
@@ -797,8 +791,5 @@ fn html_macro_is_rsx_alias() {
 fn html_file_basic() {
     let result = html_file!("tests/templates/hello.html").render();
 
-    assert_eq!(
-        result.as_inner(),
-        "<div><h1>Hello, world!</h1></div>"
-    );
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
 }
