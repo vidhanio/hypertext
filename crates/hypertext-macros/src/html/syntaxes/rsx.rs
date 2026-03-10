@@ -1,16 +1,16 @@
 use std::marker::PhantomData;
 
 use syn::{
-    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
     ext::IdentExt,
-    parse::{Parse, ParseStream, discouraged::Speculative},
+    parse::{discouraged::Speculative, Parse, ParseStream},
     parse_quote,
     token::Paren,
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 use crate::html::{
-    Component, Doctype, Element, ElementBody, Group, Literal, Many, Node, Syntax, UnquotedName,
-    XmlDecl, kw,
+    kw, Component, Doctype, Element, ElementBody, Group, Literal, Many, Node, Syntax, UnquotedName,
+    XmlDecl,
 };
 
 pub struct Rsx;
@@ -244,11 +244,11 @@ impl Parse for Doctype<Rsx> {
 
 impl Parse for XmlDecl<Rsx> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let _lt: Token![<] = input.parse()?;
-        let _q1: Token![?] = input.parse()?;
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![?]>()?;
         let xml_token: kw::xml = input.parse()?;
-        let _q2: Token![?] = input.parse()?;
-        let _gt: Token![>] = input.parse()?;
+        input.parse::<Token![?]>()?;
+        input.parse::<Token![>]>()?;
         Ok(Self {
             xml_token,
             phantom: PhantomData,

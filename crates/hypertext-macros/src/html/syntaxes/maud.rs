@@ -2,15 +2,16 @@ use std::marker::PhantomData;
 
 use proc_macro2::Span;
 use syn::{
-    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token, braced,
+    braced,
     ext::IdentExt,
     parse::{Parse, ParseStream},
     token::{Brace, Paren},
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 use crate::html::{
-    Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName,
-    XmlDecl, kw,
+    kw, Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName,
+    XmlDecl,
 };
 
 pub struct Maud;
@@ -77,7 +78,7 @@ impl Parse for Doctype<Maud> {
 
 impl Parse for XmlDecl<Maud> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let _bang: Token![!] = input.parse()?;
+        input.parse::<Token![!]>()?;
         let xml_token: kw::xml = input.parse()?;
         Ok(Self {
             xml_token,
