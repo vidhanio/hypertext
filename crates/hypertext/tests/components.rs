@@ -1,714 +1,704 @@
-//! Tests for component struct rendering.
 #![cfg(feature = "alloc")]
 
-use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, Renderable, prelude::*};
+use hypertext::{prelude::*, Builder};
+
+#[derive(Builder, Renderable)]
+#[maud(span { "Hello, " (self.name) "!" })]
+struct MaudGreeting {
+    name: String,
+}
 
 #[test]
-fn function_components() {
-    fn component() -> impl Renderable {
-        maud! { span { "Hello, world!" } }
-    }
+fn derive_renderable_maud_basic() {
+    let greeting = MaudGreeting {
+        name: "Alice".into(),
+    };
 
-    fn wrapping_component_maud(c: impl Renderable) -> impl Renderable {
-        maud! { div { (c) } }
-    }
+    let result = maud! { div { (greeting) } }.render();
+    assert_eq!(result.as_inner(), "<div><span>Hello, Alice!</span></div>");
+}
 
-    fn wrapping_component_rsx(c: impl Renderable) -> impl Renderable {
-        rsx! { <div>(c)</div> }
-    }
-
-    let result = maud! {
+#[test]
+fn derive_renderable_maud_invoked_as_component() {
+    let maud_result = maud! {
         div {
-            (component())
-            (wrapping_component_maud(component()))
-            (wrapping_component_rsx(component()))
+            MaudGreeting name=("Bob".into());
+        }
+    }
+    .render();
+
+    assert_eq!(
+        maud_result.as_inner(),
+        "<div><span>Hello, Bob!</span></div>"
+    );
+}
+
+#[derive(Builder, Renderable)]
+#[rsx(<span>"Hello, " (self.name) "!"</span>)]
+struct RsxGreeting {
+    name: String,
+}
+
+#[test]
+fn derive_renderable_rsx_basic() {
+    let greeting = RsxGreeting {
+        name: "Carol".into(),
+    };
+
+    let result = rsx! { <div>(greeting)</div> }.render();
+    assert_eq!(result.as_inner(), "<div><span>Hello, Carol!</span></div>");
+}
+
+#[test]
+fn derive_renderable_rsx_invoked_as_component() {
+    let rsx_result = rsx! {
+        <div>
+            <RsxGreeting name=("Dave".into())>
+        </div>
+    }
+    .render();
+
+    assert_eq!(
+        rsx_result.as_inner(),
+        "<div><span>Hello, Dave!</span></div>"
+    );
+}
+
+#[derive(Builder, Renderable)]
+#[attribute((self.x) "," (self.y))]
+struct Coordinates {
+    x: i32,
+    y: i32,
+}
+
+#[test]
+fn derive_renderable_attribute() {
+    let coords = Coordinates { x: 10, y: 20 };
+
+    let maud_result = maud! { div title=(coords) { "Location" } }.render();
+    let rsx_result = rsx! { <div title=(Coordinates { x: 10, y: 20 })>"Location"</div> }.render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(result.as_inner(), r#"<div title="10,20">Location</div>"#);
+    }
+}
+
+#[derive(Builder, Renderable)]
+#[maud(span .badge { (self.label) })]
+#[attribute((self.label))]
+struct Badge {
+    label: String,
+}
+
+#[test]
+fn derive_renderable_node_and_attribute() {
+    let badge = Badge {
+        label: "new".into(),
+    };
+    let node_result = maud! { div { (badge) } }.render();
+    assert_eq!(
+        node_result.as_inner(),
+        r#"<div><span class="badge">new</span></div>"#
+    );
+
+    let attr_badge = Badge {
+        label: "hot".into(),
+    };
+    let attr_result = maud! { div title=(attr_badge) {} }.render();
+    assert_eq!(attr_result.as_inner(), r#"<div title="hot"></div>"#);
+}
+
+#[derive(Builder, Renderable)]
+#[maud(
+    div .card {
+        h2 { (self.title) }
+        p { (self.body) }
+    }
+)]
+struct Card {
+    title: String,
+    body: String,
+}
+
+#[test]
+fn card_component_maud_invocation() {
+    let result = maud! {
+        main {
+            Card title=("My Title".into()) body=("My Body".into());
         }
     }
     .render();
 
     assert_eq!(
         result.as_inner(),
-        r"<div><span>Hello, world!</span><div><span>Hello, world!</span></div><div><span>Hello, world!</span></div></div>"
+        r#"<main><div class="card"><h2>My Title</h2><p>My Body</p></div></main>"#,
     );
 }
 
+#[derive(Builder, Renderable)]
+#[rsx(
+    <div class="card">
+        <h2>(self.title)</h2>
+        <p>(self.body)</p>
+    </div>
+)]
+struct RsxCard {
+    title: String,
+    body: String,
+}
+
 #[test]
-fn struct_component_with_builder() {
-    #[derive(Builder)]
-    struct Repeater<R> {
-        count: usize,
-        children: R,
-    }
-
-    impl<R: Renderable> Renderable for Repeater<R> {
-        fn render_to(&self, buffer: &mut Buffer) {
-            buffer.push(maud! {
-                @for _ in 0..self.count {
-                    (self.children)
-                }
-            });
-        }
-    }
-
-    let maud_result = maud! {
-        div {
-            Repeater count=3 {
-                span { "Hello, world!" }
-            }
-        }
+fn card_component_rsx_invocation() {
+    let result = rsx! {
+        <main>
+            <RsxCard title=("My Title".into()) body=("My Body".into())>
+        </main>
     }
     .render();
 
-    let rsx_result = rsx! {
-        <div>
-            <Repeater count=3>
-                <span>"Hello, world!"</span>
-            </Repeater>
-        </div>
-    }
-    .render();
-
-    for result in [maud_result, rsx_result] {
-        assert_eq!(
-            result.as_inner(),
-            "<div><span>Hello, world!</span><span>Hello, world!</span><span>Hello, world!</span></div>"
-        );
-    }
+    assert_eq!(
+        result.as_inner(),
+        r#"<main><div class="card"><h2>My Title</h2><p>My Body</p></div></main>"#,
+    );
 }
 
-#[test]
-fn component_without_children() {
-    #[derive(Builder)]
-    struct Greeting {
-        name: String,
-    }
-
-    impl Renderable for Greeting {
-        fn render_to(&self, buffer: &mut Buffer) {
-            buffer.push(maud! {
-                span { "Hello, " (self.name) "!" }
-            });
+#[derive(Builder, Renderable)]
+#[maud(
+    div {
+        h1 { (self.title) }
+        @if let Some(subtitle) = &self.subtitle {
+            h2 { (subtitle) }
         }
     }
-
-    let maud_result = maud! {
-        Greeting name=("World".to_owned());
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <Greeting name=("World".to_owned()) />
-    }
-    .render();
-
-    for result in [maud_result, rsx_result] {
-        assert_eq!(result.as_inner(), "<span>Hello, World!</span>");
-    }
+)]
+struct Header {
+    title: String,
+    subtitle: Option<String>,
 }
 
 #[test]
-fn renderable_attr_basic() {
-    #[renderable(HelloWorld)]
-    fn my_component() -> impl Renderable {
-        maud! { span { "Hi!" } }
-    }
-
-    assert_eq!(
-        maud! { HelloWorld; }.render().as_inner(),
-        "<span>Hi!</span>"
-    );
-    assert_eq!(
-        rsx! { <HelloWorld /> }.render().as_inner(),
-        "<span>Hi!</span>"
-    );
-}
-
-#[test]
-fn renderable_attr_custom_visibility() {
-    mod component_module {
-        use hypertext::prelude::*;
-
-        #[renderable(pub)]
-        fn private_component() -> impl Renderable {
-            maud! { span { "secret..." } }
-        }
-    }
-
-    use component_module::PrivateComponent;
-
-    assert_eq!(
-        maud! { PrivateComponent; }.render().as_inner(),
-        "<span>secret...</span>"
-    );
-}
-
-#[test]
-fn renderable_attr_combined() {
-    #[renderable(HelloWorld)]
-    fn my_component() -> impl Renderable {
-        maud! { span { "Hi!" } }
-    }
-
-    mod component_module {
-        use hypertext::prelude::*;
-
-        #[renderable(pub)]
-        fn private_component() -> impl Renderable {
-            maud! { span { "secret..." } }
-        }
-    }
-
-    use component_module::PrivateComponent;
-
-    assert_eq!(
-        maud! { HelloWorld; PrivateComponent; }.render().as_inner(),
-        "<span>Hi!</span><span>secret...</span>"
-    );
-}
-
-#[test]
-fn renderable_attr_with_params() {
-    #[renderable]
-    fn greeting<'a>(name: &'a str) -> impl Renderable + 'a {
-        maud! { span { "Hello, " (name) "!" } }
-    }
-
+fn component_optional_field_absent() {
     let result = maud! {
-        Greeting name="World";
+        Header title=("Hello".into());
     }
     .render();
 
-    assert_eq!(result.as_inner(), "<span>Hello, World!</span>");
+    assert_eq!(result.as_inner(), "<div><h1>Hello</h1></div>");
 }
 
 #[test]
-fn derive_renderable_with_maud() {
-    #[derive(Builder, Renderable)]
-    #[maud(
+fn component_optional_field_present() {
+    let result = maud! {
+        Header title=("Hello".into()) subtitle=("World".into());
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello</h1><h2>World</h2></div>");
+}
+
+#[test]
+fn component_optional_field_both_variants() {
+    let result = maud! {
+        Header title=("Hello".into());
+        Header title=("Hello".into()) subtitle=("World".into());
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<div><h1>Hello</h1></div><div><h1>Hello</h1><h2>World</h2></div>"
+    );
+}
+
+#[renderable]
+fn nav_bar<'a>(title: &'a str, subtitle: &String, add_smiley: bool) -> impl Renderable {
+    maud! {
+        nav {
+            h1 { (title) }
+            h2 { (subtitle) }
+            @if add_smiley {
+                span { ":)" }
+            }
+        }
+    }
+}
+
+#[test]
+fn renderable_function_maud_invocation() {
+    let result = maud! {
         div {
-            h1 { (self.title) }
-            p { (self.body) }
-        }
-    )]
-    struct CardMaud {
-        title: String,
-        body: String,
-    }
-
-    let maud_result = maud! {
-        main {
-            CardMaud title=("My Title".to_owned()) body=("My Body".to_owned());
+            NavBar title="My Nav Bar" subtitle=("My Subtitle".to_owned()) add_smiley=true;
         }
     }
     .render();
 
-    let rsx_result = rsx! {
-        <main>
-            <CardMaud title=("My Title".to_owned()) body=("My Body".to_owned())>
-        </main>
-    }
-    .render();
-
-    let expected = "<main><div><h1>My Title</h1><p>My Body</p></div></main>";
-    assert_eq!(maud_result.as_inner(), expected);
-    assert_eq!(rsx_result.as_inner(), expected);
+    assert_eq!(
+        result.as_inner(),
+        "<div><nav><h1>My Nav Bar</h1><h2>My Subtitle</h2><span>:)</span></nav></div>"
+    );
 }
 
 #[test]
-fn derive_renderable_with_rsx() {
-    #[derive(Builder, Renderable)]
-    #[rsx(
+fn renderable_function_rsx_invocation() {
+    let result = rsx! {
         <div>
-            <h1>(self.title)</h1>
-            <p>(self.body)</p>
+            <NavBar title="My Nav Bar" subtitle=("My Subtitle".to_owned()) add_smiley=true>
         </div>
-    )]
-    struct CardRsx {
-        title: String,
-        body: String,
     }
+    .render();
 
-    let maud_result = maud! {
-        main {
-            CardRsx title=("My Title".to_owned()) body=("My Body".to_owned());
+    assert_eq!(
+        result.as_inner(),
+        "<div><nav><h1>My Nav Bar</h1><h2>My Subtitle</h2><span>:)</span></nav></div>"
+    );
+}
+
+#[test]
+fn renderable_function_smiley_off() {
+    let result = maud! {
+        NavBar title="Hello" subtitle=("World".to_owned()) add_smiley=false;
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), "<nav><h1>Hello</h1><h2>World</h2></nav>");
+}
+
+#[renderable(MyCustomBanner)]
+fn _my_banner_internal<'a>(text: &'a str) -> impl Renderable {
+    maud! {
+        div .banner { (text) }
+    }
+}
+
+#[test]
+fn renderable_custom_name() {
+    let result = maud! {
+        MyCustomBanner text="Welcome!";
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div class="banner">Welcome!</div>"#);
+}
+
+#[renderable]
+fn static_footer() -> impl Renderable {
+    maud! {
+        footer {
+            p { "Copyright 2025" }
+        }
+    }
+}
+
+#[test]
+fn renderable_no_params_maud() {
+    let result = maud! {
+        StaticFooter;
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), "<footer><p>Copyright 2025</p></footer>");
+}
+
+#[test]
+fn renderable_no_params_rsx() {
+    let result = rsx! {
+        <StaticFooter>
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), "<footer><p>Copyright 2025</p></footer>");
+}
+
+#[renderable]
+fn simple_wrapper<R: Renderable>(children: &R) -> impl Renderable {
+    maud! {
+        div .wrapper {
+            (children)
+        }
+    }
+}
+
+#[test]
+fn component_with_children_maud() {
+    let result = maud! {
+        SimpleWrapper {
+            p { "Child content" }
+            span { "More children" }
         }
     }
     .render();
 
-    let rsx_result = rsx! {
-        <main>
-            <CardRsx title=("My Title".to_owned()) body=("My Body".to_owned())>
-        </main>
-    }
-    .render();
-
-    let expected = "<main><div><h1>My Title</h1><p>My Body</p></div></main>";
-    assert_eq!(maud_result.as_inner(), expected);
-    assert_eq!(rsx_result.as_inner(), expected);
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="wrapper"><p>Child content</p><span>More children</span></div>"#
+    );
 }
 
 #[test]
-fn derive_renderable_with_optional_field() {
-    #[derive(Builder, Renderable)]
-    #[maud(
+fn component_with_children_rsx() {
+    let result = rsx! {
+        <SimpleWrapper>
+            <p>Child content</p>
+            <span>More children</span>
+        </SimpleWrapper>
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="wrapper"><p>Child content</p><span>More children</span></div>"#
+    );
+}
+
+#[renderable]
+fn panel<R: Renderable>(heading: &String, children: &R) -> impl Renderable {
+    maud! {
+        section .panel {
+            h3 { (heading) }
+            div .panel-body {
+                (children)
+            }
+        }
+    }
+}
+
+#[test]
+fn component_children_and_props_maud() {
+    let result = maud! {
+        Panel heading=("Settings".into()) {
+            p { "Configure your preferences." }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<section class="panel"><h3>Settings</h3><div class="panel-body"><p>Configure your preferences.</p></div></section>"#,
+    );
+}
+
+#[test]
+fn component_children_and_props_rsx() {
+    let result = rsx! {
+        <Panel heading=("Settings".into())>
+            <p>"Configure your preferences."</p>
+        </Panel>
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<section class="panel"><h3>Settings</h3><div class="panel-body"><p>Configure your preferences.</p></div></section>"#,
+    );
+}
+
+#[renderable]
+fn layout<'a, R: Renderable>(title: &'a str, children: &R) -> impl Renderable {
+    maud! {
+        html {
+            head { title { (title) } }
+            body { (children) }
+        }
+    }
+}
+
+#[test]
+fn renderable_function_with_children_maud() {
+    let result = maud! {
+        Layout title="My Page" {
+            h1 { "Welcome" }
+            p { "Content" }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<html><head><title>My Page</title></head><body><h1>Welcome</h1><p>Content</p></body></html>"
+    );
+}
+
+#[test]
+fn renderable_function_with_children_rsx() {
+    let result = rsx! {
+        <Layout title="My Page">
+            <h1>Welcome</h1>
+            <p>Content</p>
+        </Layout>
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<html><head><title>My Page</title></head><body><h1>Welcome</h1><p>Content</p></body></html>"
+    );
+}
+
+#[renderable(builder = hypertext::DefaultBuilder)]
+#[derive(Default)]
+fn default_widget<'a>(label: &'a str, count: u32) -> impl Renderable {
+    maud! {
         div {
-            h1 { (self.title) }
-            @if let Some(subtitle) = &self.subtitle {
-                h2 { (subtitle) }
-            }
+            span { (label) }
+            span { (count) }
         }
-    )]
-    struct Header {
-        title: String,
-        subtitle: Option<String>,
     }
-
-    let maud_result = maud! {
-        Header title=("Hello".to_owned());
-        Header title=("Hello".to_owned()) subtitle=("World".to_owned());
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <Header title=("Hello".to_owned())>
-        <Header title=("Hello".to_owned()) subtitle=("World".to_owned())>
-    }
-    .render();
-
-    let expected = "<div><h1>Hello</h1></div><div><h1>Hello</h1><h2>World</h2></div>";
-    assert_eq!(maud_result.as_inner(), expected);
-    assert_eq!(rsx_result.as_inner(), expected);
 }
 
 #[test]
-#[expect(clippy::too_many_lines)]
-fn default_builder() {
-    #[renderable]
-    fn component_a<'a>(
-        #[builder(default)] id: &'a str,
-        #[builder(default = 1)] tabindex: u32,
-        #[builder(default)] children: Lazy<fn(&mut Buffer)>,
-    ) -> impl Renderable {
-        rsx! {
-            <div id=(id) tabindex=(tabindex)>
-                (children)
-            </div>
-        }
-    }
-
-    #[renderable(builder = Builder)]
-    fn component_b<'a>(
-        #[builder(default)] id: &'a str,
-        #[builder(default = 1)] tabindex: u32,
-        #[builder(default)] children: Lazy<fn(&mut Buffer)>,
-    ) -> impl Renderable {
-        rsx! {
-            <div id=(id) tabindex=(tabindex)>
-                (children)
-            </div>
-        }
-    }
-
-    #[renderable(builder = DefaultBuilder)]
-    fn component_c<'a>(
-        id: &'a str,
-        tabindex: u32,
-        children: Lazy<fn(&mut Buffer)>,
-    ) -> impl Renderable {
-        rsx! {
-            <div id=(id) tabindex=(tabindex)>
-                (children)
-            </div>
-        }
-    }
-
-    impl Default for ComponentC<'_> {
-        fn default() -> Self {
-            Self {
-                id: Default::default(),
-                tabindex: 1,
-                children: Lazy::default(),
-            }
-        }
-    }
-
-    #[renderable(builder = DefaultBuilder)]
-    #[derive(Default)]
-    fn component_d<'a>(
-        id: &'a str,
-        tabindex: u32,
-        children: Lazy<fn(&mut Buffer)>,
-    ) -> impl Renderable {
-        rsx! {
-            <div id=(id) tabindex=(tabindex)>
-                (children)
-            </div>
-        }
-    }
-
-    let maud_result = maud! {
-        ComponentA;
-        ComponentB;
-        ComponentC;
-        ComponentD;
+fn default_builder_component_maud() {
+    let result = maud! {
+        DefaultWidget label="Items" count=42;
     }
     .render();
 
-    let rsx_result = rsx! {
-        <ComponentA />
-        <ComponentB />
-        <ComponentC />
-        <ComponentD />
-    }
-    .render();
-
-    let component_html = r#"<div id="" tabindex="1"></div>"#;
-    let expected_result = format!(
-        r#"{}<div id="" tabindex="0"></div>"#,
-        component_html.repeat(3)
+    assert_eq!(
+        result.as_inner(),
+        "<div><span>Items</span><span>42</span></div>"
     );
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
-
-    let maud_result = maud! {
-        ComponentA id="test";
-        ComponentB id="test";
-        ComponentC id="test";
-        ComponentD id="test";
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <ComponentA id="test" />
-        <ComponentB id="test" />
-        <ComponentC id="test" />
-        <ComponentD id="test" />
-    }
-    .render();
-
-    let component_html = r#"<div id="test" tabindex="1"></div>"#;
-    let expected_result = format!(
-        r#"{}<div id="test" tabindex="0"></div>"#,
-        component_html.repeat(3)
-    );
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
-
-    let maud_result = maud! {
-        ComponentA {
-            h1 { "hello" }
-        }
-        ComponentB {
-            h1 { "hello" }
-        }
-        ComponentC {
-            h1 { "hello" }
-        }
-        ComponentD {
-            h1 { "hello" }
-        }
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <ComponentA>
-            <h1>hello</h1>
-        </ComponentA>
-        <ComponentB>
-            <h1>hello</h1>
-        </ComponentB>
-        <ComponentC>
-            <h1>hello</h1>
-        </ComponentC>
-        <ComponentD>
-            <h1>hello</h1>
-        </ComponentD>
-    }
-    .render();
-
-    let component_html = r#"<div id="" tabindex="1"><h1>hello</h1></div>"#;
-    let expected_result = format!(
-        r#"{}<div id="" tabindex="0"><h1>hello</h1></div>"#,
-        component_html.repeat(3)
-    );
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
-
-    let maud_result = maud! {
-        ComponentA tabindex=2 id="component" {
-            h1 { "hello" }
-        }
-        ComponentB tabindex=2 id="component" {
-            h1 { "hello" }
-        }
-        ComponentC tabindex=2 id="component" {
-            h1 { "hello" }
-        }
-        ComponentD tabindex=2 id="component" {
-            h1 { "hello" }
-        }
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <ComponentA tabindex=2 id="component">
-            <h1>hello</h1>
-        </ComponentA>
-        <ComponentB tabindex=2 id="component">
-            <h1>hello</h1>
-        </ComponentB>
-        <ComponentC tabindex=2 id="component">
-            <h1>hello</h1>
-        </ComponentC>
-        <ComponentD tabindex=2 id="component">
-            <h1>hello</h1>
-        </ComponentD>
-    }
-    .render();
-
-    let component_html = r#"<div id="component" tabindex="2"><h1>hello</h1></div>"#;
-    let expected_result = component_html.repeat(4);
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
-
-    let maud_result = maud! {
-        ComponentA {
-            ComponentA id="nested" {
-                h1 { "hello" }
-            }
-        }
-        ComponentB {
-            ComponentB id="nested" {
-                h1 { "hello" }
-            }
-        }
-        ComponentC {
-            ComponentC id="nested" {
-                h1 { "hello" }
-            }
-        }
-        ComponentD {
-            ComponentD id="nested" {
-                h1 { "hello" }
-            }
-        }
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <ComponentA>
-            <ComponentA id="nested">
-                <h1>"hello"</h1>
-            </ComponentA>
-        </ComponentA>
-        <ComponentB>
-            <ComponentB id="nested">
-                <h1>"hello"</h1>
-            </ComponentB>
-        </ComponentB>
-        <ComponentC>
-            <ComponentC id="nested">
-                <h1>"hello"</h1>
-            </ComponentC>
-        </ComponentC>
-        <ComponentD>
-            <ComponentD id="nested">
-                <h1>"hello"</h1>
-            </ComponentD>
-        </ComponentD>
-    }
-    .render();
-
-    let component_html =
-        r#"<div id="" tabindex="1"><div id="nested" tabindex="1"><h1>hello</h1></div></div>"#;
-    let expected_result = format!(
-        r#"{}<div id="" tabindex="0"><div id="nested" tabindex="0"><h1>hello</h1></div></div>"#,
-        component_html.repeat(3)
-    );
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
 }
 
 #[test]
-#[expect(clippy::too_many_lines)]
-fn custom_builder() {
-    #[renderable(builder = false)]
-    fn component_a<'a>(
-        id: &'a str,
-        tabindex: u32,
-        children: Lazy<fn(&mut Buffer)>,
-    ) -> impl Renderable {
-        rsx! {
-            <div id=(id) tabindex=(tabindex)>
-                (children)
-            </div>
-        }
-    }
-
-    impl<'a> ComponentA<'a> {
-        fn builder() -> Self {
-            Self {
-                id: "custom",
-                tabindex: 2,
-                children: Lazy::default(),
-            }
-        }
-
-        fn id(self, id: &'a str) -> Self {
-            Self { id, ..self }
-        }
-
-        fn tabindex(self, tabindex: u32) -> Self {
-            Self { tabindex, ..self }
-        }
-
-        fn children(self, children: Lazy<fn(&mut Buffer)>) -> Self {
-            Self { children, ..self }
-        }
-
-        fn build(self) -> Self {
-            self
-        }
-    }
-
-    #[derive(Builder)]
-    struct ComponentB<'a> {
-        #[builder(default = "custom")]
-        id: &'a str,
-
-        #[builder(default = 2)]
-        tabindex: u32,
-
-        #[builder(default)]
-        children: Lazy<fn(&mut Buffer)>,
-    }
-
-    impl Renderable for ComponentB<'_> {
-        fn render_to(&self, buf: &mut Buffer) {
-            rsx! {
-                <div id=(self.id) tabindex=(self.tabindex)>
-                    (self.children)
-                </div>
-            }
-            .render_to(buf);
-        }
-    }
-
-    let maud_result = maud! {
-        ComponentA;
-        ComponentB;
+fn default_builder_component_rsx() {
+    let result = rsx! {
+        <DefaultWidget label="Items" count=42>
     }
     .render();
 
-    let rsx_result = rsx! {
-        <ComponentA />
-        <ComponentB />
+    assert_eq!(
+        result.as_inner(),
+        "<div><span>Items</span><span>42</span></div>"
+    );
+}
+
+#[test]
+fn default_builder_component_defaults() {
+    let result = maud! {
+        DefaultWidget;
     }
     .render();
 
-    let component_html = r#"<div id="custom" tabindex="2"></div>"#;
-    let expected_result = component_html.repeat(2);
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
+    assert_eq!(result.as_inner(), "<div><span></span><span>0</span></div>");
+}
 
-    let maud_result = maud! {
-        ComponentA id="test";
-        ComponentB id="test";
+#[renderable(builder = false)]
+fn manual_widget<'a>(label: &'a str) -> impl Renderable {
+    maud! { span { (label) } }
+}
+
+impl<'a> ManualWidget<'a> {
+    fn builder() -> Self {
+        Self { label: "default" }
+    }
+
+    fn build(self) -> Self {
+        self
+    }
+
+    fn label(mut self, label: &'a str) -> Self {
+        self.label = label;
+        self
+    }
+}
+
+#[test]
+fn builder_false_with_manual_builder() {
+    let result = maud! {
+        ManualWidget label="custom";
     }
     .render();
 
-    let rsx_result = rsx! {
-        <ComponentA id="test" />
-        <ComponentB id="test" />
+    assert_eq!(result.as_inner(), "<span>custom</span>");
+}
+
+#[test]
+fn builder_false_with_manual_default() {
+    let result = maud! {
+        ManualWidget;
     }
     .render();
 
-    let component_html = r#"<div id="test" tabindex="2"></div>"#;
-    let expected_result = component_html.repeat(2);
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
+    assert_eq!(result.as_inner(), "<span>default</span>");
+}
 
-    let maud_result = maud! {
-        ComponentA {
-            h1 { "hello" }
+#[derive(Builder, Renderable)]
+#[maud(
+    li .item { (self.text) }
+)]
+struct ListItem {
+    text: String,
+}
+
+#[renderable]
+fn list<R: Renderable>(children: &R) -> impl Renderable {
+    maud! {
+        ul .list {
+            (children)
         }
-        ComponentB {
-            h1 { "hello" }
+    }
+}
+
+#[test]
+fn nested_components_maud() {
+    let result = maud! {
+        List {
+            ListItem text=("First".into());
+            ListItem text=("Second".into());
+            ListItem text=("Third".into());
         }
     }
     .render();
 
-    let rsx_result = rsx! {
-        <ComponentA>
-            <h1>hello</h1>
-        </ComponentA>
-        <ComponentB>
-            <h1>hello</h1>
-        </ComponentB>
+    assert_eq!(
+        result.as_inner(),
+        r#"<ul class="list"><li class="item">First</li><li class="item">Second</li><li class="item">Third</li></ul>"#
+    );
+}
+
+#[test]
+fn nested_components_rsx() {
+    let result = rsx! {
+        <List>
+            <ListItem text=("First".into())>
+            <ListItem text=("Second".into())>
+            <ListItem text=("Third".into())>
+        </List>
     }
     .render();
 
-    let component_html = r#"<div id="custom" tabindex="2"><h1>hello</h1></div>"#;
-    let expected_result = component_html.repeat(2);
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
+    assert_eq!(
+        result.as_inner(),
+        r#"<ul class="list"><li class="item">First</li><li class="item">Second</li><li class="item">Third</li></ul>"#
+    );
+}
 
-    let maud_result = maud! {
-        ComponentA tabindex=1 id="component" {
-            h1 { "hello" }
+#[derive(Builder, Renderable)]
+#[maud(
+    div .alert {
+        @if self.dismissible {
+            button .close { "x" }
         }
-        ComponentB tabindex=1 id="component" {
-            h1 { "hello" }
+        p { (self.message) }
+    }
+)]
+struct Alert {
+    message: String,
+    dismissible: bool,
+}
+
+#[test]
+fn component_with_conditional_rendering() {
+    let dismissible = maud! {
+        Alert message=("Warning!".into()) dismissible=true;
+    }
+    .render();
+
+    assert_eq!(
+        dismissible.as_inner(),
+        r#"<div class="alert"><button class="close">x</button><p>Warning!</p></div>"#
+    );
+
+    let not_dismissible = maud! {
+        Alert message=("Info".into()) dismissible=false;
+    }
+    .render();
+
+    assert_eq!(
+        not_dismissible.as_inner(),
+        r#"<div class="alert"><p>Info</p></div>"#
+    );
+}
+
+#[test]
+fn component_used_inline_with_expression() {
+    let card = Card {
+        title: "Direct".into(),
+        body: "Construction".into(),
+    };
+
+    let result = maud! { main { (card) } }.render();
+    assert_eq!(
+        result.as_inner(),
+        r#"<main><div class="card"><h2>Direct</h2><p>Construction</p></div></main>"#
+    );
+}
+
+#[test]
+fn multiple_components_in_sequence_maud() {
+    let result = maud! {
+        Card title=("First".into()) body=("Card 1".into());
+        Card title=("Second".into()) body=("Card 2".into());
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="card"><h2>First</h2><p>Card 1</p></div><div class="card"><h2>Second</h2><p>Card 2</p></div>"#,
+    );
+}
+
+#[renderable]
+fn typed_item<'a, T: core::fmt::Display>(label: &'a str, value: &T) -> impl Renderable {
+    maud! {
+        div {
+            strong { (label) }
+            ": "
+            span { (value.to_string()) }
         }
     }
-    .render();
+}
 
-    let rsx_result = rsx! {
-        <ComponentA tabindex=1 id="component">
-            <h1>hello</h1>
-        </ComponentA>
-        <ComponentB tabindex=1 id="component">
-            <h1>hello</h1>
-        </ComponentB>
+#[test]
+fn generic_renderable_function_integer() {
+    let result = maud! {
+        TypedItem label="Count" value=(42_i32);
     }
     .render();
 
-    let component_html = r#"<div id="component" tabindex="1"><h1>hello</h1></div>"#;
-    let expected_result = component_html.repeat(2);
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
+    assert_eq!(
+        result.as_inner(),
+        "<div><strong>Count</strong>: <span>42</span></div>"
+    );
+}
 
-    let maud_result = maud! {
-        ComponentA {
-            ComponentA id="nested" {
-                h1 { "hello" }
-            }
+#[test]
+fn generic_renderable_function_float() {
+    let result = maud! {
+        TypedItem label="Price" value=(9.99_f64);
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<div><strong>Price</strong>: <span>9.99</span></div>"
+    );
+}
+
+#[derive(Builder, Renderable)]
+#[maud(
+    nav {
+        @for link in &self.links {
+            a href=(link) { (link) }
         }
-        ComponentB {
-            ComponentB id="nested" {
-                h1 { "hello" }
-            }
-        }
+    }
+)]
+struct NavLinks {
+    links: Vec<String>,
+}
+
+#[test]
+fn component_with_loop_over_field() {
+    let result = maud! {
+        NavLinks links=(vec![
+            "/home".into(),
+            "/about".into(),
+            "/contact".into(),
+        ]);
     }
     .render();
 
-    let rsx_result = rsx! {
-        <ComponentA>
-            <ComponentA id="nested">
-                <h1>"hello"</h1>
-            </ComponentA>
-        </ComponentA>
-        <ComponentB>
-            <ComponentB id="nested">
-                <h1>"hello"</h1>
-            </ComponentB>
-        </ComponentB>
-    }
-    .render();
-
-    let component_html =
-        r#"<div id="custom" tabindex="2"><div id="nested" tabindex="2"><h1>hello</h1></div></div>"#;
-    let expected_result = component_html.repeat(2);
-    assert_eq!(maud_result.as_inner(), &expected_result);
-    assert_eq!(rsx_result.as_inner(), &expected_result);
+    assert_eq!(
+        result.as_inner(),
+        r#"<nav><a href="/home">/home</a><a href="/about">/about</a><a href="/contact">/contact</a></nav>"#,
+    );
 }
