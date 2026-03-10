@@ -1039,6 +1039,36 @@ define_elements! {
     /// The root element of an SVG document, or an inline SVG fragment
     /// embedded in an HTML document. When used in HTML, its children are
     /// automatically validated as SVG elements.
+    ///
+    /// When `<svg>` appears inside [`maud!`](crate::maud!) or
+    /// [`rsx!`](crate::rsx!), the context switches from HTML to SVG: child
+    /// elements are validated against
+    /// [`hypertext_svg_elements`](crate::validation::hypertext_svg_elements)
+    /// instead of HTML elements, and childless elements emit self-closing
+    /// tags (`/>`).
+    ///
+    /// For standalone SVG documents, use [`svg::maud!`](crate::svg::maud!)
+    /// or [`svg::rsx!`](crate::svg::rsx!) instead.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hypertext::prelude::*;
+    ///
+    /// let result = maud! {
+    ///     div {
+    ///         svg width="100" height="100" {
+    ///             circle cx="50" cy="50" r="40" fill="red";
+    ///         }
+    ///     }
+    /// }
+    /// .render();
+    ///
+    /// assert_eq!(
+    ///     result.as_inner(),
+    ///     r#"<div><svg width="100" height="100"><circle cx="50" cy="50" r="40" fill="red"/></svg></div>"#,
+    /// );
+    /// ```
     svg {
         /// The displayed width of the rectangular viewport.
         width
@@ -1065,6 +1095,42 @@ define_elements! {
 
     /// The top-level element for MathML. When used in HTML, its children
     /// are automatically validated as MathML elements.
+    ///
+    /// When `<math>` appears inside [`maud!`](crate::maud!) or
+    /// [`rsx!`](crate::rsx!), the context switches from HTML to MathML:
+    /// child elements are validated against
+    /// [`hypertext_mathml_elements`](crate::validation::hypertext_mathml_elements)
+    /// instead of HTML elements, and childless elements emit self-closing
+    /// tags (`/>`).
+    ///
+    /// For standalone MathML documents, use
+    /// [`mathml::maud!`](crate::mathml::maud!) or
+    /// [`mathml::rsx!`](crate::mathml::rsx!) instead.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hypertext::prelude::*;
+    ///
+    /// let result = maud! {
+    ///     p {
+    ///         "The fraction "
+    ///         math {
+    ///             mfrac {
+    ///                 mn { "1" }
+    ///                 mn { "2" }
+    ///             }
+    ///         }
+    ///         " is one half."
+    ///     }
+    /// }
+    /// .render();
+    ///
+    /// assert_eq!(
+    ///     result.as_inner(),
+    ///     "<p>The fraction <math><mfrac><mn>1</mn><mn>2</mn></mfrac></math> is one half.</p>",
+    /// );
+    /// ```
     math {
         /// Specifies the display rendering mode for the `<math>` element.
         /// `block` renders the element in its own block, while `inline`

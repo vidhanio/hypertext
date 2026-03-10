@@ -1258,8 +1258,42 @@ define_svg_elements! {
         xlink_href
     }
 
-    /// Provides the ability to invoke an SVG document from within a
-    /// different XML or HTML document, embedding foreign content.
+    /// Provides the ability to include foreign XML/HTML content within an
+    /// SVG document. When used inside an SVG context (either embedded in
+    /// HTML or in a standalone [`svg::maud!`](crate::svg::maud!) /
+    /// [`svg::rsx!`](crate::svg::rsx!) macro), `foreignObject` switches its
+    /// children back to HTML validation, allowing standard HTML elements
+    /// inside SVG.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hypertext::prelude::*;
+    ///
+    /// let result = maud! {
+    ///     div {
+    ///         svg width="200" height="200" {
+    ///             circle cx="100" cy="100" r="50" fill="blue";
+    ///             foreignObject x="25" y="75" width="150" height="50" {
+    ///                 p { "Hello from HTML!" }
+    ///             }
+    ///         }
+    ///     }
+    /// }
+    /// .render();
+    ///
+    /// assert_eq!(
+    ///     result.as_inner(),
+    ///     concat!(
+    ///         r#"<div><svg width="200" height="200">"#,
+    ///         r#"<circle cx="100" cy="100" r="50" fill="blue"/>"#,
+    ///         r#"<foreignObject x="25" y="75" width="150" height="50">"#,
+    ///         "<p>Hello from HTML!</p>",
+    ///         "</foreignObject>",
+    ///         "</svg></div>",
+    ///     ),
+    /// );
+    /// ```
     foreignObject {
         /// The x coordinate of the foreignObject.
         x

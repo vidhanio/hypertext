@@ -330,7 +330,6 @@ fn attribute_simple_const() {
 fn attribute_borrow() {
     let val = "dynamic".to_owned();
     let lazy = attribute::borrow! { "prefix-" (val) };
-    // Value is still usable after borrow
     assert_eq!(val, "dynamic");
     assert_eq!(lazy.to_buffer().into_inner(), "prefix-dynamic");
 }
@@ -408,7 +407,6 @@ fn htmx_attributes() {
 #[cfg(feature = "alpine")]
 fn alpine_attributes() {
     let tests = [
-        // Normal x-* attribute (Attribute kind)
         (
             maud! { div x-data="{ open: false }" {} }.render(),
             r#"<div x-data="{ open: false }"></div>"#,
@@ -417,7 +415,6 @@ fn alpine_attributes() {
             rsx! { <div x-data="{ open: false }"></div> }.render(),
             r#"<div x-data="{ open: false }"></div>"#,
         ),
-        // Namespace attribute: x-on: (AttributeNamespace kind)
         (
             maud! { div x-on:click="open = ! open" {} }.render(),
             r#"<div x-on:click="open = ! open"></div>"#,
@@ -426,7 +423,6 @@ fn alpine_attributes() {
             rsx! { <div x-on:click="open = ! open"></div> }.render(),
             r#"<div x-on:click="open = ! open"></div>"#,
         ),
-        // @ symbol (AttributeSymbol::At, shorthand for x-on:)
         (
             maud! { div @click="open = ! open" {} }.render(),
             r#"<div @click="open = ! open"></div>"#,
@@ -435,7 +431,6 @@ fn alpine_attributes() {
             rsx! { <div @click="open = ! open"></div> }.render(),
             r#"<div @click="open = ! open"></div>"#,
         ),
-        // : symbol (AttributeSymbol::Colon, shorthand for x-bind:)
         (
             maud! { div :class="! open ? 'hidden' : ''" {} }.render(),
             r#"<div :class="! open ? 'hidden' : ''"></div>"#,
@@ -444,7 +439,6 @@ fn alpine_attributes() {
             rsx! { <div :class="! open ? 'hidden' : ''"></div> }.render(),
             r#"<div :class="! open ? 'hidden' : ''"></div>"#,
         ),
-        // Boolean alpine attribute (no value)
         (maud! { div x-cloak {} }.render(), r"<div x-cloak></div>"),
         (
             rsx! { <div x-cloak></div> }.render(),

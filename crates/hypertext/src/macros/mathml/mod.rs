@@ -5,6 +5,12 @@
 //! elements against
 //! [`hypertext_mathml_elements`](crate::validation::hypertext_mathml_elements)
 //! and emit self-closing tags (`/>`) for elements without children.
+//!
+//! These macros are intended for generating standalone MathML documents. To
+//! embed inline MathML inside HTML, use the regular [`maud!`](crate::maud!)
+//! or [`rsx!`](crate::rsx!) macros with a
+//! [`<math>`](crate::validation::hypertext_elements::math) element — the
+//! context switches to MathML validation automatically.
 
 pub mod maud;
 pub mod rsx;

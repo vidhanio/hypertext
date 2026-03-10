@@ -4,6 +4,12 @@
 //! ([`maud!`](crate::maud!) and [`rsx!`](crate::rsx!)), but validate elements
 //! against [`hypertext_svg_elements`](crate::validation::hypertext_svg_elements)
 //! and emit self-closing tags (`/>`) for elements without children.
+//!
+//! These macros are intended for generating standalone SVG documents. To
+//! embed inline SVG inside HTML, use the regular [`maud!`](crate::maud!) or
+//! [`rsx!`](crate::rsx!) macros with an
+//! [`<svg>`](crate::validation::hypertext_elements::svg) element — the
+//! context switches to SVG validation automatically.
 
 pub mod maud;
 pub mod rsx;

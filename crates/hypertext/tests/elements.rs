@@ -2,6 +2,54 @@
 
 use hypertext::prelude::*;
 
+mod hypertext_elements {
+    pub use hypertext::validation::hypertext_elements::*;
+    use hypertext::{define_elements, define_void_elements};
+
+    define_elements! {
+        status_badge {
+            severity
+        }
+
+        widget {
+            label
+        }
+    }
+
+    define_void_elements! {
+        icon_element {
+            name
+            size
+        }
+    }
+}
+
+mod hypertext_svg_elements {
+    use hypertext::define_svg_elements;
+    pub use hypertext::validation::hypertext_svg_elements::*;
+
+    define_svg_elements! {
+        widget {
+            radius
+        }
+
+        custom_shape {
+            sides
+        }
+    }
+}
+
+mod hypertext_mathml_elements {
+    use hypertext::define_mathml_elements;
+    pub use hypertext::validation::hypertext_mathml_elements::*;
+
+    define_mathml_elements! {
+        widget {
+            notation
+        }
+    }
+}
+
 #[test]
 fn html_basic_element() {
     let maud_result = maud! { div { "hello" } }.render();
@@ -836,6 +884,283 @@ fn deeply_nested_context_switches() {
         assert_eq!(
             result.as_inner(),
             r#"<div><svg width="300" height="300"><rect x="0" y="0" width="300" height="300" fill="lightgray"/><foreignObject x="10" y="10" width="280" height="280"><p>Back in HTML!</p></foreignObject></svg></div>"#,
+        );
+    }
+}
+
+#[test]
+fn custom_html_element() {
+    let maud_result = maud! {
+        status-badge severity="error" { "Something went wrong" }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <status-badge severity="error">Something went wrong</status-badge>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<status-badge severity="error">Something went wrong</status-badge>"#,
+        );
+    }
+}
+
+#[test]
+fn custom_html_element_with_global_attributes() {
+    let maud_result = maud! {
+        status-badge #my-badge.urgent severity="critical" { "Alert" }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <status-badge id="my-badge" class="urgent" severity="critical">Alert</status-badge>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<status-badge id="my-badge" class="urgent" severity="critical">Alert</status-badge>"#,
+        );
+    }
+}
+
+#[test]
+fn custom_void_element() {
+    let maud_result = maud! {
+        div {
+            icon-element name="arrow" size="24";
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            <icon-element name="arrow" size="24">
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<div><icon-element name="arrow" size="24"></div>"#,
+        );
+    }
+}
+
+#[test]
+fn custom_svg_element() {
+    let maud_result = svg::maud! {
+        svg viewBox="0 0 100 100" {
+            custom-shape sides="6" fill="blue";
+        }
+    }
+    .render();
+
+    let rsx_result = svg::rsx! {
+        <svg viewBox="0 0 100 100">
+            <custom-shape sides="6" fill="blue" />
+        </svg>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<svg viewBox="0 0 100 100"><custom-shape sides="6" fill="blue"/></svg>"#,
+        );
+    }
+}
+
+#[test]
+fn custom_mathml_element() {
+    let maud_result = mathml::maud! {
+        math {
+            widget notation="longdiv" {
+                mn { "42" }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = mathml::rsx! {
+        <math>
+            <widget notation="longdiv">
+                <mn>42</mn>
+            </widget>
+        </math>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<math><widget notation="longdiv"><mn>42</mn></widget></math>"#,
+        );
+    }
+}
+
+#[test]
+fn same_name_html_vs_embedded_svg() {
+    let maud_result = maud! {
+        div {
+            widget label="html-context" { "HTML widget" }
+            svg viewBox="0 0 100 100" {
+                widget radius="50" fill="red";
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            <widget label="html-context">"HTML widget"</widget>
+            <svg viewBox="0 0 100 100">
+                <widget radius="50" fill="red" />
+            </svg>
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            concat!(
+                r#"<div>"#,
+                r#"<widget label="html-context">HTML widget</widget>"#,
+                r#"<svg viewBox="0 0 100 100">"#,
+                r#"<widget radius="50" fill="red"/>"#,
+                r#"</svg>"#,
+                r#"</div>"#,
+            ),
+        );
+    }
+}
+
+#[test]
+fn same_name_html_vs_embedded_mathml() {
+    let maud_result = maud! {
+        p {
+            widget label="text" { "prose" }
+            math {
+                widget notation="longdiv" {
+                    mn { "7" }
+                }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <p>
+            <widget label="text">prose</widget>
+            <math>
+                <widget notation="longdiv">
+                    <mn>7</mn>
+                </widget>
+            </math>
+        </p>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            concat!(
+                "<p>",
+                r#"<widget label="text">prose</widget>"#,
+                "<math>",
+                r#"<widget notation="longdiv"><mn>7</mn></widget>"#,
+                "</math>",
+                "</p>",
+            ),
+        );
+    }
+}
+
+#[test]
+fn custom_svg_element_in_foreign_object_with_custom_html() {
+    let maud_result = maud! {
+        svg viewBox="0 0 200 200" {
+            custom-shape sides="3" fill="green";
+            foreignObject x="0" y="0" width="200" height="200" {
+                status-badge severity="info" { "Inside foreignObject" }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <svg viewBox="0 0 200 200">
+            <custom-shape sides="3" fill="green" />
+            <foreignObject x="0" y="0" width="200" height="200">
+                <status-badge severity="info">Inside foreignObject</status-badge>
+            </foreignObject>
+        </svg>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            concat!(
+                r#"<svg viewBox="0 0 200 200">"#,
+                r#"<custom-shape sides="3" fill="green"/>"#,
+                r#"<foreignObject x="0" y="0" width="200" height="200">"#,
+                r#"<status-badge severity="info">Inside foreignObject</status-badge>"#,
+                r#"</foreignObject>"#,
+                r#"</svg>"#,
+            ),
+        );
+    }
+}
+
+#[test]
+fn same_name_context_switch_through_foreign_object() {
+    let maud_result = maud! {
+        div {
+            widget label="outer-html" {}
+            svg viewBox="0 0 100 100" {
+                widget radius="25" fill="blue";
+                foreignObject x="0" y="0" width="100" height="100" {
+                    widget label="inner-html" { "Back in HTML" }
+                }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <div>
+            <widget label="outer-html"></widget>
+            <svg viewBox="0 0 100 100">
+                <widget radius="25" fill="blue" />
+                <foreignObject x="0" y="0" width="100" height="100">
+                    <widget label="inner-html">Back in HTML</widget>
+                </foreignObject>
+            </svg>
+        </div>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            concat!(
+                r#"<div>"#,
+                r#"<widget label="outer-html"></widget>"#,
+                r#"<svg viewBox="0 0 100 100">"#,
+                r#"<widget radius="25" fill="blue"/>"#,
+                r#"<foreignObject x="0" y="0" width="100" height="100">"#,
+                r#"<widget label="inner-html">Back in HTML</widget>"#,
+                r#"</foreignObject>"#,
+                r#"</svg>"#,
+                r#"</div>"#,
+            ),
         );
     }
 }
