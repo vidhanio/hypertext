@@ -3,7 +3,7 @@
 
 use std::{borrow::Cow, rc::Rc, sync::Arc};
 
-use hypertext::{prelude::*, Buffer, Raw, Rendered};
+use hypertext::{Buffer, Raw, Rendered, prelude::*};
 
 #[test]
 fn str_renderable() {

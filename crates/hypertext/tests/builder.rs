@@ -1,7 +1,7 @@
 //! Tests for component builder patterns.
 #![cfg(feature = "alloc")]
 
-use hypertext::{prelude::*, renderable, Buffer, Builder, DefaultBuilder, Lazy, Renderable};
+use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, Renderable, prelude::*, renderable};
 
 #[test]
 #[expect(clippy::too_many_lines)]

@@ -78,9 +78,11 @@ fn full_page_rendering() {
 
     assert!(maud_result.as_inner().starts_with("<!DOCTYPE html><html>"));
     assert!(maud_result.as_inner().contains("<title>My Page</title>"));
-    assert!(maud_result
-        .as_inner()
-        .contains("<li><a href=\"#\">Home</a></li>"));
+    assert!(
+        maud_result
+            .as_inner()
+            .contains("<li><a href=\"#\">Home</a></li>")
+    );
     assert!(maud_result.as_inner().ends_with("</html>"));
 }
 

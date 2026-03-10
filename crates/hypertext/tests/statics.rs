@@ -1,6 +1,6 @@
 //! Tests for static and const HTML rendering.
 
-use hypertext::{prelude::*, Raw, Rendered};
+use hypertext::{Raw, Rendered, prelude::*};
 
 #[test]
 fn maud_simple_static() {
