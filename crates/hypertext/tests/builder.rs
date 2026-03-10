@@ -1,7 +1,7 @@
 //! Tests for the `hypertext` crate.
 #![cfg(feature = "alloc")]
 
-use hypertext::{prelude::*, renderable, Buffer, Builder, DefaultBuilder, Lazy, Renderable};
+use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, Renderable, prelude::*, renderable};
 
 #[test]
 #[expect(clippy::too_many_lines)]
@@ -525,7 +525,6 @@ fn children() {
 }
 
 #[test]
-#[expect(unused_parens)]
 fn derive_renderable_builder() {
     #[derive(Builder, Renderable)]
     #[maud(

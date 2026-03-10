@@ -1,16 +1,16 @@
 use std::marker::PhantomData;
 
 use syn::{
+    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
     ext::IdentExt,
-    parse::{discouraged::Speculative, Parse, ParseStream},
+    parse::{Parse, ParseStream, discouraged::Speculative},
     parse_quote,
     token::Paren,
-    Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
 };
 
 use crate::html::{
-    kw, Component, Doctype, Element, ElementBody, Group, Literal, Many, Node, Syntax, UnquotedName,
-    XmlDecl,
+    Component, Doctype, Element, ElementBody, Group, Literal, Many, Node, Syntax, UnquotedName,
+    XmlDecl, kw,
 };
 
 pub struct Rsx;
