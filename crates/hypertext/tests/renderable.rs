@@ -118,6 +118,7 @@ fn renderable_usize() {
 
 #[test]
 fn renderable_f32() {
+    #[expect(clippy::approx_constant)]
     let v: f32 = 3.14;
     let result = maud! { (v) }.render();
     assert_eq!(result.as_inner(), "3.14");
@@ -125,6 +126,7 @@ fn renderable_f32() {
 
 #[test]
 fn renderable_f64() {
+    #[expect(clippy::approx_constant, clippy::unreadable_literal)]
     let v: f64 = 2.718281828;
     let result = maud! { (v) }.render();
     assert_eq!(result.as_inner(), "2.718281828");
@@ -249,6 +251,7 @@ fn renderable_slice() {
 
 #[test]
 fn renderable_unit_tuple() {
+    #[expect(clippy::double_parens)]
     let result = maud! { (()) }.render();
     assert_eq!(result.as_inner(), "");
 }
@@ -384,6 +387,7 @@ fn raw_debug() {
 #[test]
 fn raw_clone() {
     let raw: Raw<&str> = Raw::dangerously_create("test");
+    #[expect(clippy::clone_on_copy)]
     let cloned = raw.clone();
     assert_eq!(raw, cloned);
 }

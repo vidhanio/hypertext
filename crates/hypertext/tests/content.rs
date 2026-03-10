@@ -166,6 +166,7 @@ fn usize_content() {
 
 #[test]
 fn f32_content() {
+    #[expect(clippy::approx_constant)]
     let val: f32 = 3.14;
 
     let maud_result = maud! { span { (val) } }.render();
@@ -178,6 +179,7 @@ fn f32_content() {
 
 #[test]
 fn f64_content() {
+    #[expect(clippy::approx_constant, clippy::unreadable_literal)]
     let val: f64 = 2.718281828;
 
     let maud_result = maud! { span { (val) } }.render();
@@ -451,7 +453,7 @@ fn mixed_static_and_dynamic_content() {
 
 #[test]
 fn expression_with_method_call() {
-    let items = vec!["a", "b", "c"];
+    let items = ["a", "b", "c"];
     let len = items.len();
 
     let maud_result = maud! { span { (len) } }.render();

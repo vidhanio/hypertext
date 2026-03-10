@@ -488,15 +488,15 @@ fn manual_widget<'a>(label: &'a str) -> impl Renderable {
 }
 
 impl<'a> ManualWidget<'a> {
-    fn builder() -> Self {
+    const fn builder() -> Self {
         Self { label: "default" }
     }
 
-    fn build(self) -> Self {
+    const fn build(self) -> Self {
         self
     }
 
-    fn label(mut self, label: &'a str) -> Self {
+    const fn label(mut self, label: &'a str) -> Self {
         self.label = label;
         self
     }

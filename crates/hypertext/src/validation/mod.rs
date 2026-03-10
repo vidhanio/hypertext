@@ -450,6 +450,10 @@ macro_rules! define_svg_elements {
                 non_camel_case_types,
                 reason = "camel case types will be interpreted as renderable structs"
             )]
+            #[allow(
+                clippy::too_long_first_doc_paragraph,
+                reason = "doc comments are passed through from element definitions"
+            )]
             #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
             pub struct $name;
 
