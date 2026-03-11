@@ -1,6 +1,6 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{Data, DeriveInput, Error, spanned::Spanned};
+use syn::{Data, DeriveInput, Error, LitBool, parenthesized, spanned::Spanned};
 
 use crate::{
     AttributeValue, Config, Document, Many, Maud, Rsx, Semantics,
@@ -146,6 +146,49 @@ pub fn default_builder(input: DeriveInput) -> syn::Result<TokenStream> {
     let vis = &input.vis;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
+    let mut is_start_fn_present = true;
+    let mut is_finish_fn_present = true;
+    for attr in &input.attrs {
+        if attr.path().is_ident("builder") {
+            attr.parse_nested_meta(|meta| {
+                let is_start_fn_attr = meta.path.is_ident("start_fn");
+                let is_finish_fn_attr = meta.path.is_ident("finish_fn");
+
+                if is_start_fn_attr || is_finish_fn_attr {
+                    let content;
+                    parenthesized!(content in meta.input);
+                    let lit_bool = content.parse::<LitBool>()?;
+
+                    if is_start_fn_attr {
+                        is_start_fn_present = lit_bool.value;
+                    }
+                    if is_finish_fn_attr {
+                        is_finish_fn_present = lit_bool.value;
+                    }
+                    Ok(())
+                } else {
+                    Err(meta.error("unexpected param for `#[builder(...)]`"))
+                }
+            })?;
+        }
+    }
+
+    let start_fn = is_start_fn_present.then(|| {
+        quote! {
+            #vis fn builder() -> Self {
+                <Self as ::core::default::Default>::default()
+            }
+        }
+    });
+
+    let finish_fn = is_finish_fn_present.then(|| {
+        quote! {
+            #vis fn build(self) -> Self {
+                self
+            }
+        }
+    });
+
     let mut methods = Vec::new();
     for field in &data_struct.fields {
         if let Some(name) = &field.ident {
@@ -179,18 +222,16 @@ pub fn default_builder(input: DeriveInput) -> syn::Result<TokenStream> {
         }
     }
 
-    let output = quote! {
-        #[automatically_derived]
-        impl #impl_generics #struct_name #ty_generics #where_clause {
-            #vis fn builder() -> Self {
-                <Self as ::core::default::Default>::default()
+    let output = if start_fn.is_none() && finish_fn.is_none() && methods.is_empty() {
+        quote!()
+    } else {
+        quote! {
+            #[automatically_derived]
+            impl #impl_generics #struct_name #ty_generics #where_clause {
+                #start_fn
+                #finish_fn
+                #(#methods)*
             }
-
-            #vis fn build(self) -> Self {
-                self
-            }
-
-            #(#methods)*
         }
     };
 

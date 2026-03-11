@@ -157,9 +157,12 @@ pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenS
     });
 
     if let Some(BuilderArg::Path(path)) = builder {
-        struct_attrs.push(quote! {
-            #[derive(#path)]
-        });
+        struct_attrs.insert(
+            0,
+            quote! {
+                #[derive(#path)]
+            },
+        );
     }
 
     let fn_name = &fn_item.sig.ident;

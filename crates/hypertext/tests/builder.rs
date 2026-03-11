@@ -525,6 +525,283 @@ fn children() {
 }
 
 #[test]
+#[expect(clippy::too_many_lines, clippy::ref_option)]
+fn optional_generic_children() {
+    #[renderable(builder = DefaultBuilder)]
+    #[builder(start_fn(false))]
+    fn component_a<R: Renderable>(
+        tabindex: u32,
+        #[builder(skip)] children: &Option<R>,
+    ) -> impl Renderable {
+        rsx! {
+            <div tabindex=(tabindex)>
+                (children)
+            </div>
+        }
+    }
+
+    impl ComponentA<()> {
+        fn builder() -> Self {
+            Self {
+                tabindex: 1,
+                children: None,
+            }
+        }
+    }
+
+    impl<R: Renderable> ComponentA<R> {
+        fn children<NewR: Renderable>(self, children: NewR) -> ComponentA<NewR> {
+            ComponentA {
+                tabindex: self.tabindex,
+                children: Some(children),
+            }
+        }
+    }
+
+    #[derive(DefaultBuilder)]
+    #[builder(start_fn(false))]
+    struct ComponentB<F: Fn(&mut Buffer)> {
+        tabindex: u32,
+
+        #[builder(skip)]
+        children: Option<Lazy<F>>,
+    }
+
+    impl ComponentB<fn(&mut Buffer)> {
+        fn builder() -> Self {
+            Self {
+                tabindex: 1,
+                children: None,
+            }
+        }
+    }
+
+    impl<F: Fn(&mut Buffer)> ComponentB<F> {
+        fn children<NewF: Fn(&mut Buffer)>(self, children: Lazy<NewF>) -> ComponentB<NewF> {
+            ComponentB {
+                tabindex: self.tabindex,
+                children: Some(children),
+            }
+        }
+    }
+
+    impl<F: Fn(&mut Buffer)> Renderable for ComponentB<F> {
+        fn render_to(&self, buf: &mut Buffer) {
+            rsx! {
+                <div tabindex=(self.tabindex)>
+                    (self.children)
+                </div>
+            }
+            .render_to(buf);
+        }
+    }
+
+    #[renderable]
+    #[builder(generics(setters = "with_{}"), start_fn(name = builder_internal))]
+    fn component_c<R: Renderable>(
+        #[builder(default = 1)] tabindex: u32,
+        #[builder(setters(name = children_internal))] children: &Option<R>,
+    ) -> impl Renderable {
+        rsx! {
+            <div tabindex=(tabindex)>
+                (children)
+            </div>
+        }
+    }
+
+    impl ComponentC<()> {
+        pub fn builder() -> ComponentCBuilder<()> {
+            Self::builder_internal()
+        }
+    }
+
+    impl<R: Renderable, S: component_c_builder::State> ComponentCBuilder<R, S> {
+        fn children<NewR: Renderable>(
+            self,
+            children: NewR,
+        ) -> ComponentCBuilder<NewR, component_c_builder::SetChildren<S>>
+        where
+            S::Children: component_c_builder::IsUnset,
+        {
+            self.with_r().children_internal(children)
+        }
+    }
+
+    #[derive(Builder)]
+    #[builder(generics(setters = "with_{}"), start_fn(name = builder_internal))]
+    struct ComponentD<F: Fn(&mut Buffer)> {
+        #[builder(default = 1)]
+        tabindex: u32,
+
+        #[builder(setters(name = children_internal))]
+        children: Option<Lazy<F>>,
+    }
+
+    impl ComponentD<fn(&mut Buffer)> {
+        pub fn builder() -> ComponentDBuilder<fn(&mut Buffer)> {
+            Self::builder_internal()
+        }
+    }
+
+    impl<F: Fn(&mut Buffer), S: component_d_builder::State> ComponentDBuilder<F, S> {
+        fn children<NewF: Fn(&mut Buffer)>(
+            self,
+            children: Lazy<NewF>,
+        ) -> ComponentDBuilder<NewF, component_d_builder::SetChildren<S>>
+        where
+            S::Children: component_d_builder::IsUnset,
+        {
+            self.with_f().children_internal(children)
+        }
+    }
+
+    impl<F: Fn(&mut Buffer)> Renderable for ComponentD<F> {
+        fn render_to(&self, buf: &mut Buffer) {
+            rsx! {
+                <div tabindex=(self.tabindex)>
+                    (self.children)
+                </div>
+            }
+            .render_to(buf);
+        }
+    }
+
+    let maud_result = maud::borrow! {
+        ComponentA;
+        ComponentB;
+        ComponentC;
+        ComponentD;
+    }
+    .render();
+
+    let rsx_result = rsx::borrow! {
+        <ComponentA/>
+        <ComponentB/>
+        <ComponentC/>
+        <ComponentD/>
+    }
+    .render();
+
+    let component_html = r#"<div tabindex="1"></div>"#;
+    let expected_result = component_html.repeat(4);
+    assert_eq!(maud_result.as_inner(), &expected_result);
+    assert_eq!(rsx_result.as_inner(), &expected_result);
+
+    let maud_result = maud::borrow! {
+        ComponentA tabindex=2;
+        ComponentB tabindex=2;
+        ComponentC tabindex=2;
+        ComponentD tabindex=2;
+    }
+    .render();
+
+    let rsx_result = rsx::borrow! {
+        <ComponentA tabindex=2/>
+        <ComponentB tabindex=2/>
+        <ComponentC tabindex=2/>
+        <ComponentD tabindex=2/>
+    }
+    .render();
+
+    let component_html = r#"<div tabindex="2"></div>"#;
+    let expected_result = component_html.repeat(4);
+    assert_eq!(maud_result.as_inner(), &expected_result);
+    assert_eq!(rsx_result.as_inner(), &expected_result);
+
+    let msg = "hello".to_string();
+
+    let maud_result = maud::borrow! {
+        ComponentA {
+            h1 { (msg) }
+        }
+        ComponentB {
+            h1 { (msg) }
+        }
+        ComponentC {
+            h1 { (msg) }
+        }
+        ComponentD {
+            h1 { (msg) }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx::borrow! {
+        <ComponentA>
+            <h1>(msg)</h1>
+        </ComponentA>
+        <ComponentB>
+            <h1>(msg)</h1>
+        </ComponentB>
+        <ComponentC>
+            <h1>(msg)</h1>
+        </ComponentC>
+        <ComponentD>
+            <h1>(msg)</h1>
+        </ComponentD>
+    }
+    .render();
+
+    let component_html = r#"<div tabindex="1"><h1>hello</h1></div>"#;
+    let expected_result = component_html.repeat(4);
+    assert_eq!(maud_result.as_inner(), &expected_result);
+    assert_eq!(rsx_result.as_inner(), &expected_result);
+
+    let maud_result = maud::borrow! {
+        ComponentA {
+            ComponentA tabindex=2 {
+                h1 { (msg) }
+            }
+        }
+        ComponentB {
+            ComponentB tabindex=2 {
+                h1 { (msg) }
+            }
+        }
+        ComponentC {
+            ComponentC tabindex=2 {
+                h1 { (msg) }
+            }
+        }
+        ComponentD {
+            ComponentD tabindex=2 {
+                h1 { (msg) }
+            }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx::borrow! {
+        <ComponentA>
+            <ComponentA tabindex=2>
+                <h1>(msg)</h1>
+            </ComponentA>
+        </ComponentA>
+        <ComponentB>
+            <ComponentB tabindex=2>
+                <h1>(msg)</h1>
+            </ComponentB>
+        </ComponentB>
+        <ComponentC>
+            <ComponentC tabindex=2>
+                <h1>(msg)</h1>
+            </ComponentC>
+        </ComponentC>
+        <ComponentD>
+            <ComponentD tabindex=2>
+                <h1>(msg)</h1>
+            </ComponentD>
+        </ComponentD>
+    }
+    .render();
+
+    let component_html = r#"<div tabindex="1"><div tabindex="2"><h1>hello</h1></div></div>"#;
+    let expected_result = component_html.repeat(4);
+    assert_eq!(maud_result.as_inner(), &expected_result);
+    assert_eq!(rsx_result.as_inner(), &expected_result);
+}
+
+#[test]
 #[expect(unused_parens)]
 fn derive_renderable_builder() {
     #[derive(Builder, Renderable)]
