@@ -124,6 +124,74 @@ fn rsx_simple_basic() {
 }
 
 #[test]
+fn rsx_file_basic() {
+    let result = rsx::file!("tests/templates/hello.html").render();
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
+}
+
+#[test]
+fn rsx_file_borrow_basic() {
+    let name = "world".to_owned();
+    let result = rsx::file_borrow!("tests/templates/hello.html").render();
+    let _ = &name;
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
+}
+
+#[test]
+fn html_macro_is_rsx_alias() {
+    let rsx_result = rsx! {
+        <div id="test"><span>"hello"</span></div>
+    }
+    .render();
+
+    let html_result = html! {
+        <div id="test"><span>"hello"</span></div>
+    }
+    .render();
+
+    assert_eq!(rsx_result.as_inner(), html_result.as_inner());
+}
+
+#[test]
+fn html_macro_variants_match_rsx_variants() {
+    let name = String::from("world");
+
+    let rsx_borrow = rsx::borrow! { <h1>"Hello, " (name)</h1> }.render();
+    let html_borrow = html::borrow! { <h1>"Hello, " (name)</h1> }.render();
+
+    let rsx_simple = rsx::simple! { <h1>Hello</h1> };
+    let html_simple = html::simple! { <h1>Hello</h1> };
+
+    assert_eq!(rsx_borrow.as_inner(), html_borrow.as_inner());
+    assert_eq!(rsx_simple.as_inner(), html_simple.as_inner());
+}
+
+#[test]
+fn html_file_macros_are_rsx_aliases() {
+    let rsx_result = rsx::file!("tests/templates/hello.html").render();
+    let html_result = html::file!("tests/templates/hello.html").render();
+    assert_eq!(rsx_result.as_inner(), html_result.as_inner());
+}
+
+#[test]
+fn html_file_basic() {
+    let result = html::file!("tests/templates/hello.html").render();
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
+}
+
+#[test]
+fn html_file_borrow_basic() {
+    let name = "world".to_owned();
+    let result = html::file_borrow!("tests/templates/hello.html").render();
+    let _ = &name;
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
+}
+
+#[test]
 fn simple_parity() {
     let maud_result = maud::simple! { h1 { "Title" } };
     let rsx_result = rsx::simple! { <h1>Title</h1> };

@@ -89,6 +89,36 @@ macro_rules! create_attr_variants {
     };
 }
 
+macro_rules! create_file_variants {
+    {
+        syntax = $S:ty;
+        flavour = $flavour:expr;
+        $($lazy_move:ident $lazy_borrow:ident)*
+    } => {
+        $(#[proc_macro]
+        pub fn $lazy_move(tokens: TokenStream) -> TokenStream {
+            generate_file::<$S>(
+                Config {
+                    lazy: Some(Semantics::Move),
+                },
+                $flavour,
+                tokens,
+            )
+        }
+
+        #[proc_macro]
+        pub fn $lazy_borrow(tokens: TokenStream) -> TokenStream {
+            generate_file::<$S>(
+                Config {
+                    lazy: Some(Semantics::Borrow),
+                },
+                $flavour,
+                tokens,
+            )
+        })*
+    };
+}
+
 create_node_variants! {
     syntax = Maud;
     flavour = NodeFlavour::Html;
@@ -99,6 +129,12 @@ create_node_variants! {
     syntax = Rsx;
     flavour = NodeFlavour::Html;
     rsx rsx_borrow rsx_simple
+}
+
+create_node_variants! {
+    syntax = Rsx;
+    flavour = NodeFlavour::Html;
+    html html_borrow html_simple
 }
 
 create_attr_variants! {
@@ -131,73 +167,16 @@ create_node_variants! {
 
 // File-based macros: load RSX from external files.
 
-#[proc_macro]
-pub fn rsx_file(tokens: TokenStream) -> TokenStream {
-    generate_file::<Rsx>(
-        Config {
-            lazy: Some(Semantics::Move),
-        },
-        NodeFlavour::Html,
-        tokens,
-    )
+create_file_variants! {
+    syntax = Rsx;
+    flavour = NodeFlavour::Html;
+    rsx_file rsx_file_borrow
 }
 
-#[proc_macro]
-pub fn rsx_file_borrow(tokens: TokenStream) -> TokenStream {
-    generate_file::<Rsx>(
-        Config {
-            lazy: Some(Semantics::Borrow),
-        },
-        NodeFlavour::Html,
-        tokens,
-    )
-}
-
-// html! aliases: identical to rsx! variants, avoids Dioxus CLI name collision.
-// See https://github.com/vidhanio/hypertext/issues/123.
-
-#[proc_macro]
-pub fn html(tokens: TokenStream) -> TokenStream {
-    generate_nodes::<Rsx>(
-        Config {
-            lazy: Some(Semantics::Move),
-        },
-        NodeFlavour::Html,
-        tokens,
-    )
-}
-
-#[proc_macro]
-pub fn html_borrow(tokens: TokenStream) -> TokenStream {
-    generate_nodes::<Rsx>(
-        Config {
-            lazy: Some(Semantics::Borrow),
-        },
-        NodeFlavour::Html,
-        tokens,
-    )
-}
-
-#[proc_macro]
-pub fn html_file(tokens: TokenStream) -> TokenStream {
-    generate_file::<Rsx>(
-        Config {
-            lazy: Some(Semantics::Move),
-        },
-        NodeFlavour::Html,
-        tokens,
-    )
-}
-
-#[proc_macro]
-pub fn html_file_borrow(tokens: TokenStream) -> TokenStream {
-    generate_file::<Rsx>(
-        Config {
-            lazy: Some(Semantics::Borrow),
-        },
-        NodeFlavour::Html,
-        tokens,
-    )
+create_file_variants! {
+    syntax = Rsx;
+    flavour = NodeFlavour::Html;
+    html_file html_file_borrow
 }
 
 #[proc_macro_derive(Renderable, attributes(maud, rsx, attribute))]
