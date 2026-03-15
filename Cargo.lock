@@ -563,9 +563,9 @@ dependencies = [
 
 [[package]]
 name = "bon"
-version = "3.9.0"
+version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d13a61f2963b88eef9c1be03df65d42f6996dfeac1054870d950fcf66686f83"
+checksum = "f47dbe92550676ee653353c310dfb9cf6ba17ee70396e1f7cf0a2020ad49b2fe"
 dependencies = [
  "bon-macros",
  "rustversion",
@@ -573,9 +573,9 @@ dependencies = [
 
 [[package]]
 name = "bon-macros"
-version = "3.9.0"
+version = "3.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d314cc62af2b6b0c65780555abb4d02a03dd3b799cd42419044f0c38d99738c0"
+checksum = "519bd3116aeeb42d5372c29d982d16d0170d3d4a5ed85fc7dd91642ffff3c67c"
 dependencies = [
  "darling",
  "ident_case",
@@ -615,9 +615,9 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.2.56"
+version = "1.2.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aebf35691d1bfb0ac386a69bac2fde4dd276fb618cf8bf4f5318fe285e821bb2"
+checksum = "7a0dd1ca384932ff3641c8718a02769f1698e7563dc6974ffd03346116310423"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -1608,7 +1608,7 @@ dependencies = [
 
 [[package]]
 name = "hypertext"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "actix-web",
  "axum-core",
@@ -1627,7 +1627,7 @@ dependencies = [
 
 [[package]]
 name = "hypertext-macros"
-version = "0.12.1"
+version = "0.13.0"
 dependencies = [
  "html-escape",
  "proc-macro2",
@@ -1844,9 +1844,9 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "libc"
-version = "0.2.182"
+version = "0.2.183"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6800badb6cb2082ffd7b6a67e6125bb39f18782f793520caee8cb8846be06112"
+checksum = "b5b646652bf6661599e1da8901b3b9522896f01e736bad5f723fe7a3a27f899d"
 
 [[package]]
 name = "linux-raw-sys"
@@ -2021,9 +2021,9 @@ dependencies = [
 
 [[package]]
 name = "ntex"
-version = "3.6.0"
+version = "3.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "991ec5f39b1bea44a3e2ecf704dbc48cf98107e1a270388a921f12b9586b4c12"
+checksum = "cdf03a1a8203a0522d3163f16db890c810f16528e5c1cf280d17a838060fda34"
 dependencies = [
  "base64 0.22.1",
  "bitflags",
@@ -2096,20 +2096,21 @@ dependencies = [
 
 [[package]]
 name = "ntex-error"
-version = "1.0.1"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a7a92901e6aa225b8336a8903c796f12b4647842fb042c700bdcc7244b2859a"
+checksum = "d12bdcd4b37f560cec08165f68ed7c3e3a92ea125281573f5d40807c02b9660c"
 dependencies = [
  "backtrace",
  "foldhash 0.2.0",
  "ntex-bytes",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
 name = "ntex-h2"
-version = "3.8.1"
+version = "3.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3413eb0ac3c2845b954d0386693eacbaa4887341ebe093cc4db9755fabd3f68"
+checksum = "8e2d4966c64589962e60cf90c3b3e0ffc2eee61dc0f624d52a285c54b4e3b5c4"
 dependencies = [
  "bitflags",
  "foldhash 0.2.0",
@@ -2185,9 +2186,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-net"
-version = "3.8.1"
+version = "3.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6561b579e0b226458ea6fe9808a95fd1e2a2861accf2faf6d6ab9d50ac7ad187"
+checksum = "cc1e25863aa167ae3798a9f996058c2c937f8cad0230164dacef6124b5953bfd"
 dependencies = [
  "bitflags",
  "cfg-if",
@@ -2306,9 +2307,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-util"
-version = "3.4.0"
+version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "092a46f60e64950809011a95d5ec6f634394b80d984bc44d8057b89a6a78c1f1"
+checksum = "2f6eac127362101d98f6cfd56ba716ab33b840c6e195e559c8f10f58194943c1"
 dependencies = [
  "bitflags",
  "foldhash 0.2.0",
@@ -2316,6 +2317,7 @@ dependencies = [
  "futures-timer",
  "log",
  "ntex-bytes",
+ "ntex-error",
  "ntex-rt",
  "ntex-service",
  "pin-project-lite 0.2.17",
@@ -2374,9 +2376,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.21.3"
+version = "1.21.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
+checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
 name = "oneshot"
@@ -3495,9 +3497,9 @@ dependencies = [
 
 [[package]]
 name = "tempfile"
-version = "3.26.0"
+version = "3.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "82a72c767771b47409d2345987fda8628641887d5466101319899796367354a0"
+checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand 2.3.0",
  "getrandom 0.4.2",
@@ -3835,9 +3837,9 @@ dependencies = [
 
 [[package]]
 name = "tracing-subscriber"
-version = "0.3.22"
+version = "0.3.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f30143827ddab0d256fd843b7a66d164e9f271cfa0dde49142c5ca0ca291f1e"
+checksum = "cb7f578e5945fb242538965c2d0b04418d38ec25c79d160cd279bf0731c8d319"
 dependencies = [
  "matchers",
  "nu-ansi-term",
@@ -4591,18 +4593,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.40"
+version = "0.8.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a789c6e490b576db9f7e6b6d661bcc9799f7c0ac8352f56ea20193b2681532e5"
+checksum = "f2578b716f8a7a858b7f02d5bd870c14bf4ddbbcf3a4c05414ba6503640505e3"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.40"
+version = "0.8.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f65c489a7071a749c849713807783f70672b28094011623e200cb86dcb835953"
+checksum = "7e6cc098ea4d3bd6246687de65af3f920c430e236bee1e3bf2e441463f08a02f"
 dependencies = [
  "proc-macro2",
  "quote",
