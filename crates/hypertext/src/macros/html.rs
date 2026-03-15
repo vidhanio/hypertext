@@ -18,3 +18,5 @@ pub use hypertext_macros::html_file as file;
 #[cfg(feature = "alloc")]
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::html_file_borrow as file_borrow;
+/// Alias for [`rsx::simple!`](crate::rsx::simple!).
+pub use hypertext_macros::html_simple as simple;

@@ -58,7 +58,7 @@ mod axum {
 
 #[cfg(feature = "ntex")]
 mod ntex {
-    #![allow(clippy::future_not_send)]
+    #![expect(clippy::future_not_send)]
 
     use ntex::{
         http::Response,

@@ -6,8 +6,8 @@ use syn::{
     token::{Brace, Paren},
 };
 
-use super::{ElementBody, Generate, Generator, ParenExpr, Syntax};
-use crate::{AttributeValue, html::Node};
+use super::{AttributeValue, ElementBody, Generate, Generator, ParenExpr, Syntax};
+use crate::html::Node;
 
 pub struct Component<S: Syntax> {
     pub name: Ident,
@@ -46,7 +46,7 @@ impl<S: Syntax> Generate for Component<S> {
                     .#children_ident(#lazy)
                 )
             }
-            ElementBody::Void => quote!(),
+            ElementBody::Void { .. } => quote!(),
         };
 
         let name = &self.name;
@@ -79,7 +79,12 @@ impl ComponentAttribute {
                     expr.expr.to_tokens(tokens);
                 });
 
-                tokens
+                quote! {
+                    {
+                        #[allow(unused_parens)]
+                        #tokens
+                    }
+                }
             }
         })
     }

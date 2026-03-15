@@ -10,6 +10,7 @@ use syn::{
 
 use crate::html::{
     Component, Doctype, Element, ElementBody, Group, Literal, Many, Node, Syntax, UnquotedName,
+    XmlDecl, kw,
 };
 
 pub struct Rsx;
@@ -24,7 +25,7 @@ impl Node<Rsx> {
 
         let mut attrs = Vec::new();
 
-        #[allow(clippy::suspicious_operation_groupings)]
+        #[expect(clippy::suspicious_operation_groupings)]
         while !(input.peek(Token![..])
             || input.peek(Token![>])
             || (input.peek(Token![/]) && input.peek2(Token![>])))
@@ -35,11 +36,13 @@ impl Node<Rsx> {
         let solidus = input.parse::<Option<Token![/]>>()?;
         input.parse::<Token![>]>()?;
 
-        if solidus.is_some() {
+        if let Some(solidus) = solidus {
             Ok(Self::Component(Component {
                 name,
                 attrs,
-                body: ElementBody::Void,
+                body: ElementBody::Void {
+                    solidus: Some(solidus.span),
+                },
             }))
         } else {
             let mut children = Vec::new();
@@ -51,7 +54,7 @@ impl Node<Rsx> {
                         Self::Component(Component {
                             name,
                             attrs,
-                            body: ElementBody::Void,
+                            body: ElementBody::Void { solidus: None },
                         }),
                     );
 
@@ -73,7 +76,7 @@ impl Node<Rsx> {
                     Self::Component(Component {
                         name,
                         attrs,
-                        body: ElementBody::Void,
+                        body: ElementBody::Void { solidus: None },
                     }),
                 );
 
@@ -106,11 +109,13 @@ impl Node<Rsx> {
         let solidus = input.parse::<Option<Token![/]>>()?;
         input.parse::<Token![>]>()?;
 
-        if solidus.is_some() {
+        if let Some(solidus) = solidus {
             Ok(Self::Element(Element {
                 name,
                 attrs,
-                body: ElementBody::Void,
+                body: ElementBody::Void {
+                    solidus: Some(solidus.span),
+                },
             }))
         } else {
             let mut children = Vec::new();
@@ -122,7 +127,7 @@ impl Node<Rsx> {
                         Self::Element(Element {
                             name,
                             attrs,
-                            body: ElementBody::Void,
+                            body: ElementBody::Void { solidus: None },
                         }),
                     );
 
@@ -143,7 +148,7 @@ impl Node<Rsx> {
                     Self::Element(Element {
                         name,
                         attrs,
-                        body: ElementBody::Void,
+                        body: ElementBody::Void { solidus: None },
                     }),
                 );
 
@@ -181,6 +186,8 @@ impl Parse for Node<Rsx> {
                 }
             } else if lookahead.peek(Token![!]) {
                 input.parse().map(Self::Doctype)
+            } else if lookahead.peek(Token![?]) {
+                input.parse().map(Self::XmlDecl)
             } else {
                 Err(lookahead.error())
             }
@@ -230,6 +237,20 @@ impl Parse for Doctype<Rsx> {
             doctype_token: input.parse()?,
             html_token: input.parse()?,
             gt_token: input.parse()?,
+            phantom: PhantomData,
+        })
+    }
+}
+
+impl Parse for XmlDecl<Rsx> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        input.parse::<Token![<]>()?;
+        input.parse::<Token![?]>()?;
+        let xml_token: kw::xml = input.parse()?;
+        input.parse::<Token![?]>()?;
+        input.parse::<Token![>]>()?;
+        Ok(Self {
+            xml_token,
             phantom: PhantomData,
         })
     }
