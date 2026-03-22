@@ -11,6 +11,8 @@
 //! To use these, you need to enable the corresponding feature in your
 //! `Cargo.toml` file. For example, to use [`HtmxAttributes`], you would enable
 //! the `htmx` feature:
+//! Some feature-gated traits, like `OpenGraphMeta`, are intentionally
+//! implemented only for specific elements.
 //!
 //! ```toml
 //! [dependencies]
@@ -21,15 +23,14 @@
 //! scope via [`prelude::*`](crate::prelude):
 //!
 //! ```
-//! # #[cfg(feature = "htmx")] {
 //! use hypertext::prelude::*;
+//! # use hypertext::validation::attributes::HtmxAttributes as _;
 //!
 //! # assert_eq!(
 //! maud! {
 //!     a hx-get="/about" { "About" }
 //! }
 //! # .render().as_inner(), r#"<a hx-get="/about">About</a>"#);
-//! # }
 //! ```
 //!
 //! It is also easy to define your own attributes for use with your favourite
@@ -325,6 +326,26 @@ pub trait EventHandlerAttributes: GlobalAttributes {
 }
 
 impl<T: GlobalAttributes> EventHandlerAttributes for T {}
+
+/// Attributes for [Open Graph protocol](https://ogp.me/) metadata.
+///
+/// This trait is implemented only for the
+/// [`meta`](crate::validation::hypertext_elements::meta) element and is
+/// intended for tags such as `<meta property="og:title" content="...">`.
+///
+/// See the Open Graph [Basic Metadata](https://ogp.me/#metadata) section for
+/// details and required properties.
+pub trait OpenGraphMeta: GlobalAttributes {
+    /// The Open Graph property key (for example, `og:title` or `og:image`).
+    ///
+    /// Use this with [`meta`](crate::validation::hypertext_elements::meta)
+    /// elements alongside
+    /// [`content`](crate::validation::hypertext_elements::meta::content), following the Open Graph [Basic Metadata](https://ogp.me/#metadata)
+    /// format.
+    const property: Attribute = Attribute;
+}
+
+impl OpenGraphMeta for crate::validation::hypertext_elements::meta {}
 
 /// Attributes for use with [htmx](https://htmx.org/).
 pub trait HtmxAttributes: GlobalAttributes {

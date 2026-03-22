@@ -273,6 +273,27 @@ fn data_attributes() {
 }
 
 #[test]
+#[cfg(feature = "opengraph")]
+fn opengraph_meta_property_attribute() {
+    let maud_result = maud! {
+        meta property="og:title" content="Hypertext";
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <meta property="og:title" content="Hypertext">
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<meta property="og:title" content="Hypertext">"#
+        );
+    }
+}
+
+#[test]
 fn attribute_escaping_quotes() {
     let xss = r#""alert('XSS')"#;
 

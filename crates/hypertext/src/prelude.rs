@@ -11,6 +11,8 @@ pub use crate::validation::attributes::AlpineJsAttributes;
 pub use crate::validation::attributes::HtmxAttributes;
 #[cfg(feature = "hyperscript")]
 pub use crate::validation::attributes::HyperscriptAttributes;
+#[cfg(feature = "opengraph")]
+pub use crate::validation::attributes::OpenGraphMeta;
 #[cfg(feature = "alloc")]
 pub use crate::{Renderable, RenderableExt as _, Rendered};
 pub use crate::{
