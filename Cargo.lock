@@ -2021,9 +2021,9 @@ dependencies = [
 
 [[package]]
 name = "ntex"
-version = "3.6.0"
+version = "3.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "991ec5f39b1bea44a3e2ecf704dbc48cf98107e1a270388a921f12b9586b4c12"
+checksum = "c87511395aa4a6474cbb1725bbfcba4225a1948181a816e7f52215c74bbe7e48"
 dependencies = [
  "base64 0.22.1",
  "bitflags",
@@ -2096,20 +2096,21 @@ dependencies = [
 
 [[package]]
 name = "ntex-error"
-version = "1.0.1"
+version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a7a92901e6aa225b8336a8903c796f12b4647842fb042c700bdcc7244b2859a"
+checksum = "fa732fdf046aa0e3955dbab02f227015b3c688998af3994ceff749f1b4666f0d"
 dependencies = [
  "backtrace",
  "foldhash 0.2.0",
  "ntex-bytes",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
 name = "ntex-h2"
-version = "3.8.1"
+version = "3.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3413eb0ac3c2845b954d0386693eacbaa4887341ebe093cc4db9755fabd3f68"
+checksum = "8e2d4966c64589962e60cf90c3b3e0ffc2eee61dc0f624d52a285c54b4e3b5c4"
 dependencies = [
  "bitflags",
  "foldhash 0.2.0",
@@ -2131,9 +2132,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-http"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb1f0643064d8ab21b70e0c9660b513ad3253744700c874668e6d7693ab3a39"
+checksum = "f7a02a55ca3286342030ba369d4176e280989e97958455963efce846e8abdca6"
 dependencies = [
  "foldhash 0.2.0",
  "futures-core",
@@ -2185,9 +2186,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-net"
-version = "3.8.1"
+version = "3.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6561b579e0b226458ea6fe9808a95fd1e2a2861accf2faf6d6ab9d50ac7ad187"
+checksum = "cc1e25863aa167ae3798a9f996058c2c937f8cad0230164dacef6124b5953bfd"
 dependencies = [
  "bitflags",
  "cfg-if",
@@ -2306,9 +2307,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-util"
-version = "3.4.0"
+version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "092a46f60e64950809011a95d5ec6f634394b80d984bc44d8057b89a6a78c1f1"
+checksum = "2f6eac127362101d98f6cfd56ba716ab33b840c6e195e559c8f10f58194943c1"
 dependencies = [
  "bitflags",
  "foldhash 0.2.0",
@@ -2316,6 +2317,7 @@ dependencies = [
  "futures-timer",
  "log",
  "ntex-bytes",
+ "ntex-error",
  "ntex-rt",
  "ntex-service",
  "pin-project-lite 0.2.17",
