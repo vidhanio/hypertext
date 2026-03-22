@@ -2,9 +2,9 @@ use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{Data, DeriveInput, Error, spanned::Spanned};
 
-use crate::{
-    AttributeValue, Config, Document, Many, Maud, Rsx, Semantics,
-    html::{Context, generate::Generator},
+use crate::html::{
+    AttributeValue, Context, Maud, Rsx,
+    generate::{Config, Generator, NodeFlavour, Semantics},
 };
 
 #[allow(clippy::needless_pass_by_value)]
@@ -34,14 +34,22 @@ fn renderable_node(input: &DeriveInput) -> syn::Result<Option<TokenStream>> {
             if attr.path().is_ident("maud") {
                 Some((
                     attr,
-                    (|tokens| Config::Lazy(Semantics::Move).generate::<Document<Maud>>(tokens))
-                        as fn(_) -> _,
+                    (|tokens| {
+                        Config {
+                            lazy: Some(Semantics::Move),
+                        }
+                        .generate_nodes::<Maud>(NodeFlavour::Html, tokens)
+                    }) as fn(_) -> _,
                 ))
             } else if attr.path().is_ident("rsx") {
                 Some((
                     attr,
-                    (|tokens| Config::Lazy(Semantics::Move).generate::<Document<Rsx>>(tokens))
-                        as fn(_) -> _,
+                    (|tokens| {
+                        Config {
+                            lazy: Some(Semantics::Move),
+                        }
+                        .generate_nodes::<Rsx>(NodeFlavour::Html, tokens)
+                    }) as fn(_) -> _,
                 ))
             } else {
                 None
@@ -112,7 +120,10 @@ fn renderable_attribute(input: &DeriveInput) -> syn::Result<Option<TokenStream>>
         }
     };
 
-    let lazy = Config::Lazy(Semantics::Move).generate::<Many<AttributeValue>>(tokens)?;
+    let lazy = Config {
+        lazy: Some(Semantics::Move),
+    }
+    .generate_attrs(tokens)?;
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let buffer_ident = Generator::buffer_ident();

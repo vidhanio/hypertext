@@ -27,7 +27,7 @@ use self::{
     control::Control,
     generate::{
         AnyBlock, AttributeCheck, AttributeCheckKind, ElementCheck, ElementKind, Generate,
-        Generator,
+        Generator, NodeFlavour,
     },
 };
 
@@ -57,6 +57,8 @@ mod kw {
             LitStr::new("html", self.span)
         }
     }
+
+    syn::custom_keyword!(xml);
 }
 
 pub trait Syntax {}
@@ -85,9 +87,9 @@ impl Context for Infallible {
         Cow::Borrowed(s)
     }
 }
-
 pub enum Node<S: Syntax> {
     Doctype(Doctype<S>),
+    XmlDecl(XmlDecl<S>),
     Element(Element<S>),
     Component(Component<S>),
     Literal(Literal),
@@ -117,7 +119,29 @@ impl<S: Syntax> Generate for Node<S> {
 
     fn generate(&self, g: &mut Generator) {
         match self {
-            Self::Doctype(doctype) => g.push(doctype),
+            Self::Doctype(doctype) => {
+                if matches!(g.node_flavour(), NodeFlavour::Xml(_)) {
+                    g.push_stmt(
+                        syn::Error::new(doctype.span(), "DOCTYPE is not valid in XML context")
+                            .to_compile_error(),
+                    );
+                } else {
+                    g.push(doctype);
+                }
+            }
+            Self::XmlDecl(xml_decl) => {
+                if matches!(g.node_flavour(), NodeFlavour::Html) {
+                    g.push_stmt(
+                        syn::Error::new(
+                            xml_decl.span(),
+                            "XML declaration is not valid in HTML context",
+                        )
+                        .to_compile_error(),
+                    );
+                } else {
+                    g.push(xml_decl);
+                }
+            }
             Self::Element(element) => g.push(element),
             Self::Component(component) => g.push(component),
             Self::Literal(lit) => g.push_escaped_lit::<Self::Context>(&lit.lit_str()),
@@ -139,6 +163,15 @@ pub struct Doctype<S: Syntax> {
     phantom: PhantomData<S>,
 }
 
+impl<S: Syntax> Doctype<S> {
+    fn span(&self) -> Span {
+        self.bang_token
+            .span()
+            .join(self.doctype_token.span)
+            .unwrap_or_else(|| self.bang_token.span())
+    }
+}
+
 impl<S: Syntax> Generate for Doctype<S> {
     type Context = Node<S>;
 
@@ -151,6 +184,28 @@ impl<S: Syntax> Generate for Doctype<S> {
             self.html_token.lit(),
             LitStr::new(">", self.gt_token.span),
         ]);
+    }
+}
+
+pub struct XmlDecl<S: Syntax> {
+    xml_token: kw::xml,
+    phantom: PhantomData<S>,
+}
+
+impl<S: Syntax> XmlDecl<S> {
+    const fn span(&self) -> Span {
+        self.xml_token.span
+    }
+}
+
+impl<S: Syntax> Generate for XmlDecl<S> {
+    type Context = Node<S>;
+
+    fn generate(&self, g: &mut Generator) {
+        g.push_lits(vec![LitStr::new(
+            r#"<?xml version="1.0" encoding="UTF-8"?>"#,
+            self.xml_token.span,
+        )]);
     }
 }
 
@@ -327,7 +382,9 @@ impl<S: Syntax> Generate for Element<S> {
     type Context = Node<S>;
 
     fn generate(&self, g: &mut Generator) {
-        let mut el_checks = ElementCheck::new(&self.name, self.body.kind());
+        let flavour = g.node_flavour();
+        let module = flavour.elements_module();
+        let mut el_checks = ElementCheck::new(&self.name, self.body.element_kind(flavour), module);
 
         g.push_str("<");
         g.push_lits(self.name.lits());
@@ -339,24 +396,51 @@ impl<S: Syntax> Generate for Element<S> {
             }
         }
 
-        g.push_str(">");
-
         match &self.body {
             ElementBody::Normal {
                 children,
                 closing_name,
             } => {
+                g.push_str(">");
+
                 let name = closing_name.as_ref().map_or(&self.name, |closing_name| {
                     el_checks.set_closing_spans(closing_name.spans());
                     closing_name
                 });
 
-                g.push(children);
+                let child_flavour = flavour.child_flavour(&self.name.ident_string());
+
+                if matches!(
+                    (flavour, child_flavour),
+                    (NodeFlavour::Html, NodeFlavour::Xml(_))
+                        | (NodeFlavour::Xml(_), NodeFlavour::Html)
+                ) {
+                    g.push_with_flavour(child_flavour, |g| {
+                        g.push(children);
+                    });
+                } else {
+                    g.push(children);
+                }
+
                 g.push_str("</");
                 g.push_lits(name.lits());
                 g.push_str(">");
             }
-            ElementBody::Void => {}
+            ElementBody::Void { solidus } => {
+                if matches!(flavour, NodeFlavour::Xml(_)) && solidus.is_none() {
+                    let span = self
+                        .name
+                        .spans()
+                        .first()
+                        .copied()
+                        .unwrap_or_else(Span::mixed_site);
+                    g.push_stmt(
+                        Error::new(span, "self-closing XML elements must use `/>` syntax")
+                            .to_compile_error(),
+                    );
+                }
+                g.push_str(flavour.void_close());
+            }
         }
 
         g.record_element(el_checks);
@@ -368,15 +452,14 @@ pub enum ElementBody<S: Syntax> {
         children: Many<Node<S>>,
         closing_name: Option<UnquotedName>,
     },
-    Void,
+    Void {
+        solidus: Option<Span>,
+    },
 }
 
 impl<S: Syntax> ElementBody<S> {
-    const fn kind(&self) -> ElementKind {
-        match self {
-            Self::Normal { .. } => ElementKind::Normal,
-            Self::Void => ElementKind::Void,
-        }
+    const fn element_kind(&self, flavour: NodeFlavour) -> ElementKind {
+        flavour.element_kind(matches!(self, Self::Void { .. }))
     }
 }
 

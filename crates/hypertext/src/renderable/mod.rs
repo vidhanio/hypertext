@@ -1,5 +1,3 @@
-#![allow(clippy::doc_markdown)]
-
 mod buffer;
 mod impls;
 

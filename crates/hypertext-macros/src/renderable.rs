@@ -198,7 +198,7 @@ pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenS
     let buffer_ident = Generator::buffer_ident();
 
     let output = quote! {
-        #[allow(clippy::needless_lifetimes)]
+        #[allow(clippy::elidable_lifetime_names, clippy::needless_lifetimes)]
         #fn_item
 
         #(#struct_attrs)*
