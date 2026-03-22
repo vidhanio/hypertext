@@ -27,7 +27,7 @@ impl UnquotedName {
                 NameFragment::Hyphen(_) => {
                     s.push('_');
                 }
-                NameFragment::Colon(_) | NameFragment::Dot(_) => {
+                NameFragment::Colon(_) | NameFragment::Slash(_) | NameFragment::Dot(_) => {
                     unreachable!(
                         "unquoted name idents should only contain identifiers, int literals, and hyphens"
                     );
@@ -102,6 +102,7 @@ impl UnquotedName {
 
             while input.peek(Token![-])
                 || input.peek(Token![:])
+                || input.peek(Token![/])
                 || (name.last().is_none_or(NameFragment::is_punct)
                     && (input.peek(Ident::peek_any) || input.peek(LitInt)))
             {
@@ -144,6 +145,7 @@ pub enum NameFragment {
     Int(LitInt),
     Hyphen(Token![-]),
     Colon(Token![:]),
+    Slash(Token![/]),
     Dot(Token![.]),
 }
 
@@ -154,12 +156,16 @@ impl NameFragment {
             Self::Int(int) => int.span(),
             Self::Hyphen(hyphen) => hyphen.span(),
             Self::Colon(colon) => colon.span(),
+            Self::Slash(slash) => slash.span(),
             Self::Dot(dot) => dot.span(),
         }
     }
 
     const fn is_punct(&self) -> bool {
-        matches!(self, Self::Hyphen(_) | Self::Colon(_) | Self::Dot(_))
+        matches!(
+            self,
+            Self::Hyphen(_) | Self::Colon(_) | Self::Slash(_) | Self::Dot(_)
+        )
     }
 }
 
@@ -171,6 +177,8 @@ impl Parse for NameFragment {
             input.parse().map(Self::Hyphen)
         } else if lookahead.peek(Token![:]) {
             input.parse().map(Self::Colon)
+        } else if lookahead.peek(Token![/]) {
+            input.parse().map(Self::Slash)
         } else if lookahead.peek(Token![.]) {
             input.parse().map(Self::Dot)
         } else if lookahead.peek(Ident::peek_any) {
@@ -190,6 +198,7 @@ impl Display for NameFragment {
             Self::Int(num) => write!(f, "{num}"),
             Self::Hyphen(_) => f.write_str("-"),
             Self::Colon(_) => f.write_str(":"),
+            Self::Slash(_) => f.write_str("/"),
             Self::Dot(_) => f.write_str("."),
         }
     }

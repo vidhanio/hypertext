@@ -164,6 +164,29 @@ fn class_id_shorthand_maud() {
 }
 
 #[test]
+fn class_shorthand_supports_slashes_maud() {
+    let result = maud! {
+        div .w-1/2 .sm:w-1/3 { "sized" }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="w-1/2 sm:w-1/3">sized</div>"#
+    );
+}
+
+#[test]
+fn id_shorthand_supports_slashes_maud() {
+    let result = maud! {
+        div #post/1 { "entry" }
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div id="post/1">entry</div>"#);
+}
+
+#[test]
 fn multiple_classes_maud() {
     let result = maud! {
         div .foo .bar .baz { "multi-class" }
@@ -186,6 +209,30 @@ fn boolean_class_toggle_true() {
     .render();
 
     assert_eq!(result.as_inner(), r#"<div class="active">content</div>"#);
+}
+
+#[test]
+fn boolean_class_toggle_with_slash_true() {
+    let is_half = true;
+
+    let result = maud! {
+        div .w-1/2[is_half] { "content" }
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div class="w-1/2">content</div>"#);
+}
+
+#[test]
+fn boolean_class_toggle_with_slash_false() {
+    let is_half = false;
+
+    let result = maud! {
+        div .w-1/2[is_half] { "content" }
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div class="">content</div>"#);
 }
 
 #[test]
@@ -228,6 +275,19 @@ fn option_class_toggle() {
     .render();
 
     assert_eq!(result.as_inner(), r#"<div class="highlight">content</div>"#);
+}
+
+#[test]
+fn option_class_toggle_with_slash_value() {
+    let class_some = Some("w-1/2");
+    let class_none = None::<&str>;
+
+    let result = maud! {
+        div .[class_some] .[class_none] { "content" }
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div class="w-1/2">content</div>"#);
 }
 
 #[test]
