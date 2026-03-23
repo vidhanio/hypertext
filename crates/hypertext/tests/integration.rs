@@ -257,8 +257,8 @@ fn data_table() {
 
 #[test]
 fn form_with_validation() {
-    let username_error: Option<&str> = Some("Username is required");
-    let email_error: Option<&str> = None;
+    let username_error = Some::<&str>("Username is required");
+    let email_error = None::<&str>;
 
     let result = maud! {
         form method="post" action="/register" {
