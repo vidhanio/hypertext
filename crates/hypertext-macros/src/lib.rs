@@ -179,7 +179,7 @@ create_file_variants! {
     html_file html_file_borrow
 }
 
-#[proc_macro_derive(Renderable, attributes(maud, rsx, attribute))]
+#[proc_macro_derive(Renderable, attributes(maud, rsx, attribute, renderable))]
 pub fn derive_renderable(input: TokenStream) -> TokenStream {
     derive::renderable(parse_macro_input!(input))
         .unwrap_or_else(|err| err.to_compile_error())

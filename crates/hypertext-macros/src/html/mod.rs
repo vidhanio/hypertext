@@ -68,7 +68,7 @@ pub type Document<S> = Many<Node<S>>;
 pub trait Context: Generate<Context = Self> {
     fn is_control(&self) -> bool;
 
-    fn marker_type() -> TokenStream;
+    fn marker_type(flavour: NodeFlavour) -> TokenStream;
 
     fn escape(s: &str) -> Cow<'_, str>;
 }
@@ -79,7 +79,7 @@ impl Context for Infallible {
         match *self {}
     }
 
-    fn marker_type() -> TokenStream {
+    fn marker_type(_: NodeFlavour) -> TokenStream {
         TokenStream::new()
     }
 
@@ -105,8 +105,24 @@ impl<S: Syntax> Context for Node<S> {
         matches!(self, Self::Control(_))
     }
 
-    fn marker_type() -> TokenStream {
-        quote!(::hypertext::context::Node)
+    fn marker_type(flavour: NodeFlavour) -> TokenStream {
+        match flavour {
+            NodeFlavour::Html => quote!(::hypertext::context::Node),
+            NodeFlavour::Xml(crate::html::generate::XmlFlavour::Svg) => {
+                quote!(
+                    ::hypertext::context::Node<
+                        ::hypertext::context::Xml<::hypertext::context::Svg>,
+                    >
+                )
+            }
+            NodeFlavour::Xml(crate::html::generate::XmlFlavour::MathMl) => {
+                quote!(
+                    ::hypertext::context::Node<
+                        ::hypertext::context::Xml<::hypertext::context::MathMl>,
+                    >
+                )
+            }
+        }
     }
 
     fn escape(s: &str) -> Cow<'_, str> {
@@ -800,7 +816,7 @@ impl Context for AttributeValue {
         matches!(self, Self::Control(_))
     }
 
-    fn marker_type() -> TokenStream {
+    fn marker_type(_: NodeFlavour) -> TokenStream {
         quote!(::hypertext::context::AttributeValue)
     }
 

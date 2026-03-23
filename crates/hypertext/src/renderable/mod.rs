@@ -11,7 +11,7 @@ use crate::{
     Raw, Rendered,
     alloc::string::String,
     const_precise_live_drops_hack,
-    context::{AttributeValue, Context, Node},
+    context::{AttributeValue, Context, Html, Node, NodeKind},
 };
 
 /// A type that can be rendered as an HTML node.
@@ -227,7 +227,7 @@ pub trait Renderable<C: Context = Node> {
 /// An extension trait for [`Renderable`] types.
 ///
 /// This trait provides an additional method for rendering and memoizing values.
-pub trait RenderableExt: Renderable {
+pub trait RenderableExt<K: NodeKind = Html>: Renderable<Node<K>> {
     /// Renders this value to a [`Rendered<String>`].
     ///
     /// This is usually the final step in rendering a value, converting it
@@ -235,7 +235,7 @@ pub trait RenderableExt: Renderable {
     /// response or written to a file.
     #[inline]
     fn render(&self) -> Rendered<String> {
-        self.to_buffer().rendered()
+        Rendered(self.to_buffer().into_inner())
     }
 
     /// Pre-renders the value and stores it in a [`Raw`] so that it can be
@@ -244,13 +244,13 @@ pub trait RenderableExt: Renderable {
     /// This should generally be avoided to prevent unnecessary allocations, but
     /// may be useful if it is more expensive to compute and render the value.
     #[inline]
-    fn memoize(&self) -> Raw<String> {
+    fn memoize(&self) -> Raw<String, Node<K>> {
         // XSS SAFETY: The value has already been rendered and is assumed as safe.
         Raw::dangerously_create(self.to_buffer().into_inner())
     }
 }
 
-impl<T: Renderable> RenderableExt for T {}
+impl<T: Renderable<Node<K>>, K: NodeKind> RenderableExt<K> for T {}
 
 /// A value lazily rendered via a closure.
 ///
