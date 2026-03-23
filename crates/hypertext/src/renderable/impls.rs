@@ -10,7 +10,7 @@ use crate::{
         sync::Arc,
         vec::Vec,
     },
-    context::{AttributeValue, Context, Node},
+    context::{AttributeValue, Context, Node, NodeKind},
 };
 
 impl<T: AsRef<str>, C: Context> Renderable<C> for Raw<T, C> {
@@ -52,9 +52,9 @@ where
     }
 }
 
-impl Renderable for char {
+impl<K: NodeKind> Renderable<Node<K>> for char {
     #[inline]
-    fn render_to(&self, buffer: &mut Buffer) {
+    fn render_to(&self, buffer: &mut Buffer<Node<K>>) {
         let s = buffer.dangerously_get_string();
         match *self {
             '&' => s.push_str("&amp;"),
@@ -65,7 +65,7 @@ impl Renderable for char {
     }
 
     #[inline]
-    fn to_buffer(&self) -> Buffer<Node> {
+    fn to_buffer(&self) -> Buffer<Node<K>> {
         // XSS SAFETY: we are manually performing escaping here
         Buffer::dangerously_from_string(match *self {
             '&' => "&amp;".into(),
@@ -104,15 +104,15 @@ impl Renderable<AttributeValue> for char {
     }
 }
 
-impl Renderable for str {
+impl<K: NodeKind> Renderable<Node<K>> for str {
     #[inline]
-    fn render_to(&self, buffer: &mut Buffer) {
+    fn render_to(&self, buffer: &mut Buffer<Node<K>>) {
         // XSS SAFETY: we use `html_escape` to ensure the text is properly escaped
         html_escape::encode_text_to_string(self, buffer.dangerously_get_string());
     }
 
     #[inline]
-    fn to_buffer(&self) -> Buffer {
+    fn to_buffer(&self) -> Buffer<Node<K>> {
         // XSS SAFETY: we use `html_escape` to ensure the text is properly escaped
         Buffer::dangerously_from_string(html_escape::encode_text(self).into_owned())
     }
@@ -256,25 +256,25 @@ impl<'a, B: 'a + Renderable<C> + ToOwned + ?Sized, C: Context> Renderable<C> for
     }
 }
 
-impl<T: Renderable> Renderable for [T] {
+impl<T: Renderable<C>, C: Context> Renderable<C> for [T] {
     #[inline]
-    fn render_to(&self, buffer: &mut Buffer) {
+    fn render_to(&self, buffer: &mut Buffer<C>) {
         for item in self {
             item.render_to(buffer);
         }
     }
 }
 
-impl<T: Renderable, const N: usize> Renderable for [T; N] {
+impl<T: Renderable<C>, C: Context, const N: usize> Renderable<C> for [T; N] {
     #[inline]
-    fn render_to(&self, buffer: &mut Buffer) {
+    fn render_to(&self, buffer: &mut Buffer<C>) {
         self.as_slice().render_to(buffer);
     }
 }
 
-impl<T: Renderable> Renderable for Vec<T> {
+impl<T: Renderable<C>, C: Context> Renderable<C> for Vec<T> {
     #[inline]
-    fn render_to(&self, buffer: &mut Buffer) {
+    fn render_to(&self, buffer: &mut Buffer<C>) {
         self.as_slice().render_to(buffer);
     }
 }

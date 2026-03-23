@@ -337,6 +337,16 @@ fn buffer_with_context() {
 }
 
 #[test]
+fn buffer_with_node_context() {
+    use hypertext::context::{Node, Svg, Xml};
+
+    let mut buffer: Buffer<Node<Xml<Svg>>> = Buffer::new();
+    let html_buf: &mut Buffer = buffer.with_context();
+    html_buf.push("<svg>");
+    assert_eq!(buffer.into_inner(), "&lt;svg&gt;");
+}
+
+#[test]
 fn raw_dangerously_create() {
     let raw: Raw<&str> = Raw::dangerously_create("<b>bold</b>");
     assert_eq!(raw.as_str(), "<b>bold</b>");

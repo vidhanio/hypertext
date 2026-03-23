@@ -70,10 +70,15 @@ Notes:
 
 ### Formatting
 
+- Prefer `treefmt` when it is installed/available in the environment:
+  - `treefmt --fail-on-change` for formatting checks
+  - `treefmt` to apply formatting
 - Check formatting (CI):
   - `cargo +nightly fmt --all --check`
 - Apply formatting:
   - `cargo +nightly fmt --all`
+
+If `treefmt` is unavailable, fall back to the `cargo +nightly fmt` commands above.
 
 Why nightly? `rustfmt.toml` uses unstable options (`unstable_features = true`).
 
@@ -91,7 +96,7 @@ Why nightly? `rustfmt.toml` uses unstable options (`unstable_features = true`).
 
 ### Formatting and Imports
 
-- Always run rustfmt using the repository config.
+- Prefer `treefmt` when available; otherwise run rustfmt directly using the repository config.
 - Imports are grouped by rustfmt with `group_imports = "StdExternalCrate"`.
 - Imports are granular at crate level (`imports_granularity = "Crate"`).
 - Preserve existing import ordering; avoid manual style churn.

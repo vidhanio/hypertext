@@ -91,6 +91,22 @@ struct Badge {
     label: String,
 }
 
+#[derive(Builder, Renderable)]
+#[renderable(node = svg)]
+#[maud(circle cx=(self.cx) cy=(self.cy) r=(self.r);)]
+struct SvgCircle {
+    cx: u32,
+    cy: u32,
+    r: u32,
+}
+
+#[derive(Builder, Renderable)]
+#[renderable(node = mathml)]
+#[rsx(<mi>(self.value)</mi>)]
+struct MathIdentifier {
+    value: String,
+}
+
 #[test]
 fn derive_renderable_node_and_attribute() {
     let badge = Badge {
@@ -107,6 +123,39 @@ fn derive_renderable_node_and_attribute() {
     };
     let attr_result = maud! { div title=(attr_badge) {} }.render();
     assert_eq!(attr_result.as_inner(), r#"<div title="hot"></div>"#);
+}
+
+#[test]
+fn derive_renderable_svg_context() {
+    let result = maud! {
+        div {
+            svg {
+                (SvgCircle {
+                    cx: 50,
+                    cy: 50,
+                    r: 40,
+                })
+            }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div><svg><circle cx="50" cy="50" r="40"/></svg></div>"#,
+    );
+}
+
+#[test]
+fn derive_renderable_mathml_context() {
+    let result = mathml::rsx! {
+        <math>
+            <MathIdentifier value=("x".into())>
+        </math>
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), "<math><mi>x</mi></math>");
 }
 
 #[derive(Builder, Renderable)]

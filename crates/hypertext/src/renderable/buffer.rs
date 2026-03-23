@@ -7,7 +7,7 @@ use core::{
 use super::String;
 use crate::{
     Renderable, Rendered,
-    context::{AttributeValue, Context, Node},
+    context::{AttributeValue, Context, Node, NodeKind},
 };
 
 /// A buffer used for rendering HTML.
@@ -145,35 +145,21 @@ impl<C: Context> Buffer<C> {
     #[inline]
     pub fn with_context<C2: Context>(&mut self) -> &mut Buffer<C2>
     where
-        Self: AsMut<Buffer<C2>>,
+        C: compatible::CompatibleWith<C2>,
     {
-        self.as_mut()
+        // SAFETY: `Buffer<C>` is `#[repr(transparent)]` over `String`, and
+        // `CompatibleWith` ensures the caller only changes the zero-sized
+        // context marker in ways that preserve the escaping contract.
+        unsafe { &mut *ptr::from_mut(self).cast::<Buffer<C2>>() }
     }
 }
 
-impl Buffer {
+impl<K: NodeKind> Buffer<Node<K>> {
     /// Renders the buffer to a [`Rendered<String>`].
     #[inline]
     #[must_use]
     pub fn rendered(self) -> Rendered<String> {
         Rendered(self.inner)
-    }
-}
-
-impl<C: Context> AsMut<Self> for Buffer<C> {
-    #[inline]
-    fn as_mut(&mut self) -> &mut Self {
-        self
-    }
-}
-
-impl AsMut<AttributeBuffer> for Buffer {
-    #[inline]
-    fn as_mut(&mut self) -> &mut AttributeBuffer {
-        // SAFETY: Both `Buffer<C>` and `AttributeBuffer` are `#[repr(transparent)]`
-        // wrappers around `String`, differing only in the zero-sized `PhantomData`
-        // marker type.
-        unsafe { &mut *ptr::from_mut(self).cast::<AttributeBuffer>() }
     }
 }
 
@@ -184,9 +170,19 @@ impl<C: Context> Default for Buffer<C> {
     }
 }
 
-impl Debug for Buffer {
+impl<C: Context> Debug for Buffer<C> {
     #[inline]
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Buffer").field(&self.inner).finish()
     }
+}
+
+mod compatible {
+    use crate::context::{AttributeValue, Context, Node, NodeKind};
+
+    pub trait CompatibleWith<C: Context> {}
+
+    impl CompatibleWith<Self> for AttributeValue {}
+    impl<K1: NodeKind, K2: NodeKind> CompatibleWith<Node<K2>> for Node<K1> {}
+    impl<K: NodeKind> CompatibleWith<AttributeValue> for Node<K> {}
 }
