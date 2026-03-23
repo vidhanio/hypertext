@@ -186,7 +186,7 @@ fn renderable_arc() {
 #[test]
 fn renderable_cow_borrowed() {
     use alloc::borrow::Cow;
-    let c: Cow<str> = Cow::Borrowed("borrowed");
+    let c = Cow::<str>::Borrowed("borrowed");
     let result = maud! { (c) }.render();
     assert_eq!(result.as_inner(), "borrowed");
 }
@@ -194,7 +194,7 @@ fn renderable_cow_borrowed() {
 #[test]
 fn renderable_cow_owned() {
     use alloc::borrow::Cow;
-    let c: Cow<str> = Cow::Owned(String::from("owned"));
+    let c = Cow::<str>::Owned(String::from("owned"));
     let result = maud! { (c) }.render();
     assert_eq!(result.as_inner(), "owned");
 }
@@ -215,14 +215,14 @@ fn renderable_option_none() {
 
 #[test]
 fn renderable_result_ok() {
-    let r: Result<&str, &str> = Ok("success");
+    let r = Ok::<&str, &str>("success");
     let result = maud! { (r) }.render();
     assert_eq!(result.as_inner(), "success");
 }
 
 #[test]
 fn renderable_result_err() {
-    let r: Result<&str, &str> = Err("error");
+    let r = Err::<&str, &str>("error");
     let result = maud! { (r) }.render();
     assert_eq!(result.as_inner(), "error");
 }
@@ -279,19 +279,19 @@ fn renderable_triple_tuple() {
 
 #[test]
 fn buffer_new_is_empty() {
-    let buffer: Buffer = Buffer::new();
+    let buffer = Buffer::<hypertext::context::Node>::new();
     assert_eq!(buffer.into_inner(), "");
 }
 
 #[test]
 fn buffer_default_is_empty() {
-    let buffer: Buffer = Buffer::default();
+    let buffer = Buffer::<hypertext::context::Node>::default();
     assert_eq!(buffer.into_inner(), "");
 }
 
 #[test]
 fn buffer_push() {
-    let mut buffer: Buffer = Buffer::new();
+    let mut buffer = Buffer::<hypertext::context::Node>::new();
     buffer.push("hello");
     buffer.push(" ");
     buffer.push("world");
@@ -300,27 +300,27 @@ fn buffer_push() {
 
 #[test]
 fn buffer_push_escapes() {
-    let mut buffer: Buffer = Buffer::new();
+    let mut buffer = Buffer::<hypertext::context::Node>::new();
     buffer.push("<script>");
     assert_eq!(buffer.into_inner(), "&lt;script&gt;");
 }
 
 #[test]
 fn buffer_dangerously_from_string() {
-    let buffer: Buffer = Buffer::dangerously_from_string("<b>bold</b>".into());
+    let buffer = Buffer::<hypertext::context::Node>::dangerously_from_string("<b>bold</b>".into());
     assert_eq!(buffer.into_inner(), "<b>bold</b>");
 }
 
 #[test]
 fn buffer_dangerously_get_string() {
-    let mut buffer: Buffer = Buffer::new();
+    let mut buffer = Buffer::<hypertext::context::Node>::new();
     buffer.dangerously_get_string().push_str("<raw>");
     assert_eq!(buffer.into_inner(), "<raw>");
 }
 
 #[test]
 fn buffer_rendered() {
-    let mut buffer: Buffer = Buffer::new();
+    let mut buffer = Buffer::<hypertext::context::Node>::new();
     buffer.push("hello");
     let rendered = buffer.rendered();
     assert_eq!(rendered.as_inner(), "hello");
@@ -330,7 +330,7 @@ fn buffer_rendered() {
 fn buffer_with_context() {
     use hypertext::context::AttributeValue;
 
-    let mut buffer: Buffer = Buffer::new();
+    let mut buffer = Buffer::<hypertext::context::Node>::new();
     let attr_buf: &mut Buffer<AttributeValue> = buffer.with_context();
     attr_buf.push("a\"b");
     assert_eq!(buffer.into_inner(), "a&quot;b");
@@ -338,9 +338,7 @@ fn buffer_with_context() {
 
 #[test]
 fn buffer_with_node_context() {
-    use hypertext::context::{Node, Svg, Xml};
-
-    let mut buffer: Buffer<Node<Xml<Svg>>> = Buffer::new();
+    let mut buffer = hypertext::SvgBuffer::new();
     let html_buf: &mut Buffer = buffer.with_context();
     html_buf.push("<svg>");
     assert_eq!(buffer.into_inner(), "&lt;svg&gt;");
@@ -348,31 +346,31 @@ fn buffer_with_node_context() {
 
 #[test]
 fn raw_dangerously_create() {
-    let raw: Raw<&str> = Raw::dangerously_create("<b>bold</b>");
+    let raw = Raw::<&str>::dangerously_create("<b>bold</b>");
     assert_eq!(raw.as_str(), "<b>bold</b>");
 }
 
 #[test]
 fn raw_into_inner() {
-    let raw: Raw<&str> = Raw::dangerously_create("test");
+    let raw = Raw::<&str>::dangerously_create("test");
     assert_eq!(raw.into_inner(), "test");
 }
 
 #[test]
 fn raw_as_inner() {
-    let raw: Raw<&str> = Raw::dangerously_create("test");
+    let raw = Raw::<&str>::dangerously_create("test");
     assert_eq!(*raw.as_inner(), "test");
 }
 
 #[test]
 fn raw_as_str() {
-    let raw: Raw<String> = Raw::dangerously_create(String::from("hello"));
+    let raw = Raw::<String>::dangerously_create(String::from("hello"));
     assert_eq!(raw.as_str(), "hello");
 }
 
 #[test]
 fn raw_rendered() {
-    let raw: Raw<&str> = Raw::dangerously_create("<em>italic</em>");
+    let raw = Raw::<&str>::dangerously_create("<em>italic</em>");
     let rendered = raw.rendered();
     assert_eq!(*rendered.as_inner(), "<em>italic</em>");
 }
@@ -389,14 +387,14 @@ fn raw_partial_eq() {
 
 #[test]
 fn raw_debug() {
-    let raw: Raw<&str> = Raw::dangerously_create("hello");
+    let raw = Raw::<&str>::dangerously_create("hello");
     let debug = alloc::format!("{raw:?}");
     assert_eq!(debug, r#"Raw("hello")"#);
 }
 
 #[test]
 fn raw_clone() {
-    let raw: Raw<&str> = Raw::dangerously_create("test");
+    let raw = Raw::<&str>::dangerously_create("test");
     #[expect(clippy::clone_on_copy)]
     let cloned = raw.clone();
     assert_eq!(raw, cloned);
@@ -445,8 +443,18 @@ fn rendered_debug() {
 
 #[test]
 fn rendered_default() {
-    let rendered: Rendered<String> = Rendered::default();
+    let rendered = Rendered::<String>::default();
     assert_eq!(rendered.into_inner(), "");
+}
+
+#[test]
+fn rendered_svg_type() {
+    let rendered: hypertext::RenderedSvg<String> = svg::maud! { svg {} }.render();
+    assert_eq!(rendered.as_inner(), "<svg></svg>");
+
+    let defaulted: hypertext::RenderedSvg<&str> =
+        hypertext::RawSvg::<_>::dangerously_create("<svg/>").rendered();
+    assert_eq!(defaulted.as_inner(), &"<svg/>");
 }
 
 #[test]

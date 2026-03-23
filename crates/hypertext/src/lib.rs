@@ -131,7 +131,9 @@ use core::{fmt::Debug, marker::PhantomData};
 
 pub use bon::{self, Builder};
 
-use self::context::{AttributeValue, Context, Node};
+use self::context::{
+    AttributeValue, Context, Html, MathMl, MathMlNode, Node, NodeKind, Svg, SvgNode, Xml,
+};
 pub use self::macros::*;
 #[cfg(feature = "alloc")]
 pub use self::renderable::*;
@@ -213,14 +215,15 @@ impl<T: AsRef<str>, C: Context> Raw<T, C> {
     }
 }
 
-impl<T: AsRef<str>> Raw<T> {
-    /// Converts the [`Raw<T>`] into a [`Rendered<T>`].
+impl<T: AsRef<str>, K: NodeKind> Raw<T, Node<K>> {
+    /// Converts the [`Raw<T>`] into a [`Rendered<T, K>`].
     #[inline]
     #[must_use]
-    pub const fn rendered(self) -> Rendered<T> {
-        // SAFETY: `Raw<T>` has exactly one non-zero-sized field, which is `inner`.
+    pub const fn rendered(self) -> Rendered<T, K> {
+        // SAFETY: `Raw<T, Node<K>>` has exactly one non-zero-sized field, which is
+        // `inner`.
         let value = unsafe { const_precise_live_drops_hack!(self.inner) };
-        Rendered(value)
+        Rendered::new(value)
     }
 }
 
@@ -243,23 +246,38 @@ impl<T: AsRef<str>, C: Context> Debug for Raw<T, C> {
 /// This is a type alias for [`Raw<T, Attribute>`].
 pub type RawAttribute<T> = Raw<T, AttributeValue>;
 
-/// A rendered HTML string.
+/// A raw pre-escaped SVG node string.
 ///
-/// This type is returned by [`RenderableExt::render`] ([`Rendered<String>`]),
-/// as well as [`Raw<T>::rendered`] ([`Rendered<T>`]).
+/// This is a type alias for [`Raw<T, SvgNode>`].
+pub type RawSvg<T> = Raw<T, SvgNode>;
+
+/// A raw pre-escaped MathML node string.
+///
+/// This is a type alias for [`Raw<T, MathMlNode>`].
+pub type RawMathMl<T> = Raw<T, MathMlNode>;
+
+/// A rendered node string.
+///
+/// This type is returned by [`RenderableExt::render`] ([`Rendered<String,
+/// K>`]), as well as [`Raw<T, Node<K>>::rendered`] ([`Rendered<T, K>`]).
 ///
 /// This type intentionally does **not** implement [`Renderable`] to discourage
 /// anti-patterns such as rendering to a string then embedding that HTML string
 /// into another page. To do this, you should use [`RenderableExt::memoize`], or
 /// use [`Raw`] directly.
-#[derive(Debug, Clone, Copy, Default, Eq, Hash)]
-pub struct Rendered<T>(T);
+#[derive(Clone, Copy, Default, Eq, Hash)]
+pub struct Rendered<T, K: NodeKind = Html>(T, PhantomData<K>);
 
-impl<T> Rendered<T> {
+impl<T, K: NodeKind> Rendered<T, K> {
+    #[inline]
+    const fn new(value: T) -> Self {
+        Self(value, PhantomData)
+    }
+
     /// Extracts the inner value.
     #[inline]
     pub const fn into_inner(self) -> T {
-        // SAFETY: `Rendered<T>` has only one field, which is `0`.
+        // SAFETY: `Rendered<T, K>` has only one non-zero-sized field, which is `0`.
         unsafe { const_precise_live_drops_hack!(self.0) }
     }
 
@@ -270,10 +288,27 @@ impl<T> Rendered<T> {
     }
 }
 
-impl<T: PartialEq<U>, U> PartialEq<Rendered<U>> for Rendered<T> {
+impl<T: PartialEq<U>, U, K: NodeKind> PartialEq<Rendered<U, K>> for Rendered<T, K> {
     #[inline]
-    fn eq(&self, other: &Rendered<U>) -> bool {
+    fn eq(&self, other: &Rendered<U, K>) -> bool {
         self.0 == other.0
+    }
+}
+
+/// A rendered SVG node string.
+///
+/// This is a type alias for [`Rendered<T, Xml<Svg>>`].
+pub type RenderedSvg<T> = Rendered<T, Xml<Svg>>;
+
+/// A rendered MathML node string.
+///
+/// This is a type alias for [`Rendered<T, Xml<MathMl>>`].
+pub type RenderedMathMl<T> = Rendered<T, Xml<MathMl>>;
+
+impl<T: Debug, K: NodeKind> Debug for Rendered<T, K> {
+    #[inline]
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_tuple("Rendered").field(&self.0).finish()
     }
 }
 
