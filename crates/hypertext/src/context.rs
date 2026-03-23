@@ -67,6 +67,12 @@ pub struct AttributeValue;
 
 impl Context for AttributeValue {}
 
+/// An SVG node rendering context.
+pub type SvgNode = Node<Xml<Svg>>;
+
+/// A MathML node rendering context.
+pub type MathMlNode = Node<Xml<MathMl>>;
+
 mod sealed {
     use super::{AttributeValue, Html, MathMl, Node, NodeKind, Svg, Xml, XmlKind};
 

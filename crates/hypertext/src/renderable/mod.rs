@@ -11,7 +11,7 @@ use crate::{
     Raw, Rendered,
     alloc::string::String,
     const_precise_live_drops_hack,
-    context::{AttributeValue, Context, Html, Node, NodeKind},
+    context::{AttributeValue, Context, MathMlNode, Node, NodeKind, SvgNode},
 };
 
 /// A type that can be rendered as an HTML node.
@@ -226,16 +226,20 @@ pub trait Renderable<C: Context = Node> {
 
 /// An extension trait for [`Renderable`] types.
 ///
-/// This trait provides an additional method for rendering and memoizing values.
-pub trait RenderableExt<K: NodeKind = Html>: Renderable<Node<K>> {
-    /// Renders this value to a [`Rendered<String>`].
+/// This trait provides helpers for any render context, while [`render`] is only
+/// available for node renderables.
+pub trait RenderableExt<C: Context = Node>: Renderable<C> {
+    /// Renders this value to a [`Rendered<String, K>`].
     ///
     /// This is usually the final step in rendering a value, converting it
-    /// into a [`Rendered<String>`](Rendered) that can be returned as an HTTP
+    /// into a [`Rendered<String, K>`](Rendered) that can be returned as an HTTP
     /// response or written to a file.
     #[inline]
-    fn render(&self) -> Rendered<String> {
-        Rendered(self.to_buffer().into_inner())
+    fn render<K: NodeKind>(&self) -> Rendered<String, K>
+    where
+        Self: Renderable<Node<K>>,
+    {
+        Rendered::new(Renderable::<Node<K>>::to_buffer(self).into_inner())
     }
 
     /// Pre-renders the value and stores it in a [`Raw`] so that it can be
@@ -244,13 +248,13 @@ pub trait RenderableExt<K: NodeKind = Html>: Renderable<Node<K>> {
     /// This should generally be avoided to prevent unnecessary allocations, but
     /// may be useful if it is more expensive to compute and render the value.
     #[inline]
-    fn memoize(&self) -> Raw<String, Node<K>> {
+    fn memoize(&self) -> Raw<String, C> {
         // XSS SAFETY: The value has already been rendered and is assumed as safe.
         Raw::dangerously_create(self.to_buffer().into_inner())
     }
 }
 
-impl<T: Renderable<Node<K>>, K: NodeKind> RenderableExt<K> for T {}
+impl<T: Renderable<C>, C: Context> RenderableExt<C> for T {}
 
 /// A value lazily rendered via a closure.
 ///
@@ -273,6 +277,16 @@ pub struct Lazy<F: Fn(&mut Buffer<C>), C: Context = Node> {
 ///
 /// This is a type alias for [`Lazy<F, AttributeValue>`].
 pub type LazyAttribute<F> = Lazy<F, AttributeValue>;
+
+/// An SVG node lazily rendered via a closure.
+///
+/// This is a type alias for [`Lazy<F, SvgNode>`].
+pub type LazySvg<F> = Lazy<F, SvgNode>;
+
+/// A MathML node lazily rendered via a closure.
+///
+/// This is a type alias for [`Lazy<F, MathMlNode>`].
+pub type LazyMathMl<F> = Lazy<F, MathMlNode>;
 
 impl<F: Fn(&mut Buffer<C>), C: Context> Lazy<F, C> {
     /// Creates a new [`Lazy`] from the given closure.

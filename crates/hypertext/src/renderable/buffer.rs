@@ -7,7 +7,7 @@ use core::{
 use super::String;
 use crate::{
     Renderable, Rendered,
-    context::{AttributeValue, Context, Node, NodeKind},
+    context::{AttributeValue, Context, MathMlNode, Node, NodeKind, SvgNode},
 };
 
 /// A buffer used for rendering HTML.
@@ -26,6 +26,16 @@ pub struct Buffer<C: Context = Node> {
 ///
 /// This is a type alias for [`Buffer<AttributeValue>`].
 pub type AttributeBuffer = Buffer<AttributeValue>;
+
+/// A buffer used for rendering SVG nodes.
+///
+/// This is a type alias for [`Buffer<SvgNode>`].
+pub type SvgBuffer = Buffer<SvgNode>;
+
+/// A buffer used for rendering MathML nodes.
+///
+/// This is a type alias for [`Buffer<MathMlNode>`].
+pub type MathMlBuffer = Buffer<MathMlNode>;
 
 #[expect(
     clippy::missing_const_for_fn,
@@ -155,11 +165,11 @@ impl<C: Context> Buffer<C> {
 }
 
 impl<K: NodeKind> Buffer<Node<K>> {
-    /// Renders the buffer to a [`Rendered<String>`].
+    /// Renders the buffer to a [`Rendered<String, K>`].
     #[inline]
     #[must_use]
-    pub fn rendered(self) -> Rendered<String> {
-        Rendered(self.inner)
+    pub fn rendered(self) -> Rendered<String, K> {
+        Rendered::new(self.inner)
     }
 }
 

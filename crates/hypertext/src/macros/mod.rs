@@ -156,8 +156,8 @@ pub use hypertext_macros::html;
 /// ```
 /// use hypertext::prelude::*;
 ///
-/// let title: Option<&str> = Some("Hello");
-/// let label: Option<&str> = None;
+/// let title = Some::<&str>("Hello");
+/// let label = None::<&str>;
 ///
 /// assert_eq!(
 ///     maud! {
@@ -178,7 +178,7 @@ pub use hypertext_macros::html;
 /// use hypertext::prelude::*;
 ///
 /// let active = true;
-/// let extra: Option<&str> = Some("highlighted");
+/// let extra = Some::<&str>("highlighted");
 ///
 /// assert_eq!(
 ///     maud! {
@@ -269,8 +269,8 @@ pub use hypertext_macros::maud;
 /// ```
 /// use hypertext::prelude::*;
 ///
-/// let title: Option<&str> = Some("Hello");
-/// let label: Option<&str> = None;
+/// let title = Some::<&str>("Hello");
+/// let label = None::<&str>;
 ///
 /// assert_eq!(
 ///     rsx! {
