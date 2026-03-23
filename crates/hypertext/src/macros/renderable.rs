@@ -87,6 +87,38 @@
 /// );
 /// ```
 ///
+/// ## `#[renderable(node = ...)]`
+///
+/// When deriving a node renderable with `#[maud(...)]` or `#[rsx(...)]`, you
+/// can override the node context used by the generated implementation.
+///
+/// This is useful for SVG and MathML renderables so they only type-check in the
+/// corresponding macro context.
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// #[derive(Renderable)]
+/// #[renderable(node = svg)]
+/// #[maud(circle cx=(self.cx) cy=(self.cy) r=(self.r);)]
+/// struct Circle {
+///     cx: u32,
+///     cy: u32,
+///     r: u32,
+/// }
+///
+/// assert_eq!(
+///     svg::maud! {
+///         svg {
+///             (Circle { cx: 50, cy: 50, r: 40 })
+///         }
+///     }
+///     .render()
+///     .as_inner(),
+///     r#"<svg><circle cx="50" cy="50" r="40"/></svg>"#,
+/// );
+/// ```
+///
 /// ## Using with [`#[derive(Builder)]`](crate::Builder)
 ///
 /// Combining [`#[derive(Renderable)]`](derive@crate::Renderable) with

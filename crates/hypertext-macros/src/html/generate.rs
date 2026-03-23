@@ -127,7 +127,7 @@ impl Config {
 
             let buffer_ident = Generator::buffer_ident();
 
-            let ctx = T::Context::marker_type();
+            let ctx = T::Context::marker_type(flavour);
 
             Ok(quote! {
                 ::hypertext::Lazy::<_, #ctx>::dangerously_create(
@@ -144,7 +144,7 @@ impl Config {
 
             let literal = g.finish().to_token_stream();
 
-            let ctx = T::Context::marker_type();
+            let ctx = T::Context::marker_type(flavour);
 
             Ok(quote! {
                 ::hypertext::Raw::<_, #ctx>::dangerously_create(#literal)
@@ -349,7 +349,7 @@ impl Generator {
 
     pub fn push_expr<C: Context>(&mut self, paren_token: Paren, expr: impl ToTokens) {
         let buffer_ident = Self::buffer_ident();
-        let ctx = C::marker_type();
+        let ctx = C::marker_type(self.flavour);
         let buffer_expr = quote!(#buffer_ident.with_context::<#ctx>());
 
         let mut paren_expr = TokenStream::new();

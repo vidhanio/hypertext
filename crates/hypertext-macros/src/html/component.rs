@@ -6,7 +6,7 @@ use syn::{
     token::{Brace, Paren},
 };
 
-use super::{AttributeValue, ElementBody, Generate, Generator, ParenExpr, Syntax};
+use super::{AttributeValue, Context, ElementBody, Generate, Generator, ParenExpr, Syntax};
 use crate::html::Node;
 
 pub struct Component<S: Syntax> {
@@ -28,14 +28,15 @@ impl<S: Syntax> Generate for Component<S> {
         let children = match &self.body {
             ElementBody::Normal { children, .. } => {
                 let buffer_ident = Generator::buffer_ident();
+                let ctx = <Self::Context as Context>::marker_type(g.node_flavour());
 
                 let block = g.block_with(Brace::default(), |g| {
                     g.push(children);
                 });
 
                 let lazy = quote! {
-                    ::hypertext::Lazy::dangerously_create(
-                        |#buffer_ident: &mut ::hypertext::Buffer|
+                    ::hypertext::Lazy::<_, #ctx>::dangerously_create(
+                        |#buffer_ident: &mut ::hypertext::Buffer<#ctx>|
                             #block
                     )
                 };
