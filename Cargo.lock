@@ -2021,9 +2021,9 @@ dependencies = [
 
 [[package]]
 name = "ntex"
-version = "3.6.2"
+version = "3.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c87511395aa4a6474cbb1725bbfcba4225a1948181a816e7f52215c74bbe7e48"
+checksum = "4a3a3c15c64dffe92d1129a8bc9ae94cd5439454506e2b79ff16768c445f9e6e"
 dependencies = [
  "base64 0.22.1",
  "bitflags",
@@ -2096,9 +2096,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-error"
-version = "1.5.2"
+version = "1.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa732fdf046aa0e3955dbab02f227015b3c688998af3994ceff749f1b4666f0d"
+checksum = "f7bb3e254d4cdac9d78130b4c748958f9fd718672d67d0b03b0b25764fe7167c"
 dependencies = [
  "backtrace",
  "foldhash 0.2.0",
@@ -2238,9 +2238,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-rt"
-version = "3.11.0"
+version = "3.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01a425cd5e5786f7102ce234734878eaa002a86f2a84410ea54e904d4bbc5b3c"
+checksum = "337274f305e2b0238d611ec871e49d79dcb331daae34af0cd08095c4e036fd54"
 dependencies = [
  "async-channel 2.5.0",
  "async-task",
