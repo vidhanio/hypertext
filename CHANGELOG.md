@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0](https://github.com/vidhanio/hypertext/compare/hypertext-v0.12.1...hypertext-v0.13.0) - 2026-03-26
+
+### Added
+
+- opengraph property (closes #196)
+- huge refactor
+
+### Fixed
+
+- allow slash in class/id shorthand values (closes #190)
+- re-add @youwen5 site
+- docs
+- ci
+
+### Other
+
+- svg ([#187](https://github.com/vidhanio/hypertext/pull/187))
+- Update projects list in README.md
+- alias rsx*! macros to html*! macros and add file support ([#185](https://github.com/vidhanio/hypertext/pull/185))
+- Using builder for component instantiation ([#183](https://github.com/vidhanio/hypertext/pull/183))
+- optional attrs (closes #182)
+- Add HTMX attributes for SSE and WS extensions ([#177](https://github.com/vidhanio/hypertext/pull/177))
+- fmt
+- Add my website to "Projects using hypertext" ([#161](https://github.com/vidhanio/hypertext/pull/161))
+
 ## [0.12.1](https://github.com/vidhanio/hypertext/compare/hypertext-v0.12.0...hypertext-v0.12.1) - 2025-08-09
 
 ### Other
