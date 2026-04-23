@@ -309,10 +309,7 @@ fn svg_borrow() {
 
 #[test]
 fn svg_simple() {
-    const SVG: hypertext::Raw<
-        &str,
-        hypertext::context::Node<hypertext::context::Xml<hypertext::context::Svg>>,
-    > = svg::maud::simple! {
+    const SVG: hypertext::Raw<&str, hypertext::context::SvgNode> = svg::maud::simple! {
         svg width="50" height="50" {
             rect width="50" height="50" fill="green";
         }
@@ -326,10 +323,7 @@ fn svg_simple() {
 
 #[test]
 fn svg_rsx_simple() {
-    const SVG: hypertext::Raw<
-        &str,
-        hypertext::context::Node<hypertext::context::Xml<hypertext::context::Svg>>,
-    > = svg::rsx::simple! {
+    const SVG: hypertext::Raw<&str, hypertext::context::SvgNode> = svg::rsx::simple! {
         <svg width="50" height="50">
             <rect width="50" height="50" fill="green" />
         </svg>
@@ -417,10 +411,7 @@ fn mathml_borrow() {
 
 #[test]
 fn mathml_simple() {
-    const MATH: hypertext::Raw<
-        &str,
-        hypertext::context::Node<hypertext::context::Xml<hypertext::context::MathMl>>,
-    > = mathml::maud::simple! {
+    const MATH: hypertext::Raw<&str, hypertext::context::MathMlNode> = mathml::maud::simple! {
         math {
             mi { "e" }
             mo { "=" }
@@ -649,10 +640,7 @@ fn xml_declaration_parity() {
 
 #[test]
 fn svg_simple_xml_declaration() {
-    const SVG: hypertext::Raw<
-        &str,
-        hypertext::context::Node<hypertext::context::Xml<hypertext::context::Svg>>,
-    > = svg::maud::simple! {
+    const SVG: hypertext::Raw<&str, hypertext::context::SvgNode> = svg::maud::simple! {
         !xml
         svg width="50" height="50" {
             rect width="50" height="50" fill="red";
@@ -761,10 +749,7 @@ fn mathml_rsx_borrow() {
 
 #[test]
 fn mathml_rsx_simple() {
-    const MATH: hypertext::Raw<
-        &str,
-        hypertext::context::Node<hypertext::context::Xml<hypertext::context::MathMl>>,
-    > = mathml::rsx::simple! {
+    const MATH: hypertext::Raw<&str, hypertext::context::MathMlNode> = mathml::rsx::simple! {
         <math>
             <mi>a</mi>
             <mo>"+"</mo>

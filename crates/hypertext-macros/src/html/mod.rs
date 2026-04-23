@@ -111,14 +111,14 @@ impl<S: Syntax> Context for Node<S> {
             NodeFlavour::Xml(crate::html::generate::XmlFlavour::Svg) => {
                 quote!(
                     ::hypertext::context::Node<
-                        ::hypertext::context::Xml<::hypertext::context::Svg>,
+                        ::hypertext::context::Svg,
                     >
                 )
             }
             NodeFlavour::Xml(crate::html::generate::XmlFlavour::MathMl) => {
                 quote!(
                     ::hypertext::context::Node<
-                        ::hypertext::context::Xml<::hypertext::context::MathMl>,
+                        ::hypertext::context::MathMl,
                     >
                 )
             }

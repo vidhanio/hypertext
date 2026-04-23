@@ -1,4 +1,4 @@
-use crate::context::{Html, NodeKind, Svg, Xml};
+use crate::context::{Html, MathMl, NodeKind, Svg};
 
 #[allow(dead_code)]
 const HTML_CONTENT_TYPE: &str = "text/html; charset=utf-8";
@@ -16,11 +16,11 @@ impl ResponseMarkup for Html {
     const CONTENT_TYPE: &'static str = HTML_CONTENT_TYPE;
 }
 
-impl ResponseMarkup for Xml<Svg> {
+impl ResponseMarkup for Svg {
     const CONTENT_TYPE: &'static str = SVG_CONTENT_TYPE;
 }
 
-impl ResponseMarkup for Xml<crate::context::MathMl> {
+impl ResponseMarkup for MathMl {
     const CONTENT_TYPE: &'static str = MATHML_CONTENT_TYPE;
 }
 
