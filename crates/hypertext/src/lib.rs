@@ -132,7 +132,7 @@ use core::{fmt::Debug, marker::PhantomData};
 pub use bon::{self, Builder};
 
 use self::context::{
-    AttributeValue, Context, Html, MathMl, MathMlNode, Node, NodeKind, Svg, SvgNode, Xml,
+    AttributeValue, Context, Html, MathMl, MathMlNode, Node, NodeKind, Svg, SvgNode,
 };
 pub use self::macros::*;
 #[cfg(feature = "alloc")]
@@ -297,13 +297,13 @@ impl<T: PartialEq<U>, U, K: NodeKind> PartialEq<Rendered<U, K>> for Rendered<T, 
 
 /// A rendered SVG node string.
 ///
-/// This is a type alias for [`Rendered<T, Xml<Svg>>`].
-pub type RenderedSvg<T> = Rendered<T, Xml<Svg>>;
+/// This is a type alias for [`Rendered<T, Svg>`].
+pub type RenderedSvg<T> = Rendered<T, Svg>;
 
 /// A rendered MathML node string.
 ///
-/// This is a type alias for [`Rendered<T, Xml<MathMl>>`].
-pub type RenderedMathMl<T> = Rendered<T, Xml<MathMl>>;
+/// This is a type alias for [`Rendered<T, MathMl>`].
+pub type RenderedMathMl<T> = Rendered<T, MathMl>;
 
 impl<T: Debug, K: NodeKind> Debug for Rendered<T, K> {
     #[inline]
