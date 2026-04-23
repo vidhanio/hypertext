@@ -17,32 +17,23 @@ pub trait Context: sealed::Sealed {}
 /// A marker trait for node kinds.
 pub trait NodeKind: sealed::Sealed {}
 
-/// A marker trait for XML node kinds.
-pub trait XmlKind: sealed::Sealed {}
-
 /// A marker type to represent HTML nodes.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Html;
 
 impl NodeKind for Html {}
 
-/// A marker type to represent XML nodes.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct Xml<K: XmlKind>(PhantomData<K>);
-
-impl<K: XmlKind> NodeKind for Xml<K> {}
-
 /// A marker type to represent SVG nodes.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Svg;
 
-impl XmlKind for Svg {}
+impl NodeKind for Svg {}
 
 /// A marker type to represent MathML nodes.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct MathMl;
 
-impl XmlKind for MathMl {}
+impl NodeKind for MathMl {}
 
 /// A marker type to represent a complete element node.
 ///
@@ -68,19 +59,18 @@ pub struct AttributeValue;
 impl Context for AttributeValue {}
 
 /// An SVG node rendering context.
-pub type SvgNode = Node<Xml<Svg>>;
+pub type SvgNode = Node<Svg>;
 
 /// A MathML node rendering context.
-pub type MathMlNode = Node<Xml<MathMl>>;
+pub type MathMlNode = Node<MathMl>;
 
 mod sealed {
-    use super::{AttributeValue, Html, MathMl, Node, NodeKind, Svg, Xml, XmlKind};
+    use super::{AttributeValue, Html, MathMl, Node, NodeKind, Svg};
 
     pub trait Sealed {}
     impl Sealed for Html {}
     impl Sealed for Svg {}
     impl Sealed for MathMl {}
-    impl<K: XmlKind> Sealed for Xml<K> {}
     impl<K: NodeKind> Sealed for Node<K> {}
     impl Sealed for AttributeValue {}
 }
