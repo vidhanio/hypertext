@@ -353,45 +353,14 @@ pub struct AttributeSymbol;
 /// ```
 #[macro_export]
 macro_rules! define_elements {
-    {
-        $(
-            $(#[$meta:meta])*
-            $name:ident $(
-                {
-                    $(
-                        $(#[$attr_meta:meta])*
-                        $attr:ident
-                    )*
-                }
-            )?
-        )*
-    } => {
-        $(
-            $(#[$meta])*
-            #[expect(
-                non_camel_case_types,
-                reason = "camel case types will be interpreted as renderable structs"
-            )]
-            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
-            pub struct $name;
-
-            $(
-                #[allow(non_upper_case_globals)]
-                impl $name {
-                    $(
-                        $(#[$attr_meta])*
-                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
-                    )*
-                }
-            )?
-
-            impl $crate::validation::Element for $name {
-                type Kind = $crate::validation::Normal;
-            }
-
-            impl $crate::validation::attributes::GlobalAttributes for $name {}
-        )*
-    }
+    ($($elements:tt)*) => {
+        $crate::__define_elements! {
+            [$crate::validation::Normal]
+            [$crate::validation::attributes::GlobalAttributes]
+            {}
+            $($elements)*
+        }
+    };
 }
 
 /// Define custom SVG elements.
@@ -431,49 +400,19 @@ macro_rules! define_elements {
 /// ```
 #[macro_export]
 macro_rules! define_svg_elements {
-    {
-        $(
-            $(#[$meta:meta])*
-            $name:ident $(
-                {
-                    $(
-                        $(#[$attr_meta:meta])*
-                        $attr:ident
-                    )*
-                }
-            )?
-        )*
-    } => {
-        $(
-            $(#[$meta])*
-            #[expect(
-                non_camel_case_types,
-                reason = "camel case types will be interpreted as renderable structs"
-            )]
-            #[allow(
-                clippy::too_long_first_doc_paragraph,
-                reason = "doc comments are passed through from element definitions"
-            )]
-            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
-            pub struct $name;
-
-            $(
-                #[allow(non_upper_case_globals)]
-                impl $name {
-                    $(
-                        $(#[$attr_meta])*
-                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
-                    )*
-                }
-            )?
-
-            impl $crate::validation::Element for $name {
-                type Kind = $crate::validation::Xml;
+    ($($elements:tt)*) => {
+        $crate::__define_elements! {
+            [$crate::validation::Xml]
+            [$crate::validation::attributes::SvgGlobalAttributes]
+            {
+                #[allow(
+                    clippy::too_long_first_doc_paragraph,
+                    reason = "doc comments are passed through from element definitions"
+                )]
             }
-
-            impl $crate::validation::attributes::SvgGlobalAttributes for $name {}
-        )*
-    }
+            $($elements)*
+        }
+    };
 }
 
 /// Define custom MathML elements.
@@ -513,45 +452,14 @@ macro_rules! define_svg_elements {
 /// ```
 #[macro_export]
 macro_rules! define_mathml_elements {
-    {
-        $(
-            $(#[$meta:meta])*
-            $name:ident $(
-                {
-                    $(
-                        $(#[$attr_meta:meta])*
-                        $attr:ident
-                    )*
-                }
-            )?
-        )*
-    } => {
-        $(
-            $(#[$meta])*
-            #[expect(
-                non_camel_case_types,
-                reason = "camel case types will be interpreted as renderable structs"
-            )]
-            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
-            pub struct $name;
-
-            $(
-                #[allow(non_upper_case_globals)]
-                impl $name {
-                    $(
-                        $(#[$attr_meta])*
-                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
-                    )*
-                }
-            )?
-
-            impl $crate::validation::Element for $name {
-                type Kind = $crate::validation::Xml;
-            }
-
-            impl $crate::validation::attributes::MathMlGlobalAttributes for $name {}
-        )*
-    }
+    ($($elements:tt)*) => {
+        $crate::__define_elements! {
+            [$crate::validation::Xml]
+            [$crate::validation::attributes::MathMlGlobalAttributes]
+            {}
+            $($elements)*
+        }
+    };
 }
 
 /// Define custom void elements.
@@ -589,7 +497,24 @@ macro_rules! define_mathml_elements {
 /// ```
 #[macro_export]
 macro_rules! define_void_elements {
+    ($($elements:tt)*) => {
+        $crate::__define_elements! {
+            [$crate::validation::Void]
+            [$crate::validation::attributes::GlobalAttributes]
+            {}
+            $($elements)*
+        }
+    };
+}
+
+/// Shared implementation for the custom element definition macros.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __define_elements {
     {
+        [$kind:path]
+        [$global_attributes:path]
+        $extra_meta:tt
         $(
             $(#[$meta:meta])*
             $name:ident $(
@@ -603,29 +528,65 @@ macro_rules! define_void_elements {
         )*
     } => {
         $(
-            $(#[$meta])*
-            #[expect(
-                non_camel_case_types,
-                reason = "camel case types will be interpreted as renderable structs"
-            )]
-            #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
-            pub struct $name;
-
-            $(
-                #[allow(non_upper_case_globals)]
-                impl $name {
-                    $(
-                        $(#[$attr_meta])*
-                        pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
-                    )*
-                }
-            )?
-
-            impl $crate::validation::Element for $name {
-                type Kind = $crate::validation::Void;
+            $crate::__define_element! {
+                [$kind]
+                [$global_attributes]
+                $extra_meta
+                $(#[$meta])*
+                $name $(
+                    {
+                        $(
+                            $(#[$attr_meta])*
+                            $attr
+                        )*
+                    }
+                )?
             }
-
-            impl $crate::validation::attributes::GlobalAttributes for $name {}
         )*
-    }
+    };
+}
+
+/// Shared implementation for one custom element definition.
+#[doc(hidden)]
+#[macro_export]
+macro_rules! __define_element {
+    {
+        [$kind:path]
+        [$global_attributes:path]
+        {$(#[$extra_meta:meta])*}
+        $(#[$meta:meta])*
+        $name:ident $(
+            {
+                $(
+                    $(#[$attr_meta:meta])*
+                    $attr:ident
+                )*
+            }
+        )?
+    } => {
+        $(#[$meta])*
+        $(#[$extra_meta])*
+        #[expect(
+            non_camel_case_types,
+            reason = "camel case types will be interpreted as renderable structs"
+        )]
+        #[derive(::core::fmt::Debug, ::core::clone::Clone, ::core::marker::Copy)]
+        pub struct $name;
+
+        $(
+            #[allow(non_upper_case_globals)]
+            impl $name {
+                $(
+                    $(#[$attr_meta])*
+                    pub const $attr: $crate::validation::Attribute = $crate::validation::Attribute;
+                )*
+            }
+        )?
+
+        impl $crate::validation::Element for $name {
+            type Kind = $kind;
+        }
+
+        impl $global_attributes for $name {}
+    };
 }
