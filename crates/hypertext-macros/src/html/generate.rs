@@ -1,15 +1,9 @@
-use std::{
-    collections::BTreeMap,
-    convert::Infallible,
-    iter,
-    ops::{Deref, DerefMut},
-    path::PathBuf,
-};
+use std::{collections::BTreeMap, convert::Infallible, iter, path::PathBuf};
 
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, quote, quote_spanned};
 use syn::{
-    Error, LitStr, braced,
+    Error, LitStr,
     parse::Parse,
     token::{Brace, Paren},
 };
@@ -431,6 +425,10 @@ impl Checks {
     fn append(&mut self, other: &mut Self) {
         self.0.append(&mut other.0);
     }
+
+    fn push(&mut self, check: ElementCheck) {
+        self.0.push(check);
+    }
 }
 
 impl ToTokens for Checks {
@@ -466,20 +464,6 @@ impl ToTokens for Checks {
             }
             .to_tokens(tokens);
         }
-    }
-}
-
-impl Deref for Checks {
-    type Target = Vec<ElementCheck>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for Checks {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 
@@ -615,17 +599,6 @@ impl ToTokens for AttributeCheckKind {
 pub struct AnyBlock {
     pub brace_token: Brace,
     pub stmts: TokenStream,
-}
-
-impl Parse for AnyBlock {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let content;
-
-        Ok(Self {
-            brace_token: braced!(content in input),
-            stmts: content.parse()?,
-        })
-    }
 }
 
 impl ToTokens for AnyBlock {

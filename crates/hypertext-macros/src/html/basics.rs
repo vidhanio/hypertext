@@ -1,7 +1,6 @@
 use std::fmt::{self, Display, Formatter, Write};
 
-use proc_macro2::{Span, TokenStream};
-use quote::ToTokens;
+use proc_macro2::Span;
 use syn::{
     Error, Ident, LitBool, LitChar, LitFloat, LitInt, LitStr, Token,
     ext::IdentExt,
@@ -273,18 +272,6 @@ impl Parse for Literal {
             Ok(Self::Char(lit))
         } else {
             Err(lookahead.error())
-        }
-    }
-}
-
-impl ToTokens for Literal {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            Self::Str(lit) => lit.to_tokens(tokens),
-            Self::Int(lit) => lit.to_tokens(tokens),
-            Self::Bool(lit) => lit.to_tokens(tokens),
-            Self::Float(lit) => lit.to_tokens(tokens),
-            Self::Char(lit) => lit.to_tokens(tokens),
         }
     }
 }
