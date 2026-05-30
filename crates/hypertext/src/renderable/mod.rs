@@ -213,7 +213,7 @@ pub trait Renderable<C: Context = Node> {
     ///
     /// This may be overridden if `Self` is a string-like pre-escaped type that
     /// can more efficiently be turned into a [`Buffer<C>`] via
-    /// [`Buffer::dangerously_from_string`]. If overriden, the
+    /// [`Buffer::dangerously_from_string`]. If overridden, the
     /// implementation must match what [`render_to`](Renderable::render_to)
     /// would produce.
     #[inline]
