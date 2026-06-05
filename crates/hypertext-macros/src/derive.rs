@@ -11,10 +11,7 @@ use crate::html::{
 pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
     let node = renderable_node_attr(&input)?;
 
-    match (
-        renderable_node(&input, node.as_ref()),
-        renderable_attribute(&input),
-    ) {
+    match (renderable_node(&input, node), renderable_attribute(&input)) {
         (Ok(None), Ok(None)) => Err(Error::new(
             Span::call_site(),
             "expected at least one of `#[maud(...)]`, `#[rsx(...)]`, or `#[attribute(...)]`",
@@ -31,33 +28,7 @@ pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
     }
 }
 
-struct RenderableNode {
-    flavour: NodeFlavour,
-}
-
-impl RenderableNode {
-    fn marker_type(&self) -> TokenStream {
-        match self.flavour {
-            NodeFlavour::Html => quote!(::hypertext::context::Node),
-            NodeFlavour::Xml(crate::html::generate::XmlFlavour::Svg) => {
-                quote!(
-                    ::hypertext::context::Node<
-                        ::hypertext::context::Svg,
-                    >
-                )
-            }
-            NodeFlavour::Xml(crate::html::generate::XmlFlavour::MathMl) => {
-                quote!(
-                    ::hypertext::context::Node<
-                        ::hypertext::context::MathMl,
-                    >
-                )
-            }
-        }
-    }
-}
-
-fn renderable_node_attr(input: &DeriveInput) -> syn::Result<Option<RenderableNode>> {
+fn renderable_node_attr(input: &DeriveInput) -> syn::Result<Option<NodeFlavour>> {
     let mut attrs = input
         .attrs
         .iter()
@@ -91,16 +62,14 @@ fn renderable_node_attr(input: &DeriveInput) -> syn::Result<Option<RenderableNod
         ));
     };
 
-    Ok(Some(RenderableNode {
-        flavour: node_flavour_from_ident(&node)?,
-    }))
+    node_flavour_from_ident(&node).map(Some)
 }
 
 fn node_flavour_from_ident(ident: &Ident) -> syn::Result<NodeFlavour> {
     match ident.to_string().as_str() {
         "html" => Ok(NodeFlavour::Html),
-        "svg" => Ok(NodeFlavour::Xml(crate::html::generate::XmlFlavour::Svg)),
-        "mathml" => Ok(NodeFlavour::Xml(crate::html::generate::XmlFlavour::MathMl)),
+        "svg" => Ok(NodeFlavour::Svg),
+        "mathml" => Ok(NodeFlavour::MathMl),
         _ => Err(Error::new_spanned(
             ident,
             "renderable node must be one of `html`, `svg`, or `mathml`",
@@ -110,7 +79,7 @@ fn node_flavour_from_ident(ident: &Ident) -> syn::Result<NodeFlavour> {
 
 fn renderable_node(
     input: &DeriveInput,
-    node: Option<&RenderableNode>,
+    node: Option<NodeFlavour>,
 ) -> syn::Result<Option<TokenStream>> {
     enum SyntaxKind {
         Maud,
@@ -131,7 +100,7 @@ fn renderable_node(
         })
         .peekable();
 
-    let flavour = node.map_or(NodeFlavour::Html, |node| node.flavour);
+    let flavour = node.unwrap_or(NodeFlavour::Html);
 
     let (syntax, tokens) = match (attrs.next(), attrs.peek()) {
         (Some((attr, syntax)), None) => (syntax, attr.meta.require_list()?.tokens.clone()),
@@ -173,10 +142,7 @@ fn renderable_node(
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let buffer_ident = Generator::buffer_ident();
-    let context_ty = node.map_or_else(
-        || syn::parse_quote!(::hypertext::context::Node),
-        RenderableNode::marker_type,
-    );
+    let context_ty = flavour.marker_type();
     let output = quote! {
         #[automatically_derived]
         impl #impl_generics ::hypertext::Renderable<#context_ty> for #name #ty_generics #where_clause {

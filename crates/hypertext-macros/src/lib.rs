@@ -8,7 +8,7 @@ use proc_macro::TokenStream;
 use syn::parse_macro_input;
 
 use self::html::{Maud, Rsx};
-use crate::html::generate::{Config, NodeFlavour, Semantics, XmlFlavour};
+use crate::html::generate::{Config, NodeFlavour, Semantics};
 
 fn generate_nodes<S: html::Syntax>(
     config: Config,
@@ -143,25 +143,25 @@ create_attr_variants! {
 
 create_node_variants! {
     syntax = Maud;
-    flavour = NodeFlavour::Xml(XmlFlavour::Svg);
+    flavour = NodeFlavour::Svg;
     svg_maud svg_maud_borrow svg_maud_simple
 }
 
 create_node_variants! {
     syntax = Rsx;
-    flavour = NodeFlavour::Xml(XmlFlavour::Svg);
+    flavour = NodeFlavour::Svg;
     svg_rsx svg_rsx_borrow svg_rsx_simple
 }
 
 create_node_variants! {
     syntax = Maud;
-    flavour = NodeFlavour::Xml(XmlFlavour::MathMl);
+    flavour = NodeFlavour::MathMl;
     mathml_maud mathml_maud_borrow mathml_maud_simple
 }
 
 create_node_variants! {
     syntax = Rsx;
-    flavour = NodeFlavour::Xml(XmlFlavour::MathMl);
+    flavour = NodeFlavour::MathMl;
     mathml_rsx mathml_rsx_borrow mathml_rsx_simple
 }
 

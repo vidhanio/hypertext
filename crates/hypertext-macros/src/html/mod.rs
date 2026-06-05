@@ -106,23 +106,7 @@ impl<S: Syntax> Context for Node<S> {
     }
 
     fn marker_type(flavour: NodeFlavour) -> TokenStream {
-        match flavour {
-            NodeFlavour::Html => quote!(::hypertext::context::Node),
-            NodeFlavour::Xml(crate::html::generate::XmlFlavour::Svg) => {
-                quote!(
-                    ::hypertext::context::Node<
-                        ::hypertext::context::Svg,
-                    >
-                )
-            }
-            NodeFlavour::Xml(crate::html::generate::XmlFlavour::MathMl) => {
-                quote!(
-                    ::hypertext::context::Node<
-                        ::hypertext::context::MathMl,
-                    >
-                )
-            }
-        }
+        flavour.marker_type()
     }
 
     fn escape(s: &str) -> Cow<'_, str> {
@@ -136,7 +120,7 @@ impl<S: Syntax> Generate for Node<S> {
     fn generate(&self, g: &mut Generator) {
         match self {
             Self::Doctype(doctype) => {
-                if matches!(g.node_flavour(), NodeFlavour::Xml(_)) {
+                if g.node_flavour().is_xml() {
                     g.push_stmt(
                         syn::Error::new(doctype.span(), "DOCTYPE is not valid in XML context")
                             .to_compile_error(),
@@ -426,11 +410,7 @@ impl<S: Syntax> Generate for Element<S> {
 
                 let child_flavour = flavour.child_flavour(&self.name.ident_string());
 
-                if matches!(
-                    (flavour, child_flavour),
-                    (NodeFlavour::Html, NodeFlavour::Xml(_))
-                        | (NodeFlavour::Xml(_), NodeFlavour::Html)
-                ) {
+                if flavour != child_flavour {
                     g.push_with_flavour(child_flavour, |g| {
                         g.push(children);
                     });
@@ -443,7 +423,7 @@ impl<S: Syntax> Generate for Element<S> {
                 g.push_str(">");
             }
             ElementBody::Void { solidus } => {
-                if matches!(flavour, NodeFlavour::Xml(_)) && solidus.is_none() {
+                if flavour.is_xml() && solidus.is_none() {
                     let span = self
                         .name
                         .spans()
