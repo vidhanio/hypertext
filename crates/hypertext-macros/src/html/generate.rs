@@ -11,25 +11,27 @@ use syn::{
 use super::UnquotedName;
 use crate::html::{AttributeValue, Context, Document, Many, Syntax};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NodeFlavour {
     Html,
-    Xml(XmlFlavour),
+    Svg,
+    MathMl,
 }
 
 impl NodeFlavour {
+    pub const fn is_xml(self) -> bool {
+        !matches!(self, Self::Html)
+    }
+
     pub const fn void_close(self) -> &'static str {
-        match self {
-            Self::Html => ">",
-            Self::Xml(_) => "/>",
-        }
+        if self.is_xml() { "/>" } else { ">" }
     }
 
     pub const fn elements_module(self) -> &'static str {
         match self {
             Self::Html => "hypertext_elements",
-            Self::Xml(XmlFlavour::Svg) => "hypertext_svg_elements",
-            Self::Xml(XmlFlavour::MathMl) => "hypertext_mathml_elements",
+            Self::Svg => "hypertext_svg_elements",
+            Self::MathMl => "hypertext_mathml_elements",
         }
     }
 
@@ -42,30 +44,32 @@ impl NodeFlavour {
                     ElementKind::Normal
                 }
             }
-            Self::Xml(_) => ElementKind::Xml,
+            Self::Svg | Self::MathMl => ElementKind::Xml,
         }
     }
 
     pub fn child_flavour(self, element_name: &str) -> Self {
         match self {
             Self::Html => match element_name {
-                "svg" => Self::Xml(XmlFlavour::Svg),
-                "math" => Self::Xml(XmlFlavour::MathMl),
+                "svg" => Self::Svg,
+                "math" => Self::MathMl,
                 _ => self,
             },
-            Self::Xml(XmlFlavour::Svg) => match element_name {
+            Self::Svg => match element_name {
                 "foreignObject" => Self::Html,
                 _ => self,
             },
-            Self::Xml(XmlFlavour::MathMl) => self,
+            Self::MathMl => self,
         }
     }
-}
 
-#[derive(Debug, Clone, Copy)]
-pub enum XmlFlavour {
-    Svg,
-    MathMl,
+    pub fn marker_type(self) -> TokenStream {
+        match self {
+            Self::Html => quote!(::hypertext::context::Node),
+            Self::Svg => quote!(::hypertext::context::SvgNode),
+            Self::MathMl => quote!(::hypertext::context::MathMlNode),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
