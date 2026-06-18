@@ -10,7 +10,7 @@ use syn::{
 
 use crate::html::{
     Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName,
-    XmlDecl, kw,
+    XmlDecl, component::ComponentAttribute, kw,
 };
 
 pub struct Maud;
@@ -148,6 +148,18 @@ impl Parse for Component<Maud> {
             name: input.parse()?,
             attrs: {
                 let mut attrs = Vec::new();
+
+                if input.peek(Token![#]) {
+                    attrs.push(input.call(Attribute::parse_id).map(ComponentAttribute)?);
+                }
+
+                if input.peek(Token![.]) {
+                    attrs.push(
+                        input
+                            .call(Attribute::parse_class_list)
+                            .map(ComponentAttribute)?,
+                    );
+                }
 
                 while !(input.peek(Token![..]) || input.peek(Token![;]) || input.peek(Brace)) {
                     attrs.push(input.parse()?);

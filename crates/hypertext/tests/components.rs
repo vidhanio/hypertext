@@ -1,7 +1,7 @@
 //! Component and derive macro tests.
 #![cfg(feature = "alloc")]
 
-use hypertext::{Builder, prelude::*};
+use hypertext::{Buffer, Builder, Lazy, prelude::*};
 
 #[derive(Builder, Renderable)]
 #[maud(span { "Hello, " (self.name) "!" })]
@@ -209,6 +209,42 @@ fn component_optional_field_both_variants() {
         result.as_inner(),
         "<div><h1>Hello</h1></div><div><h1>Hello</h1><h2>World</h2></div>"
     );
+}
+
+#[test]
+fn component_optional_field_toggle() {
+    let result = maud! {
+        Header title=("Hello".into()) subtitle=[None];
+        Header title=("Hello".into()) subtitle=[Some("World".into())];
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<div><h1>Hello</h1></div><div><h1>Hello</h1><h2>World</h2></div>"
+    );
+}
+
+#[test]
+fn component_optional_explicit_field_toggled_set_true() {
+    let show_subtitle = true;
+    let result = maud! {
+        Header title=("Hello".into()) subtitle=("World".into())[show_subtitle];
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello</h1><h2>World</h2></div>");
+}
+
+#[test]
+fn component_optional_explicit_field_toggled_set_false() {
+    let show_subtitle = false;
+    let result = maud! {
+        Header title=("Hello".into()) subtitle=("World".into())[show_subtitle];
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), "<div><h1>Hello</h1></div>");
 }
 
 #[renderable]
@@ -701,5 +737,311 @@ fn component_with_loop_over_field() {
     assert_eq!(
         result.as_inner(),
         r#"<nav><a href="/home">/home</a><a href="/about">/about</a><a href="/contact">/contact</a></nav>"#,
+    );
+}
+
+#[derive(Builder, Renderable)]
+#[maud(
+    div id=[self.id] class=[self.class] hidden[self.hidden] tabindex=[&self.tabindex] {
+        (&self.children)
+    }
+)]
+struct ComponentDiv<'a> {
+    id: Option<&'a str>,
+    class: Option<&'a str>,
+    #[builder(default)]
+    hidden: bool,
+    tabindex: Option<i32>,
+    children: Lazy<fn(&mut Buffer)>,
+}
+
+#[test]
+fn component_with_shorthand_id() {
+    let result = maud! {
+        ComponentDiv #good-div {}
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div id="good-div"></div>"#);
+}
+
+#[test]
+fn component_with_toggled_shorthand_id() {
+    let is_good_div_true = true;
+    let is_good_div_false = false;
+    let result = maud! {
+        ComponentDiv #good-div[is_good_div_true] {}
+        ComponentDiv #good-div[is_good_div_false] {}
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div id="good-div"></div><div></div>"#);
+}
+
+#[test]
+fn component_with_shorthand_class() {
+    let result = maud! {
+        ComponentDiv .class .another-class {}
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="class another-class"></div>"#
+    );
+}
+
+#[test]
+fn component_with_toggled_shorthand_class() {
+    let second_class_true = true;
+    let second_class_false = false;
+    let result = maud! {
+        ComponentDiv .first .second[second_class_true] {}
+        ComponentDiv .first .second[second_class_false] {}
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="first second"></div><div class="first"></div>"#
+    );
+}
+
+#[test]
+fn component_with_toggled_boolean() {
+    let hidden_true = true;
+    let hidden_false = false;
+    let result = maud! {
+        ComponentDiv hidden[hidden_true] {}
+        ComponentDiv hidden[hidden_false] {}
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div hidden></div><div></div>"#);
+}
+
+#[test]
+fn component_with_toggled_string_attribute() {
+    let result = maud! {
+        ComponentDiv class=[Some("classname")] {}
+        ComponentDiv class="classname"[true] {}
+        ComponentDiv class="classname"[false] {}
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="classname"></div><div class="classname"></div><div></div>"#
+    );
+}
+
+#[test]
+fn component_with_toggled_numerical_attribute() {
+    let result = maud! {
+        ComponentDiv tabindex=[None] {}
+        ComponentDiv tabindex=[Some(42)] {}
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div></div><div tabindex="42"></div>"#);
+}
+
+#[test]
+fn component_with_ident_attribute() {
+    let tabindex = 42;
+    let result = maud! {
+        ComponentDiv tabindex=tabindex {}
+    }
+    .render();
+
+    assert_eq!(result.as_inner(), r#"<div tabindex="42"></div>"#);
+}
+
+#[test]
+fn component_noncomponent_syntax_compatibility_maud() {
+    assert_eq!(maud!(ComponentDiv {}).render(), maud!(div {}).render());
+
+    assert_eq!(
+        maud!(ComponentDiv #some-id {}).render(),
+        maud!(div #some-id {}).render()
+    );
+
+    assert_eq!(
+        maud!(ComponentDiv #some-id[true] {}).render(),
+        maud!(div #some-id[true] {}).render()
+    );
+
+    assert_eq!(
+        maud!(ComponentDiv #some-id[false] {}).render(),
+        maud!(div #some-id[false] {}).render()
+    );
+
+    #[rustfmt::skip] // rustfmt wants spaces around the '-'
+    assert_eq!(
+        maud!(ComponentDiv #some-id .single-class {}).render(),
+        maud!(div #some-id .single-class {}).render()
+    );
+
+    #[rustfmt::skip] // rustfmt wants spaces around the '-'
+    assert_eq!(
+        maud!(ComponentDiv .single-class {}).render(),
+        maud!(div .single-class {}).render()
+    );
+
+    #[rustfmt::skip] // rustfmt wants spaces around the '-'
+    assert_eq!(
+        maud!(ComponentDiv .first-class .second-class .third-class {}).render(),
+        maud!(div .first-class .second-class .third-class {}).render()
+    );
+
+    #[rustfmt::skip] // rustfmt wants spaces around the '-'
+    assert_eq!(
+        maud!(ComponentDiv .first-class .second-class[true] .third-class {}).render(),
+        maud!(div .first-class .second-class[true] .third-class {}).render()
+    );
+
+    #[rustfmt::skip] // rustfmt wants spaces around the '-'
+    assert_eq!(
+        maud!(ComponentDiv .first-class .second-class[false] .third-class {}).render(),
+        maud!(div .first-class .second-class[false] .third-class {}).render()
+    );
+
+    assert_eq!(
+        maud!(ComponentDiv hidden {}).render(),
+        maud!(div hidden {}).render()
+    );
+
+    assert_eq!(
+        maud!(ComponentDiv hidden[false] {}).render(),
+        maud!(div hidden[false] {}).render()
+    );
+
+    assert_eq!(
+        maud!(ComponentDiv tabindex=4711 {}).render(),
+        maud!(div tabindex=4711 {}).render()
+    );
+
+    assert_eq!(
+        maud!(ComponentDiv tabindex=[Some(4711)] {}).render(),
+        maud!(div tabindex=[Some(4711)] {}).render()
+    );
+
+    assert_eq!(
+        maud!(ComponentDiv tabindex=[None::<i32>] {}).render(),
+        maud!(div tabindex=[None::<u32>] {}).render()
+    );
+
+    let class = "two";
+    assert_eq!(
+        maud!(ComponentDiv class={"one " (class) " three"} {}).render(),
+        maud!(div class={"one " (class) " three"} {}).render()
+    );
+
+    assert_eq!(
+        maud!(ComponentDiv class={"one " (class) " three"} {}).render(),
+        maud!(div class="one two three" {}).render()
+    );
+}
+
+#[test]
+fn component_noncomponent_syntax_compatibility_rsx() {
+    assert_eq!(
+        rsx!(<ComponentDiv></ComponentDiv>).render(),
+        rsx!(<div></div>).render()
+    );
+    assert_eq!(
+        rsx!(<ComponentDiv id="some-id"> </ComponentDiv>).render(),
+        rsx!(<div id="some-id"> </div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv id="some-id"[true]> </ComponentDiv>).render(),
+        rsx!(<div id="some-id"[true]></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv id="some-id"[false]></ComponentDiv>).render(),
+        rsx!(<div id="some-id"[false]></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv id="some-id" class="single-class"></ComponentDiv>).render(),
+        rsx!(<div id="some-id" class="single-class"></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv class="single-class"></ComponentDiv>).render(),
+        rsx!(<div class="single-class"></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv class="first-class second-class third-class"></ComponentDiv>).render(),
+        rsx!(<div class="first-class second-class third-class"></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv hidden></ComponentDiv>).render(),
+        rsx!(<div hidden></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv hidden[false]></ComponentDiv>).render(),
+        rsx!(<div hidden[false]></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv tabindex=4711></ComponentDiv>).render(),
+        rsx!(<div tabindex=4711></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv tabindex=[Some(47)]></ComponentDiv>).render(),
+        rsx!(<div tabindex=[Some(47)]></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv tabindex=[None::<i32>]></ComponentDiv>).render(),
+        rsx!(<div tabindex=[None::<i32>]></div>).render()
+    );
+
+    let class = "two";
+    assert_eq!(
+        rsx!(<ComponentDiv class={"one " (class) " three"}></ComponentDiv>).render(),
+        rsx!(<div class={"one " (class) " three"}></div>).render()
+    );
+
+    assert_eq!(
+        rsx!(<ComponentDiv class={"one " (class) " three"}></ComponentDiv>).render(),
+        rsx!(<div class="one two three"></div>).render()
+    );
+}
+
+#[renderable]
+fn named_blocks_component<Title: Renderable, Body: Renderable>(
+    title: &Title,
+    body: &Body,
+) -> impl Renderable {
+    maud! {
+        div {
+            div { (title) }
+            p { "some divider" }
+            div { (body) }
+            p { "footer" }
+        }
+    }
+}
+
+#[test]
+fn component_with_named_children() {
+    let result = maud! {
+        NamedBlocksComponent
+            title=(maud! { span { "This title is " strong { "strong" } } })
+            body=(maud! { p { "regular children element" } });
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div><div><span>This title is <strong>strong</strong></span></div><p>some divider</p><div><p>regular children element</p></div><p>footer</p></div>"#,
     );
 }

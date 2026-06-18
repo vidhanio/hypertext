@@ -471,12 +471,12 @@ pub struct Attribute {
 impl Attribute {
     fn parse_id(input: ParseStream) -> syn::Result<Self> {
         let pound_token = input.parse::<Token![#]>()?;
+        let name = parse_quote_spanned!(pound_token.span()=> id);
+        let value = input.call(AttributeValue::parse_unquoted)?;
+        let toggle = input.call(Toggle::parse_optional)?;
         Ok(Self {
-            name: parse_quote_spanned!(pound_token.span()=> id),
-            kind: AttributeKind::Value {
-                value: input.call(AttributeValue::parse_unquoted)?,
-                toggle: None,
-            },
+            name,
+            kind: AttributeKind::Value { value, toggle },
         })
     }
 
@@ -781,14 +781,11 @@ pub enum AttributeValue {
 impl AttributeValue {
     fn parse_unquoted(input: ParseStream) -> syn::Result<Self> {
         if input.peek(Ident::peek_any) || input.peek(LitInt) {
-            Ok(Self::Group(Group(Many(
-                input
-                    .call(UnquotedName::parse_attr_value)?
-                    .lits()
-                    .into_iter()
-                    .map(|lit| Self::Literal(Literal::Str(lit)))
-                    .collect(),
-            ))))
+            let lits = UnquotedName::parse_attr_value(input)?.lits();
+            let span = lits.first().map_or_else(Span::call_site, LitStr::span);
+            let name = lits.into_iter().map(|lit| lit.value()).collect::<String>();
+
+            Ok(Self::Literal(Literal::Str(LitStr::new(&name, span))))
         } else {
             input.parse()
         }
