@@ -114,40 +114,29 @@ impl Config {
         flavour: NodeFlavour,
         tokens: TokenStream,
     ) -> syn::Result<TokenStream> {
-        if let Some(move_) = self.lazy {
-            let mut g = Generator::new(true, Brace::default(), flavour);
+        let size_estimate = self.lazy.map(|_| tokens.to_string().len());
+        let mut g = Generator::new(self.lazy.is_some(), Brace::default(), flavour);
+        g.push(syn::parse2::<T>(tokens)?);
 
-            let size_estimate = tokens.to_string().len();
+        let block = g.finish();
+        let ctx = T::Context::marker_type(flavour);
 
-            g.push(syn::parse2::<T>(tokens)?);
-
-            let block = g.finish();
-
+        Ok(if let Some(move_) = self.lazy {
             let buffer_ident = Generator::buffer_ident();
-
-            let ctx = T::Context::marker_type(flavour);
-
-            Ok(quote! {
+            quote! {
                 ::hypertext::Lazy::<_, #ctx>::dangerously_create(
                     #move_ |#buffer_ident: &mut ::hypertext::Buffer<#ctx>| {
                         #buffer_ident.dangerously_get_string().reserve(#size_estimate);
                         #block
                     }
                 )
-            })
+            }
         } else {
-            let mut g = Generator::new(false, Brace::default(), flavour);
-
-            g.push(syn::parse2::<T>(tokens)?);
-
-            let literal = g.finish().to_token_stream();
-
-            let ctx = T::Context::marker_type(flavour);
-
-            Ok(quote! {
+            let literal = block.to_token_stream();
+            quote! {
                 ::hypertext::Raw::<_, #ctx>::dangerously_create(#literal)
-            })
-        }
+            }
+        })
     }
 }
 
