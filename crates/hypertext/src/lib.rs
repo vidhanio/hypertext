@@ -220,10 +220,7 @@ impl<T: AsRef<str>, K: NodeKind> Raw<T, Node<K>> {
     #[inline]
     #[must_use]
     pub const fn rendered(self) -> Rendered<T, K> {
-        // SAFETY: `Raw<T, Node<K>>` has exactly one non-zero-sized field, which is
-        // `inner`.
-        let value = unsafe { const_precise_live_drops_hack!(self.inner) };
-        Rendered::new(value)
+        Rendered::new(self.into_inner())
     }
 }
 
