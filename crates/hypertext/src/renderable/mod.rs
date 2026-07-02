@@ -226,8 +226,8 @@ pub trait Renderable<C: Context = Node> {
 
 /// An extension trait for [`Renderable`] types.
 ///
-/// This trait provides helpers for any render context, while [`render`] is only
-/// available for node renderables.
+/// This trait provides helpers for any render context, while
+/// [`RenderableExt::render`] is only available for node renderables.
 pub trait RenderableExt<C: Context = Node>: Renderable<C> {
     /// Renders this value to a [`Rendered<String, K>`].
     ///
@@ -239,7 +239,7 @@ pub trait RenderableExt<C: Context = Node>: Renderable<C> {
     where
         Self: Renderable<Node<K>>,
     {
-        Rendered::new(Renderable::<Node<K>>::to_buffer(self).into_inner())
+        Renderable::<Node<K>>::to_buffer(self).rendered()
     }
 
     /// Pre-renders the value and stores it in a [`Raw`] so that it can be
