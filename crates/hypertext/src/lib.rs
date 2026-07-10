@@ -124,7 +124,16 @@ pub mod prelude;
 #[cfg(feature = "alloc")]
 mod renderable;
 pub mod validation;
-#[cfg(feature = "alloc")]
+#[cfg(any(
+    feature = "actix-web",
+    feature = "axum",
+    feature = "ntex",
+    feature = "poem",
+    feature = "rocket",
+    feature = "salvo",
+    feature = "tide",
+    feature = "warp"
+))]
 mod web_frameworks;
 
 use core::{fmt::Debug, marker::PhantomData};

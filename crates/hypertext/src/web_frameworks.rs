@@ -1,13 +1,9 @@
 use crate::context::{Html, MathMl, NodeKind, Svg};
 
-#[allow(dead_code)]
 const HTML_CONTENT_TYPE: &str = "text/html; charset=utf-8";
-#[allow(dead_code)]
 const SVG_CONTENT_TYPE: &str = "image/svg+xml";
-#[allow(dead_code)]
 const MATHML_CONTENT_TYPE: &str = "application/mathml+xml";
 
-#[allow(dead_code)]
 trait ResponseMarkup: NodeKind {
     const CONTENT_TYPE: &'static str;
 }
