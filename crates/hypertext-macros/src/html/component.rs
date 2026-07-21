@@ -43,7 +43,7 @@ impl<S: Syntax> Generate for Component<S> {
                 let children_ident = Ident::new("children", self.name.span());
 
                 quote!(
-                    .#children_ident(#lazy)
+                    .#children_ident(&#lazy)
                 )
             }
             ElementBody::Void { .. } => quote!(),

@@ -703,3 +703,66 @@ fn component_with_loop_over_field() {
         r#"<nav><a href="/home">/home</a><a href="/about">/about</a><a href="/contact">/contact</a></nav>"#,
     );
 }
+
+#[renderable]
+fn layout_dyn<'a>(title: &'a str, children: &'a dyn Renderable) -> impl Renderable {
+    maud! {
+        html {
+            head { title { (title) } }
+            body { (children) }
+        }
+    }
+}
+
+#[test]
+fn renderable_function_with_dyn_children_maud() {
+    let result = maud! {
+        LayoutDyn title="My Page" {
+            h1 { "Welcome" }
+            p { "Content" }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<html><head><title>My Page</title></head><body><h1>Welcome</h1><p>Content</p></body></html>"
+    );
+}
+
+#[test]
+fn renderable_function_with_dyn_children_rsx() {
+    let result = rsx! {
+        <LayoutDyn title="My Page">
+            <h1>Welcome</h1>
+            <p>Content</p>
+        </LayoutDyn>
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<html><head><title>My Page</title></head><body><h1>Welcome</h1><p>Content</p></body></html>"
+    );
+}
+
+#[renderable]
+fn dyn_slot<'a>(children: &'a dyn Renderable) -> impl Renderable {
+    maud! { div .slot { (children) } }
+}
+
+#[test]
+fn dyn_children_allow_runtime_selection() {
+    let emphasis = maud! { em { "A" } };
+    let strong = maud! { strong { "B" } };
+
+    for (use_emphasis, expected) in [
+        (true, r#"<div class="slot"><em>A</em></div>"#),
+        (false, r#"<div class="slot"><strong>B</strong></div>"#),
+    ] {
+        let chosen: &dyn Renderable = if use_emphasis { &emphasis } else { &strong };
+
+        let result = maud! { DynSlot children=(chosen); }.render();
+        assert_eq!(result.as_inner(), expected);
+    }
+}
