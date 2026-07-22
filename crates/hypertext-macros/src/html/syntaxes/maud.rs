@@ -9,8 +9,8 @@ use syn::{
 };
 
 use crate::html::{
-    Attribute, Component, Doctype, Element, ElementBody, Group, Node, Syntax, UnquotedName,
-    XmlDecl, kw,
+    Attribute, ChildrenMode, Component, Doctype, Element, ElementBody, Group, Node, Syntax,
+    UnquotedName, XmlDecl, kw,
 };
 
 pub struct Maud;
@@ -144,18 +144,20 @@ impl Parse for ElementBody<Maud> {
 
 impl Parse for Component<Maud> {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        Ok(Self {
-            name: input.parse()?,
-            attrs: {
-                let mut attrs = Vec::new();
+        let name = input.parse()?;
 
-                while !(input.peek(Token![..]) || input.peek(Token![;]) || input.peek(Brace)) {
-                    attrs.push(input.parse()?);
-                }
+        let mut attrs = Vec::new();
+        let mut children_mode = None;
 
-                attrs
-            },
-            body: input.parse()?,
-        })
+        while !(input.peek(Token![..]) || input.peek(Token![;]) || input.peek(Brace)) {
+            if let Some(mode) = ChildrenMode::parse_opt(input)? {
+                children_mode = Some(mode);
+                break;
+            }
+
+            attrs.push(input.parse()?);
+        }
+
+        Self::new(name, attrs, children_mode, input.parse()?)
     }
 }
