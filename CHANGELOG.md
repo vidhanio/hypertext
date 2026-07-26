@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ref`/`move` marker as the last attribute of a component to choose whether its
+  children block is passed by reference (`&Lazy<_>`) or by value (`Lazy<_>`).
+- `children-move` feature to make passing children by value the default when no
+  `ref`/`move` marker is given.
+
 ## [0.12.1](https://github.com/vidhanio/hypertext/compare/hypertext-v0.12.0...hypertext-v0.12.1) - 2025-08-09
 
 ### Other

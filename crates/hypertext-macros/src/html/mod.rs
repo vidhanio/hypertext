@@ -23,7 +23,7 @@ use syn::{
 pub use self::syntaxes::{Maud, Rsx};
 use self::{
     basics::{Literal, UnquotedName},
-    component::Component,
+    component::{ChildrenMode, Component},
     control::Control,
     generate::{
         AnyBlock, AttributeCheck, AttributeCheckKind, ElementCheck, ElementKind, Generate,

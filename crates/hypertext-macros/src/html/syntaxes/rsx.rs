@@ -9,8 +9,8 @@ use syn::{
 };
 
 use crate::html::{
-    Component, Doctype, Element, ElementBody, Group, Literal, Many, Node, Syntax, UnquotedName,
-    XmlDecl, kw,
+    ChildrenMode, Component, Doctype, Element, ElementBody, Group, Literal, Many, Node, Syntax,
+    UnquotedName, XmlDecl, kw,
 };
 
 pub struct Rsx;
@@ -24,12 +24,18 @@ impl Node<Rsx> {
         let name = input.parse::<Ident>()?;
 
         let mut attrs = Vec::new();
+        let mut children_mode = None;
 
         #[expect(clippy::suspicious_operation_groupings)]
         while !(input.peek(Token![..])
             || input.peek(Token![>])
             || (input.peek(Token![/]) && input.peek2(Token![>])))
         {
+            if let Some(mode) = ChildrenMode::parse_opt(input)? {
+                children_mode = Some(mode);
+                break;
+            }
+
             attrs.push(input.parse()?);
         }
 
@@ -37,13 +43,15 @@ impl Node<Rsx> {
         input.parse::<Token![>]>()?;
 
         if let Some(solidus) = solidus {
-            Ok(Self::Component(Component {
+            Component::new(
                 name,
                 attrs,
-                body: ElementBody::Void {
+                children_mode,
+                ElementBody::Void {
                     solidus: Some(solidus.span),
                 },
-            }))
+            )
+            .map(Self::Component)
         } else {
             let mut children = Vec::new();
 
@@ -51,11 +59,12 @@ impl Node<Rsx> {
                 if input.is_empty() {
                     children.insert(
                         0,
-                        Self::Component(Component {
+                        Self::Component(Component::new(
                             name,
                             attrs,
-                            body: ElementBody::Void { solidus: None },
-                        }),
+                            children_mode,
+                            ElementBody::Void { solidus: None },
+                        )?),
                     );
 
                     return Ok(Self::Group(Group(Many(children))));
@@ -73,25 +82,28 @@ impl Node<Rsx> {
             } else {
                 children.insert(
                     0,
-                    Self::Component(Component {
+                    Self::Component(Component::new(
                         name,
                         attrs,
-                        body: ElementBody::Void { solidus: None },
-                    }),
+                        children_mode,
+                        ElementBody::Void { solidus: None },
+                    )?),
                 );
 
                 return Ok(Self::Group(Group(Many(children))));
             }
             input.parse::<Token![>]>()?;
 
-            Ok(Self::Component(Component {
+            Component::new(
                 name,
                 attrs,
-                body: ElementBody::Normal {
+                children_mode,
+                ElementBody::Normal {
                     children: Many(children),
                     closing_name: Some(parse_quote!(#closing_name)),
                 },
-            }))
+            )
+            .map(Self::Component)
         }
     }
 

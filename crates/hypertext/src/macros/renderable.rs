@@ -244,5 +244,70 @@ pub use hypertext_macros::Renderable;
 ///     "<div><nav><h1>My Nav Bar</h1><h2>My Subtitle</h2><span>:)</span></nav></div>"
 /// );
 /// ```
+///
+/// # Passing children by reference or by value
+///
+/// When a component has a `children` parameter and is invoked with a nested
+/// block, the block is compiled into a [`Lazy`](crate::Lazy) and handed to the
+/// component's `children` setter. It can be passed either **by reference**
+/// (`&Lazy<_>`, borrowing the caller's block) or **by value** (`Lazy<_>`,
+/// transferring ownership). Which one a component accepts depends on how it
+/// stores `children`:
+///
+/// | `children` parameter | Needs |
+/// |----------------------|-------|
+/// | `R`, `&R`, `&dyn Renderable`, other reference types | by reference |
+/// | `Lazy<fn(&mut Buffer)>`, other owned types | by value |
+///
+/// The call site chooses with a trailing `ref` or `move` marker, which must be
+/// the **last** attribute of the component:
+///
+/// ```
+/// use hypertext::prelude::*;
+///
+/// #[renderable]
+/// fn by_ref<'a>(children: &'a dyn Renderable) -> impl Renderable {
+///     maud! { div { (children) } }
+/// }
+///
+/// assert_eq!(
+///     maud! {
+///         ByRef ref {
+///             span { "borrowed" }
+///         }
+///     }
+///     .render()
+///     .as_inner(),
+///     "<div><span>borrowed</span></div>"
+/// );
+/// ```
+///
+/// ```
+/// use hypertext::{Buffer, DefaultBuilder, Lazy, prelude::*};
+///
+/// #[renderable(builder = DefaultBuilder)]
+/// #[derive(Default)]
+/// fn by_move(children: Lazy<fn(&mut Buffer)>) -> impl Renderable {
+///     maud! { div { (children) } }
+/// }
+///
+/// assert_eq!(
+///     rsx! {
+///         <ByMove move>
+///             <span>"owned"</span>
+///         </ByMove>
+///     }
+///     .render()
+///     .as_inner(),
+///     "<div><span>owned</span></div>"
+/// );
+/// ```
+///
+/// If no marker is given, children are passed **by reference** by default.
+/// Enabling the `children-move` feature flips the default to **by value**; the
+/// markers always override it, so both styles remain usable either way.
+///
+/// This mirrors how [`maud!`](crate::maud!) already reads `ref`/`move`: both
+/// are Rust keywords, so they can never be confused with an attribute name.
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::renderable;

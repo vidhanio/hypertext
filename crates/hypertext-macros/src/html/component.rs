@@ -2,6 +2,7 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{
     Ident, Lit, Token,
+    ext::IdentExt,
     parse::{Parse, ParseStream},
     token::{Brace, Paren},
 };
@@ -9,10 +10,99 @@ use syn::{
 use super::{AttributeValue, ElementBody, Generate, Generator, ParenExpr, Syntax};
 use crate::html::Node;
 
+/// How the children block is handed to a component's `children` setter.
+pub enum ChildrenMode {
+    /// `ref`: pass `&Lazy<_>`, so the component borrows the children.
+    ///
+    /// Required by components storing children behind a reference, such as
+    /// `children: &dyn Renderable`.
+    Ref(Token![ref]),
+
+    /// `move`: pass `Lazy<_>` by value, so the component owns it.
+    ///
+    /// Required by components storing children by value, such as
+    /// `children: Lazy<fn(&mut Buffer)>`.
+    Move(Token![move]),
+}
+
+impl ChildrenMode {
+    /// Whether children are passed by value, falling back to the
+    /// `children-move` feature when the call site does not say.
+    const fn is_move(this: Option<&Self>) -> bool {
+        match this {
+            Some(Self::Move(_)) => true,
+            Some(Self::Ref(_)) => false,
+            None => cfg!(feature = "children-move"),
+        }
+    }
+
+    /// Parses a trailing `ref`/`move` marker from a component's attribute
+    /// list.
+    ///
+    /// Both are Rust keywords, so they can never collide with an attribute
+    /// name: a struct field cannot be called `ref` or `move` either.
+    pub fn parse_opt(input: ParseStream) -> syn::Result<Option<Self>> {
+        let mode = if input.peek(Token![ref]) {
+            Self::Ref(input.parse()?)
+        } else if input.peek(Token![move]) {
+            Self::Move(input.parse()?)
+        } else {
+            return Ok(None);
+        };
+
+        if input.peek(Ident::peek_any) || input.peek(Token![ref]) || input.peek(Token![move]) {
+            return Err(input.error(format!(
+                "`{}` must be the last attribute of the component",
+                mode.as_str()
+            )));
+        }
+
+        Ok(Some(mode))
+    }
+
+    const fn as_str(&self) -> &'static str {
+        match self {
+            Self::Ref(_) => "ref",
+            Self::Move(_) => "move",
+        }
+    }
+}
+
 pub struct Component<S: Syntax> {
     pub name: Ident,
     pub attrs: Vec<ComponentAttribute>,
+    pub children_mode: Option<ChildrenMode>,
     pub body: ElementBody<S>,
+}
+
+impl<S: Syntax> Component<S> {
+    /// Creates a component, rejecting a `ref`/`move` marker on a component
+    /// that has no children block for it to apply to.
+    pub fn new(
+        name: Ident,
+        attrs: Vec<ComponentAttribute>,
+        children_mode: Option<ChildrenMode>,
+        body: ElementBody<S>,
+    ) -> syn::Result<Self> {
+        if let (Some(mode), ElementBody::Void { .. }) = (&children_mode, &body) {
+            let span = match mode {
+                ChildrenMode::Ref(token) => token.span,
+                ChildrenMode::Move(token) => token.span,
+            };
+
+            return Err(syn::Error::new(
+                span,
+                format!("`{}` requires a children block to apply to", mode.as_str()),
+            ));
+        }
+
+        Ok(Self {
+            name,
+            attrs,
+            children_mode,
+            body,
+        })
+    }
 }
 
 impl<S: Syntax> Generate for Component<S> {
@@ -41,9 +131,14 @@ impl<S: Syntax> Generate for Component<S> {
                 };
 
                 let children_ident = Ident::new("children", self.name.span());
+                let ampersand = if ChildrenMode::is_move(self.children_mode.as_ref()) {
+                    None
+                } else {
+                    Some(<Token![&]>::default())
+                };
 
                 quote!(
-                    .#children_ident(#lazy)
+                    .#children_ident(#ampersand #lazy)
                 )
             }
             ElementBody::Void { .. } => quote!(),

@@ -1,7 +1,7 @@
 //! Component and derive macro tests.
 #![cfg(feature = "alloc")]
 
-use hypertext::{Builder, prelude::*};
+use hypertext::{Buffer, Builder, DefaultBuilder, Lazy, prelude::*};
 
 #[derive(Builder, Renderable)]
 #[maud(span { "Hello, " (self.name) "!" })]
@@ -701,5 +701,230 @@ fn component_with_loop_over_field() {
     assert_eq!(
         result.as_inner(),
         r#"<nav><a href="/home">/home</a><a href="/about">/about</a><a href="/contact">/contact</a></nav>"#,
+    );
+}
+
+#[renderable]
+fn layout_dyn<'a>(title: &'a str, children: &'a dyn Renderable) -> impl Renderable {
+    maud! {
+        html {
+            head { title { (title) } }
+            body { (children) }
+        }
+    }
+}
+
+#[test]
+fn renderable_function_with_dyn_children_maud() {
+    let result = maud! {
+        LayoutDyn title="My Page" ref {
+            h1 { "Welcome" }
+            p { "Content" }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<html><head><title>My Page</title></head><body><h1>Welcome</h1><p>Content</p></body></html>"
+    );
+}
+
+#[test]
+fn renderable_function_with_dyn_children_rsx() {
+    let result = rsx! {
+        <LayoutDyn title="My Page" ref>
+            <h1>Welcome</h1>
+            <p>Content</p>
+        </LayoutDyn>
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        "<html><head><title>My Page</title></head><body><h1>Welcome</h1><p>Content</p></body></html>"
+    );
+}
+
+#[renderable]
+fn dyn_slot<'a>(children: &'a dyn Renderable) -> impl Renderable {
+    maud! { div .slot { (children) } }
+}
+
+#[test]
+fn dyn_children_allow_runtime_selection() {
+    let emphasis = maud! { em { "A" } };
+    let strong = maud! { strong { "B" } };
+
+    for (use_emphasis, expected) in [
+        (true, r#"<div class="slot"><em>A</em></div>"#),
+        (false, r#"<div class="slot"><strong>B</strong></div>"#),
+    ] {
+        let chosen: &dyn Renderable = if use_emphasis { &emphasis } else { &strong };
+
+        let result = maud! { DynSlot children=(chosen); }.render();
+        assert_eq!(result.as_inner(), expected);
+    }
+}
+
+#[renderable]
+fn owning_slot<R: Renderable>(children: &R) -> impl Renderable {
+    maud! { div .owned { (children) } }
+}
+
+#[test]
+fn move_children_are_owned_by_the_component_maud() {
+    let result = maud! {
+        OwningSlot move {
+            span { "Alice" }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="owned"><span>Alice</span></div>"#
+    );
+}
+
+#[test]
+fn move_children_are_owned_by_the_component_rsx() {
+    let result = rsx! {
+        <OwningSlot move>
+            <span>"Bob"</span>
+        </OwningSlot>
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="owned"><span>Bob</span></div>"#
+    );
+}
+
+#[test]
+fn ref_children_are_borrowed_by_the_component_maud() {
+    let result = maud! {
+        OwningSlot ref {
+            span { "Carol" }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="owned"><span>Carol</span></div>"#
+    );
+}
+
+#[test]
+fn ref_children_are_borrowed_by_the_component_rsx() {
+    let result = rsx! {
+        <OwningSlot ref>
+            <span>"David"</span>
+        </OwningSlot>
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="owned"><span>David</span></div>"#
+    );
+}
+
+/// A component storing children by value, which only `move` can satisfy.
+#[renderable(builder = DefaultBuilder)]
+#[derive(Default)]
+fn fn_ptr_slot(children: Lazy<fn(&mut Buffer)>) -> impl Renderable {
+    maud! { div .fn_ptr { (children) } }
+}
+
+#[test]
+fn move_children_into_fn_pointer_component() {
+    let maud_result = maud! {
+        FnPtrSlot move {
+            span { "by value" }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <FnPtrSlot move>
+            <span>"by value"</span>
+        </FnPtrSlot>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<div class="fn_ptr"><span>by value</span></div>"#
+        );
+    }
+}
+
+/// Children captured by reference, which only `ref` can satisfy.
+#[renderable]
+fn dyn_ref_slot<'a>(children: &'a dyn Renderable) -> impl Renderable {
+    maud! { div .dyn_ref { (children) } }
+}
+
+#[test]
+fn ref_children_into_dyn_component() {
+    let maud_result = maud! {
+        DynRefSlot ref {
+            span { "by reference" }
+        }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <DynRefSlot ref>
+            <span>"by reference"</span>
+        </DynRefSlot>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<div class="dyn_ref"><span>by reference</span></div>"#
+        );
+    }
+}
+
+#[cfg(not(feature = "children-move"))]
+#[test]
+fn default_children_mode_is_ref() {
+    // No marker: only compiles because the default passes `&Lazy<_>`, which
+    // is what `DynRefSlot`'s `&dyn Renderable` requires.
+    let result = maud! {
+        DynRefSlot {
+            span { "default" }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="dyn_ref"><span>default</span></div>"#
+    );
+}
+
+#[cfg(feature = "children-move")]
+#[test]
+fn default_children_mode_is_move() {
+    // No marker: only compiles because `children-move` makes the default
+    // pass `Lazy<_>` by value, which is what `FnPtrSlot` requires.
+    let result = maud! {
+        FnPtrSlot {
+            span { "default" }
+        }
+    }
+    .render();
+
+    assert_eq!(
+        result.as_inner(),
+        r#"<div class="fn_ptr"><span>default</span></div>"#
     );
 }
