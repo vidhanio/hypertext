@@ -699,6 +699,13 @@ define_elements! {
     /// finger, voice command, or other assistive technology. Once activated, it
     /// performs an action, such as submitting a [`form`] or opening a dialog.
     button {
+        /// Specifies the action to perform on the element targeted by
+        /// [`commandfor`](Self::commandfor).
+        command
+
+        /// The `id` of the element controlled by this button.
+        commandfor
+
         /// Whether the button is disabled.
         disabled
 
