@@ -153,6 +153,26 @@ fn html_sibling_elements() {
 }
 
 #[test]
+fn html_button_command_attributes() {
+    let maud_result = maud! {
+        button command="show-modal" commandfor="confirm-dialog" { "Confirm" }
+    }
+    .render();
+
+    let rsx_result = rsx! {
+        <button command="show-modal" commandfor="confirm-dialog">"Confirm"</button>
+    }
+    .render();
+
+    for result in [maud_result, rsx_result] {
+        assert_eq!(
+            result.as_inner(),
+            r#"<button command="show-modal" commandfor="confirm-dialog">Confirm</button>"#
+        );
+    }
+}
+
+#[test]
 fn html_void_elements_in_form() {
     let maud_result = maud! {
         div {
