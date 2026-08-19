@@ -21,11 +21,11 @@ jobs:
       matrix:
         features:
           - name: No Default Features
-            flag: ""
+            command: cargo check --workspace --all-targets --no-default-features
           - name: Default Features
-            flag: --features default
+            command: cargo test --tests --no-default-features --features default
           - name: All Features
-            flag: --all-features
+            command: cargo test --tests --no-default-features --all-features
       fail-fast: false
 
     steps:
@@ -38,8 +38,8 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Run tests
-        run: cargo test --tests --no-default-features ${{ matrix.features.flag }}
+      - name: Run checks
+        run: ${{ matrix.features.command }}
 
   miri:
     name: Miri
@@ -49,8 +49,6 @@ jobs:
     strategy:
       matrix:
         features:
-          - name: No Default Features
-            flag: ""
           - name: Default Features
             flag: --features default
           - name: All Features
@@ -104,7 +102,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Run Clippy
-        run: cargo clippy --no-default-features ${{ matrix.features.flag }}
+        run: cargo clippy --workspace --all-targets --no-default-features ${{ matrix.features.flag }}
 
   test-docs:
     name: Test Documentation
