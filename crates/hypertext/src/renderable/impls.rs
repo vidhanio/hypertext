@@ -168,52 +168,34 @@ impl<C: Context> Renderable<C> for bool {
     }
 }
 
-macro_rules! render_via_itoa {
-    ($($Ty:ty)*) => {
+macro_rules! render_numbers {
+    ($formatter:ty; $($number:ty)*) => {
         $(
-            impl<C: Context> Renderable<C> for $Ty {
+            impl<C: Context> Renderable<C> for $number {
                 #[inline]
                 fn render_to(&self, buffer: &mut Buffer<C>) {
-                    // XSS SAFETY: integers are safe
-                    buffer.dangerously_get_string().push_str(itoa::Buffer::new().format(*self));
+                    // XSS SAFETY: formatted numbers cannot contain HTML syntax.
+                    buffer
+                        .dangerously_get_string()
+                        .push_str(<$formatter>::new().format(*self));
                 }
 
                 #[inline]
                 fn to_buffer(&self) -> Buffer<C> {
-                    // XSS SAFETY: integers are safe
-                    Buffer::dangerously_from_string(itoa::Buffer::new().format(*self).into())
+                    // XSS SAFETY: formatted numbers cannot contain HTML syntax.
+                    Buffer::dangerously_from_string(<$formatter>::new().format(*self).into())
                 }
             }
         )*
     };
 }
 
-render_via_itoa! {
+render_numbers! { itoa::Buffer;
     i8 i16 i32 i64 i128 isize
     u8 u16 u32 u64 u128 usize
 }
 
-macro_rules! render_via_ryu {
-    ($($Ty:ty)*) => {
-        $(
-            impl<C: Context> Renderable<C> for $Ty {
-                #[inline]
-                fn render_to(&self, buffer: &mut Buffer<C>) {
-                    // XSS SAFETY: floats are safe
-                    buffer.dangerously_get_string().push_str(ryu::Buffer::new().format(*self));
-                }
-
-                #[inline]
-                fn to_buffer(&self) -> Buffer<C> {
-                    // XSS SAFETY: floats are safe
-                    Buffer::dangerously_from_string(ryu::Buffer::new().format(*self).into())
-                }
-            }
-        )*
-    };
-}
-
-render_via_ryu! {
+render_numbers! { ryu::Buffer;
     f32 f64
 }
 
@@ -223,7 +205,6 @@ macro_rules! render_via_deref {
             impl<T: Renderable<C> + ?Sized, C: Context> Renderable<C> for $Ty {
                 #[inline]
                 fn render_to(&self, buffer: &mut Buffer<C>) {
-                    // T::render_to(&**self, buffer);
                     (**self).render_to(buffer);
                 }
 
