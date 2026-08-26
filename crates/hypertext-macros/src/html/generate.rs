@@ -121,22 +121,25 @@ impl Config {
         let block = g.finish();
         let ctx = T::Context::marker_type(flavour);
 
-        Ok(if let Some(move_) = self.lazy {
-            let buffer_ident = Generator::buffer_ident();
-            quote! {
-                ::hypertext::Lazy::<_, #ctx>::dangerously_create(
-                    #move_ |#buffer_ident: &mut ::hypertext::Buffer<#ctx>| {
-                        #buffer_ident.dangerously_get_string().reserve(#size_estimate);
-                        #block
-                    }
-                )
-            }
-        } else {
-            let literal = block.to_token_stream();
-            quote! {
-                ::hypertext::Raw::<_, #ctx>::dangerously_create(#literal)
-            }
-        })
+        Ok(self.lazy.map_or_else(
+            || {
+                let literal = block.to_token_stream();
+                quote! {
+                    ::hypertext::Raw::<_, #ctx>::dangerously_create(#literal)
+                }
+            },
+            |move_| {
+                let buffer_ident = Generator::buffer_ident();
+                quote! {
+                    ::hypertext::Lazy::<_, #ctx>::dangerously_create(
+                        #move_ |#buffer_ident: &mut ::hypertext::Buffer<#ctx>| {
+                            #buffer_ident.dangerously_get_string().reserve(#size_estimate);
+                            #block
+                        }
+                    )
+                }
+            },
+        ))
     }
 }
 

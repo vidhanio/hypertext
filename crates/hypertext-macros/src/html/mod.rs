@@ -410,12 +410,12 @@ impl<S: Syntax> Generate for Element<S> {
 
                 let child_flavour = flavour.child_flavour(&self.name.ident_string());
 
-                if flavour != child_flavour {
+                if flavour == child_flavour {
+                    g.push(children);
+                } else {
                     g.push_with_flavour(child_flavour, |g| {
                         g.push(children);
                     });
-                } else {
-                    g.push(children);
                 }
 
                 g.push_str("</");
