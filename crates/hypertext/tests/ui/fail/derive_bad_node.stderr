@@ -1,0 +1,5 @@
+error: renderable node must be one of `html`, `svg`, or `mathml`
+ --> tests/ui/fail/derive_bad_node.rs:6:21
+  |
+6 | #[renderable(node = wasm)]
+  |                     ^^^^

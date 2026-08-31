@@ -1,0 +1,15 @@
+error[E0271]: type mismatch resolving `<div as Element>::Kind == Void`
+ --> tests/ui/fail/html_body_kind.rs:6:21
+  |
+6 |     let _ = rsx! { <div /> }.render();
+  |             --------^^^-----
+  |             |       |
+  |             |       expected `Void`, found `Normal`
+  |             required by a bound introduced by this call
+  |
+note: required by a bound in `check_element`
+ --> tests/ui/fail/html_body_kind.rs:6:13
+  |
+6 |     let _ = rsx! { <div /> }.render();
+  |             ^^^^^^^^^^^^^^^^ required by this bound in `check_element`
+  = note: this error originates in the macro `rsx` (in Nightly builds, run with -Z macro-backtrace for more info)

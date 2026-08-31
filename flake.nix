@@ -36,7 +36,6 @@
                 ];
               }
             );
-
             # Keep Crane's Cargo source filter, but retain integration-test
             # fixtures such as `tests/templates/hello.html`.
             src = pkgs.lib.cleanSourceWith {

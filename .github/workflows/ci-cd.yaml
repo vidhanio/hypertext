@@ -20,8 +20,6 @@ jobs:
     strategy:
       matrix:
         features:
-          - name: No Default Features
-            command: cargo check --workspace --all-targets --no-default-features
           - name: Default Features
             command: cargo test --tests --no-default-features --features default
           - name: All Features
@@ -38,7 +36,7 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Run checks
+      - name: Run tests
         run: ${{ matrix.features.command }}
 
   miri:
@@ -94,7 +92,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@nightly
         with:
           components: clippy
 
@@ -102,7 +100,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Run Clippy
-        run: cargo clippy --workspace --all-targets --no-default-features ${{ matrix.features.flag }}
+        run: cargo clippy --workspace --all-targets --no-default-features ${{ matrix.features.flag }} -- -D warnings
 
   test-docs:
     name: Test Documentation

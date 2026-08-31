@@ -1,0 +1,5 @@
+error[E0425]: cannot find value `not_an_element` in this scope
+ --> tests/ui/fail/unknown_element.rs:6:21
+  |
+6 |     let _ = rsx! { <not_an_element /> }.render();
+  |                     ^^^^^^^^^^^^^^ not found in this scope

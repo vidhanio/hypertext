@@ -1,0 +1,7 @@
+error: expected at least one of `#[maud(...)]`, `#[rsx(...)]`, or `#[attribute(...)]`
+ --> tests/ui/fail/derive_without_template.rs:5:10
+  |
+5 | #[derive(Renderable)]
+  |          ^^^^^^^^^^
+  |
+  = note: this error originates in the derive macro `Renderable` (in Nightly builds, run with -Z macro-backtrace for more info)
