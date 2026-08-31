@@ -1,0 +1,5 @@
+error[E0433]: cannot find type `MissingCard` in this scope
+ --> tests/ui/fail/unknown_component.rs:6:21
+  |
+6 |     let _ = rsx! { <MissingCard /> }.render();
+  |                     ^^^^^^^^^^^ use of undeclared type `MissingCard`

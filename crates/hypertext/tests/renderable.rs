@@ -1,579 +1,320 @@
-//! Renderable trait and buffer type tests.
+//! Runtime rendering, buffers, and pre-rendered values.
 #![cfg(feature = "alloc")]
 
 extern crate alloc;
 
-use alloc::{boxed::Box, rc::Rc, string::String, sync::Arc, vec};
+use alloc::{borrow::Cow, boxed::Box, format, rc::Rc, string::String, sync::Arc, vec};
+use core::fmt;
 
-use hypertext::{Buffer, Lazy, Raw, Rendered, prelude::*};
+use hypertext::{
+    Buffer, Debugged, Lazy, LazyAttribute, LazyMathMl, LazySvg, Raw, RawAttribute, RawMathMl,
+    RawSvg, Renderable, RenderableExt, Rendered,
+    context::{AttributeValue, MathMlNode, Node, SvgNode},
+    maud,
+    prelude::{GlobalAttributes, hypertext_elements},
+};
 
-#[test]
-fn renderable_str() {
-    let result = maud! { ("hello") }.render();
-    assert_eq!(result.as_inner(), "hello");
+fn assert_node<T: Renderable<Node>>(value: T, expected: &str) {
+    assert_eq!(value.to_buffer().into_inner(), expected);
+
+    let mut buffer = Buffer::<Node>::new();
+    value.render_to(&mut buffer);
+    assert_eq!(buffer.into_inner(), expected);
+
+    assert_eq!(value.render().as_inner(), expected);
+}
+
+fn assert_attribute<T: Renderable<AttributeValue>>(value: T, expected: &str) {
+    assert_eq!(value.to_buffer().into_inner(), expected);
+
+    let mut buffer = Buffer::<AttributeValue>::new();
+    value.render_to(&mut buffer);
+    assert_eq!(buffer.into_inner(), expected);
 }
 
 #[test]
-fn renderable_string() {
-    let s = String::from("world");
-    let result = maud! { (s) }.render();
-    assert_eq!(result.as_inner(), "world");
-}
+fn primitive_renderables_cover_each_formatter() {
+    assert_node("hello", "hello");
+    assert_node(String::from("owned"), "owned");
+    assert_node(true, "true");
+    assert_node(false, "false");
+    assert_node(-42_i8, "-42");
+    assert_node(200_u8, "200");
+    assert_node(-1_000_i16, "-1000");
+    assert_node(60_000_u16, "60000");
+    assert_node(-100_000_i32, "-100000");
+    assert_node(4_000_000_u32, "4000000");
+    assert_node(-9_000_000_000_i64, "-9000000000");
+    assert_node(18_000_000_000_u64, "18000000000");
+    assert_node(-170_141_183_460_i128, "-170141183460");
+    assert_node(340_282_366_920_u128, "340282366920");
+    assert_node(-99_isize, "-99");
+    assert_node(1_024_usize, "1024");
 
-#[test]
-fn renderable_bool_true() {
-    let result = maud! { (true) }.render();
-    assert_eq!(result.as_inner(), "true");
-}
-
-#[test]
-fn renderable_bool_false() {
-    let result = maud! { (false) }.render();
-    assert_eq!(result.as_inner(), "false");
-}
-
-#[test]
-fn renderable_i8() {
-    let v: i8 = -42;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "-42");
-}
-
-#[test]
-fn renderable_u8() {
-    let v: u8 = 200;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "200");
-}
-
-#[test]
-fn renderable_i16() {
-    let v: i16 = -1000;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "-1000");
-}
-
-#[test]
-fn renderable_u16() {
-    let v: u16 = 60000;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "60000");
-}
-
-#[test]
-fn renderable_i32() {
-    let v: i32 = -100_000;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "-100000");
-}
-
-#[test]
-fn renderable_u32() {
-    let v: u32 = 4_000_000;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "4000000");
-}
-
-#[test]
-fn renderable_i64() {
-    let v: i64 = -9_000_000_000;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "-9000000000");
-}
-
-#[test]
-fn renderable_u64() {
-    let v: u64 = 18_000_000_000;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "18000000000");
-}
-
-#[test]
-fn renderable_i128() {
-    let v: i128 = -170_141_183_460;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "-170141183460");
-}
-
-#[test]
-fn renderable_u128() {
-    let v: u128 = 340_282_366_920;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "340282366920");
-}
-
-#[test]
-fn renderable_isize() {
-    let v: isize = -99;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "-99");
-}
-
-#[test]
-fn renderable_usize() {
-    let v: usize = 1024;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "1024");
-}
-
-#[test]
-fn renderable_f32() {
     #[expect(clippy::approx_constant)]
-    let v: f32 = 3.14;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "3.14");
+    let float32 = 3.14_f32;
+    assert_node(float32, "3.14");
+    assert_node(1.25_f64, "1.25");
+
+    assert_node('X', "X");
+    assert_node('<', "&lt;");
 }
 
 #[test]
-fn renderable_f64() {
-    #[expect(clippy::approx_constant, clippy::unreadable_literal)]
-    let v: f64 = 2.718281828;
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "2.718281828");
-}
-
-#[test]
-fn renderable_char() {
-    let c = 'X';
-    let result = maud! { (c) }.render();
-    assert_eq!(result.as_inner(), "X");
-}
-
-#[test]
-fn renderable_char_escaping() {
-    let c = '<';
-    let result = maud! { (c) }.render();
-    assert_eq!(result.as_inner(), "&lt;");
-}
-
-#[test]
-fn renderable_ref() {
-    let v = 42;
-    let r = &v;
-    let result = maud! { (r) }.render();
-    assert_eq!(result.as_inner(), "42");
-}
-
-#[test]
-fn renderable_mut_ref() {
-    let mut v = 42;
-    let r = &mut v;
-    let result = maud! { (*r) }.render();
-    assert_eq!(result.as_inner(), "42");
-}
-
-#[test]
-fn renderable_box() {
-    let b = Box::new("boxed");
-    let result = maud! { (b) }.render();
-    assert_eq!(result.as_inner(), "boxed");
-}
-
-#[test]
-fn renderable_rc() {
-    let r = Rc::new("rc'd");
-    let result = maud! { (r) }.render();
-    assert_eq!(result.as_inner(), "rc'd");
-}
-
-#[test]
-fn renderable_arc() {
-    let a = Arc::new("arc'd");
-    let result = maud! { (a) }.render();
-    assert_eq!(result.as_inner(), "arc'd");
-}
-
-#[test]
-fn renderable_cow_borrowed() {
-    use alloc::borrow::Cow;
-    let c = Cow::<str>::Borrowed("borrowed");
-    let result = maud! { (c) }.render();
-    assert_eq!(result.as_inner(), "borrowed");
-}
-
-#[test]
-fn renderable_cow_owned() {
-    use alloc::borrow::Cow;
-    let c = Cow::<str>::Owned(String::from("owned"));
-    let result = maud! { (c) }.render();
-    assert_eq!(result.as_inner(), "owned");
-}
-
-#[test]
-fn renderable_option_some() {
-    let o = Some("present");
-    let result = maud! { (o) }.render();
-    assert_eq!(result.as_inner(), "present");
-}
-
-#[test]
-fn renderable_option_none() {
-    let o = None::<&str>;
-    let result = maud! { (o) }.render();
-    assert_eq!(result.as_inner(), "");
-}
-
-#[test]
-fn renderable_result_ok() {
-    let r = Ok::<&str, &str>("success");
-    let result = maud! { (r) }.render();
-    assert_eq!(result.as_inner(), "success");
-}
-
-#[test]
-fn renderable_result_err() {
-    let r = Err::<&str, &str>("error");
-    let result = maud! { (r) }.render();
-    assert_eq!(result.as_inner(), "error");
-}
-
-#[test]
-fn renderable_vec() {
-    let v: alloc::vec::Vec<&str> = vec!["x", "y", "z"];
-    let result = maud! { (v) }.render();
-    assert_eq!(result.as_inner(), "xyz");
-}
-
-#[test]
-fn renderable_array() {
-    let arr: [&str; 3] = ["a", "b", "c"];
-    let result = maud! { (arr) }.render();
-    assert_eq!(result.as_inner(), "abc");
-}
-
-#[test]
-fn renderable_slice() {
-    let arr = ["x", "y"];
-    let s: &[&str] = &arr;
-    let result = maud! { (s) }.render();
-    assert_eq!(result.as_inner(), "xy");
-}
-
-#[test]
-fn renderable_unit_tuple() {
-    #[expect(clippy::double_parens)]
-    let result = maud! { (()) }.render();
-    assert_eq!(result.as_inner(), "");
-}
-
-#[test]
-fn renderable_single_tuple() {
-    let t = ("hello",);
-    let result = maud! { (t) }.render();
-    assert_eq!(result.as_inner(), "hello");
-}
-
-#[test]
-fn renderable_pair_tuple() {
-    let t = ("a", "b");
-    let result = maud! { (t) }.render();
-    assert_eq!(result.as_inner(), "ab");
-}
-
-#[test]
-fn renderable_triple_tuple() {
-    let t = ("x", "y", "z");
-    let result = maud! { (t) }.render();
-    assert_eq!(result.as_inner(), "xyz");
-}
-
-#[test]
-fn buffer_new_is_empty() {
-    let buffer = Buffer::<hypertext::context::Node>::new();
-    assert_eq!(buffer.into_inner(), "");
-}
-
-#[test]
-fn buffer_default_is_empty() {
-    let buffer = Buffer::<hypertext::context::Node>::default();
-    assert_eq!(buffer.into_inner(), "");
-}
-
-#[test]
-fn buffer_push() {
-    let mut buffer = Buffer::<hypertext::context::Node>::new();
-    buffer.push("hello");
-    buffer.push(" ");
-    buffer.push("world");
-    assert_eq!(buffer.into_inner(), "hello world");
-}
-
-#[test]
-fn buffer_push_escapes() {
-    let mut buffer = Buffer::<hypertext::context::Node>::new();
-    buffer.push("<script>");
-    assert_eq!(buffer.into_inner(), "&lt;script&gt;");
-}
-
-#[test]
-fn buffer_dangerously_from_string() {
-    let buffer = Buffer::<hypertext::context::Node>::dangerously_from_string("<b>bold</b>".into());
-    assert_eq!(buffer.into_inner(), "<b>bold</b>");
-}
-
-#[test]
-fn buffer_dangerously_get_string() {
-    let mut buffer = Buffer::<hypertext::context::Node>::new();
-    buffer.dangerously_get_string().push_str("<raw>");
-    assert_eq!(buffer.into_inner(), "<raw>");
-}
-
-#[test]
-fn buffer_rendered() {
-    let mut buffer = Buffer::<hypertext::context::Node>::new();
-    buffer.push("hello");
-    let rendered = buffer.rendered();
-    assert_eq!(rendered.as_inner(), "hello");
-}
-
-#[test]
-fn buffer_with_context() {
-    use hypertext::context::AttributeValue;
-
-    let mut buffer = Buffer::<hypertext::context::Node>::new();
-    let attr_buf: &mut Buffer<AttributeValue> = buffer.with_context();
-    attr_buf.push("a\"b");
-    assert_eq!(buffer.into_inner(), "a&quot;b");
-}
-
-#[test]
-fn buffer_with_node_context() {
-    let mut buffer = hypertext::SvgBuffer::new();
-    let html_buf: &mut Buffer = buffer.with_context();
-    html_buf.push("<svg>");
-    assert_eq!(buffer.into_inner(), "&lt;svg&gt;");
-}
-
-#[test]
-fn raw_dangerously_create() {
-    let raw = Raw::<&str>::dangerously_create("<b>bold</b>");
-    assert_eq!(raw.as_str(), "<b>bold</b>");
-}
-
-#[test]
-fn raw_into_inner() {
-    let raw = Raw::<&str>::dangerously_create("test");
-    assert_eq!(raw.into_inner(), "test");
-}
-
-#[test]
-fn raw_as_inner() {
-    let raw = Raw::<&str>::dangerously_create("test");
-    assert_eq!(*raw.as_inner(), "test");
-}
-
-#[test]
-fn raw_as_str() {
-    let raw = Raw::<String>::dangerously_create(String::from("hello"));
-    assert_eq!(raw.as_str(), "hello");
-}
-
-#[test]
-fn raw_rendered() {
-    let raw = Raw::<&str>::dangerously_create("<em>italic</em>");
-    let rendered = raw.rendered();
-    assert_eq!(*rendered.as_inner(), "<em>italic</em>");
-}
-
-#[test]
-fn raw_partial_eq() {
-    let a = Raw::<&str>::dangerously_create("test");
-    let b = Raw::<&str>::dangerously_create("test");
-    let c = Raw::<&str>::dangerously_create("other");
-
-    assert_eq!(a, b);
-    assert_ne!(a, c);
-}
-
-#[test]
-fn raw_debug() {
-    let raw = Raw::<&str>::dangerously_create("hello");
-    let debug = alloc::format!("{raw:?}");
-    assert_eq!(debug, r#"Raw("hello")"#);
-}
-
-#[test]
-fn raw_clone() {
-    let raw = Raw::<&str>::dangerously_create("test");
-    #[expect(clippy::clone_on_copy)]
-    let cloned = raw.clone();
-    assert_eq!(raw, cloned);
-}
-
-#[test]
-fn raw_default() {
-    let raw = Raw::<&str>::default();
-    assert_eq!(raw.as_str(), "");
-}
-
-#[test]
-fn raw_attribute_create_and_read() {
-    let attr = hypertext::RawAttribute::dangerously_create("my-value");
-    assert_eq!(attr.as_str(), "my-value");
-}
-
-#[test]
-fn rendered_into_inner() {
-    let rendered = maud! { "hello" }.render();
-    assert_eq!(rendered.into_inner(), "hello");
-}
-
-#[test]
-fn rendered_as_inner() {
-    let rendered = maud! { "hello" }.render();
-    assert_eq!(*rendered.as_inner(), "hello");
-}
-
-#[test]
-fn rendered_partial_eq() {
-    let a = maud! { "test" }.render();
-    let b = maud! { "test" }.render();
-    let c = maud! { "other" }.render();
-
-    assert_eq!(a, b);
-    assert_ne!(a, c);
-}
-
-#[test]
-fn rendered_debug() {
-    let rendered = maud! { "hello" }.render();
-    let debug = alloc::format!("{rendered:?}");
-    assert_eq!(debug, r#"Rendered("hello")"#);
-}
-
-#[test]
-fn rendered_default() {
-    let rendered = Rendered::<String>::default();
-    assert_eq!(rendered.into_inner(), "");
-}
-
-#[test]
-fn rendered_svg_type() {
-    let rendered: hypertext::RenderedSvg<String> = svg::maud! { svg {} }.render();
-    assert_eq!(rendered.as_inner(), "<svg></svg>");
-
-    let defaulted: hypertext::RenderedSvg<&str> =
-        hypertext::RawSvg::<_>::dangerously_create("<svg/>").rendered();
-    assert_eq!(defaulted.as_inner(), &"<svg/>");
-}
-
-#[test]
-fn lazy_dangerously_create() {
-    let lazy = Lazy::dangerously_create(|buffer: &mut Buffer| {
-        buffer.dangerously_get_string().push_str("hello");
-    });
-    let result = lazy.render();
-    assert_eq!(result.as_inner(), "hello");
-}
-
-#[test]
-fn lazy_into_inner() {
-    let lazy = Lazy::dangerously_create(|_: &mut Buffer| {});
-    let _f = lazy.into_inner();
-}
-
-#[test]
-fn lazy_as_inner() {
-    let lazy = Lazy::dangerously_create(|buffer: &mut Buffer| {
-        buffer.dangerously_get_string().push_str("test");
-    });
-    let f = lazy.as_inner();
-    let mut buffer = Buffer::new();
-    f(&mut buffer);
-    assert_eq!(buffer.into_inner(), "test");
-}
-
-#[test]
-fn lazy_default() {
-    let lazy = Lazy::<fn(&mut Buffer)>::default();
-    let result = lazy.render();
-    assert_eq!(result.as_inner(), "");
-}
-
-#[test]
-fn lazy_debug() {
-    let lazy = Lazy::dangerously_create(|_: &mut Buffer| {});
-    let debug = alloc::format!("{lazy:?}");
-    assert_eq!(debug, "Lazy(..)");
-}
-
-#[test]
-fn memoize_returns_raw() {
-    let lazy = maud! {
-        div { "hello" }
-    };
-
-    let memoized = lazy.memoize();
-    assert_eq!(memoized.as_str(), "<div>hello</div>");
-
-    let r1 = maud::borrow! { (memoized) }.render();
-    let r2 = maud::borrow! { section { (memoized) } }.render();
-    assert_eq!(r1.as_inner(), "<div>hello</div>");
-    assert_eq!(r2.as_inner(), "<section><div>hello</div></section>");
-}
-
-#[test]
-fn displayed_directly() {
-    use core::fmt;
-
-    use hypertext::Displayed;
-
-    struct Greeting(&'static str);
-
-    impl fmt::Display for Greeting {
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "Hello, {}!", self.0)
-        }
-    }
-
-    let d = Displayed(Greeting("World"));
-    let result = maud! { (d) }.render();
-    assert_eq!(result.as_inner(), "Hello, World!");
-}
-
-#[test]
-fn displayed_escapes_html() {
-    use hypertext::Displayed;
-
-    let d = Displayed("<script>alert('xss')</script>");
-    let result = maud! { (d) }.render();
-    assert_eq!(
-        result.as_inner(),
-        "&lt;script&gt;alert('xss')&lt;/script&gt;"
+fn composite_renderables_flatten_in_order() {
+    let mut number = 42;
+    let reference: &i32 = &number;
+    assert_node(reference, "42");
+    let mutable_reference: &mut i32 = &mut number;
+    assert_node(mutable_reference, "42");
+    assert_node(Box::new("boxed"), "boxed");
+    assert_node(Rc::new("rc"), "rc");
+    assert_node(Arc::new("arc"), "arc");
+    assert_node(Cow::<str>::Borrowed("borrowed"), "borrowed");
+    assert_node(Cow::<str>::Owned(String::from("owned")), "owned");
+
+    assert_node(Some("present"), "present");
+    assert_node(None::<&str>, "");
+    assert_node(Ok::<_, &str>("success"), "success");
+    assert_node(Err::<&str, _>("error"), "error");
+    assert_node(vec!["x", "y", "z"], "xyz");
+    assert_node(Vec::<&str>::new(), "");
+
+    let array = ["a", "b", "c"];
+    assert_node(array, "abc");
+    assert_node(&array[..], "abc");
+    let empty: [&str; 0] = [];
+    assert_node(empty, "");
+
+    assert_node((), "");
+    assert_node(("hello",), "hello");
+    assert_node(("a", "b", "c"), "abc");
+    assert_node(
+        (
+            1_u8, 2_u8, 3_u8, 4_u8, 5_u8, 6_u8, 7_u8, 8_u8, 9_u8, 10_u8, 11_u8, 12_u8,
+        ),
+        "123456789101112",
     );
 }
 
 #[test]
-fn debugged_directly() {
-    use hypertext::Debugged;
+fn node_and_attribute_contexts_escape_their_own_delimiters() {
+    let value = "<tag attr=\"x\"> & '";
 
-    let d = Debugged(vec![1, 2, 3]);
-    let result = maud! { (d) }.render();
-    assert_eq!(result.as_inner(), "[1, 2, 3]");
+    assert_node(value, "&lt;tag attr=\"x\"&gt; &amp; '");
+    assert_attribute(value, "&lt;tag attr=&quot;x&quot;&gt; &amp; '");
+    assert_node('&', "&amp;");
+    assert_node('>', "&gt;");
+    assert_attribute('"', "&quot;");
+
+    assert_node(format_args!("{}:{}", "<", "&"), "&lt;:&amp;");
+    assert_attribute(format_args!("{}:{}", "<", "\""), "&lt;:&quot;");
 }
 
 #[test]
-fn debugged_escapes_html() {
-    use hypertext::Debugged;
+fn displayed_and_debugged_values_are_escaped() {
+    struct Greeting(&'static str);
+
+    impl fmt::Display for Greeting {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "Hello, {}! <script>", self.0)
+        }
+    }
 
     #[derive(Debug)]
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     struct Tag(&'static str);
 
-    let d = Debugged(Tag("<b>"));
-    let result = maud! { (d) }.render();
-    assert_eq!(result.as_inner(), r#"Tag("&lt;b&gt;")"#);
+    assert_node(
+        hypertext::Displayed(Greeting("World")),
+        "Hello, World! &lt;script&gt;",
+    );
+    assert_attribute(
+        hypertext::Displayed("<b> & \"quoted\""),
+        "&lt;b&gt; &amp; &quot;quoted&quot;",
+    );
+    assert_node(Debugged(Tag("<b>")), r#"Tag("&lt;b&gt;")"#);
+    assert_attribute(Debugged(Tag("<b>")), "Tag(&quot;&lt;b&gt;&quot;)");
 }
 
 #[test]
-fn format_args_via_display_syntax() {
-    let name = "Alice";
-    let age = 30;
+fn buffer_push_and_context_conversion_share_storage() {
+    let mut buffer = Buffer::<Node>::default();
+    assert_eq!(format!("{buffer:?}"), "Buffer(\"\")");
+    buffer.push("<safe text> &");
+    buffer.push(42);
 
-    let result = maud! {
-        p { %(format_args!("{name} is {age} years old")) }
+    {
+        let attributes: &mut Buffer<AttributeValue> = buffer.with_context();
+        attributes.push("a\"b");
     }
-    .render();
 
-    assert_eq!(result.as_inner(), "<p>Alice is 30 years old</p>");
+    assert_eq!(buffer.into_inner(), "&lt;safe text&gt; &amp;42a&quot;b");
+
+    let mut source = String::from("prefix:");
+    {
+        // XSS SAFETY: this test intentionally starts with trusted source text.
+        let mutable = Buffer::<Node>::dangerously_from_string_mut(&mut source);
+        mutable.push("<user>");
+    }
+    assert_eq!(source, "prefix:&lt;user&gt;");
+}
+
+#[test]
+fn dangerous_buffer_writes_are_preserved_and_rendered() {
+    // XSS SAFETY: these literals are deliberately pre-escaped/trusted test
+    // data.
+    let buffer = Buffer::<Node>::dangerously_from_string(String::from("<b>raw</b>"));
+    assert_eq!(buffer.clone().into_inner(), "<b>raw</b>");
+    assert_eq!(format!("{buffer:?}"), "Buffer(\"<b>raw</b>\")");
+    assert_eq!(buffer.rendered().as_inner(), "<b>raw</b>");
+}
+
+#[test]
+fn svg_and_mathml_buffers_keep_their_node_context() {
+    let mut svg = Buffer::<SvgNode>::new();
+    svg.push("<path/>");
+    assert_eq!(svg.rendered().as_inner(), "&lt;path/&gt;");
+
+    let mut mathml = Buffer::<MathMlNode>::new();
+    mathml.push("<mi>x</mi>");
+    assert_eq!(mathml.rendered().as_inner(), "&lt;mi&gt;x&lt;/mi&gt;");
+
+    let mut svg = Buffer::<SvgNode>::new();
+    let html: &mut Buffer<Node> = svg.with_context();
+    html.push("text");
+    assert_eq!(svg.into_inner(), "text");
+}
+
+#[test]
+fn raw_values_preserve_preescaped_data_in_each_context() {
+    const EMPTY: Raw<&str> = Raw::dangerously_create("");
+    assert_eq!(EMPTY.as_str(), "");
+    assert_eq!(EMPTY.as_inner(), &"");
+
+    let raw = Raw::<&str>::dangerously_create("&lt;b&gt;");
+    assert_node(raw, "&lt;b&gt;");
+    assert_eq!(raw, Raw::dangerously_create("&lt;b&gt;"));
+    assert_ne!(raw, Raw::dangerously_create("other"));
+    assert_eq!(format!("{raw:?}"), r#"Raw("&lt;b&gt;")"#);
+
+    let attr = RawAttribute::dangerously_create("&lt;quoted&gt;&quot;");
+    assert_attribute(attr, "&lt;quoted&gt;&quot;");
+    assert_eq!(attr.as_str(), "&lt;quoted&gt;&quot;");
+
+    let owned: Raw<String> = Raw::dangerously_create(String::from("owned"));
+    assert_eq!(owned.as_inner(), "owned");
+    assert_eq!(owned.clone().into_inner(), "owned");
+    assert_eq!(owned.rendered().into_inner(), "owned");
+
+    let svg = RawSvg::dangerously_create(String::from("<svg/>")).rendered();
+    assert_eq!(svg.as_inner(), "<svg/>");
+    let mathml = RawMathMl::dangerously_create(String::from("<math/>")).rendered();
+    assert_eq!(mathml.as_inner(), "<math/>");
+}
+
+#[test]
+fn rendered_values_have_small_value_semantics() {
+    let rendered = maud! { p { "hello" } }.render();
+    assert_eq!(rendered.as_inner(), "<p>hello</p>");
+    assert_eq!(rendered.clone(), rendered);
+    assert_ne!(rendered, maud! { p { "other" } }.render());
+    assert_eq!(format!("{rendered:?}"), r#"Rendered("<p>hello</p>")"#);
+    assert_eq!(Rendered::<String>::default().into_inner(), "");
+
+    let svg: hypertext::RenderedSvg<String> =
+        hypertext::RawSvg::dangerously_create(String::from("<svg/>")).rendered();
+    assert_eq!(svg.into_inner(), "<svg/>");
+}
+
+#[test]
+fn lazy_values_render_later_and_expose_their_closure() {
+    let lazy = Lazy::<_, Node>::dangerously_create(|buffer: &mut Buffer| {
+        buffer.push("<later>");
+    });
+    assert_node(lazy, "&lt;later&gt;");
+
+    let lazy = Lazy::<_, Node>::dangerously_create(|buffer: &mut Buffer| {
+        buffer.push("value");
+    });
+    let function = lazy.as_inner();
+    let mut buffer = Buffer::new();
+    function(&mut buffer);
+    assert_eq!(buffer.into_inner(), "value");
+    let _ = lazy.into_inner();
+
+    let empty = Lazy::<fn(&mut Buffer), Node>::default();
+    assert_node(empty, "");
+    assert_eq!(
+        format!("{:?}", Lazy::<fn(&mut Buffer), Node>::default()),
+        "Lazy(..)"
+    );
+}
+
+#[test]
+fn lazy_aliases_and_memoize_keep_context_specific_escaping() {
+    let attribute = LazyAttribute::dangerously_create(|buffer: &mut Buffer<AttributeValue>| {
+        buffer.push("\"<&");
+    });
+    let memoized = attribute.memoize();
+    assert_eq!(memoized.as_str(), "&quot;&lt;&amp;");
+    assert_eq!(
+        maud! { div title=(memoized) {} }.render().as_inner(),
+        r#"<div title="&quot;&lt;&amp;"></div>"#,
+    );
+
+    let svg = LazySvg::dangerously_create(|buffer: &mut Buffer<SvgNode>| {
+        buffer.push("<circle/>");
+    });
+    assert_eq!(
+        svg.render::<hypertext::context::Svg>().as_inner(),
+        "&lt;circle/&gt;",
+    );
+
+    let mathml = LazyMathMl::dangerously_create(|buffer: &mut Buffer<MathMlNode>| {
+        buffer.push("<mi>x</mi>");
+    });
+    assert_eq!(
+        mathml.render::<hypertext::context::MathMl>().as_inner(),
+        "&lt;mi&gt;x&lt;/mi&gt;",
+    );
+}
+
+#[test]
+fn memoize_pre_renders_once_for_reuse() {
+    use core::cell::Cell;
+
+    struct Counted<'a>(&'a Cell<u8>);
+
+    impl Renderable for Counted<'_> {
+        fn render_to(&self, buffer: &mut Buffer) {
+            self.0.set(self.0.get() + 1);
+            buffer.push("counted");
+        }
+    }
+
+    let calls = Cell::new(0);
+    let counted = Counted(&calls);
+    let counted_memoized = counted.memoize();
+    assert_eq!(calls.get(), 1);
+    assert_eq!(counted_memoized.as_str(), "counted");
+
+    let dangerous = "<script>alert(1)</script>";
+    let memoized = maud! { div { (dangerous) } }.memoize();
+    assert_eq!(
+        memoized.as_str(),
+        "<div>&lt;script&gt;alert(1)&lt;/script&gt;</div>"
+    );
+
+    let first = maud::borrow! { (memoized) }.render();
+    let second = maud::borrow! { section { (memoized) } }.render();
+    assert_eq!(
+        first.as_inner(),
+        "<div>&lt;script&gt;alert(1)&lt;/script&gt;</div>"
+    );
+    assert_eq!(
+        second.as_inner(),
+        "<section><div>&lt;script&gt;alert(1)&lt;/script&gt;</div></section>",
+    );
+    assert_eq!(calls.get(), 1);
 }

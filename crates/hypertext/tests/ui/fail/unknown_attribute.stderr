@@ -1,0 +1,5 @@
+error[E0599]: no associated function or constant named `bogus` found for struct `hypertext::prelude::hypertext_elements::div` in the current scope
+ --> tests/ui/fail/unknown_attribute.rs:6:25
+  |
+6 |     let _ = rsx! { <div bogus="x"></div> }.render();
+  |                         ^^^^^ associated function or constant not found in `hypertext::prelude::hypertext_elements::div`

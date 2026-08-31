@@ -1,764 +1,277 @@
-//! Macro variant and syntax tests.
+//! Macro variants, templates, and non-HTML contexts.
 #![cfg(feature = "alloc")]
 
 use hypertext::prelude::*;
 
-#[test]
-fn maud_rsx_parity_basic() {
-    let maud_result = maud! { div { p { "hello" } } }.render();
-    let rsx_result = rsx! { <div><p>hello</p></div> }.render();
-    assert_eq!(maud_result, rsx_result);
+macro_rules! assert_html_pair {
+    ($left:expr, $right:expr, $expected:expr $(,)?) => {{
+        let left = ($left).render();
+        let right = ($right).render();
+        assert_eq!(left.as_inner(), $expected);
+        assert_eq!(right.as_inner(), $expected);
+    }};
+}
+
+macro_rules! assert_context_pair {
+    ($kind:ty, $left:expr, $right:expr, $expected:expr $(,)?) => {{
+        let left = ($left).render::<$kind>();
+        let right = ($right).render::<$kind>();
+        assert_eq!(left.as_inner(), $expected);
+        assert_eq!(right.as_inner(), $expected);
+    }};
 }
 
 #[test]
-fn maud_rsx_parity_with_attributes() {
-    let maud_result = maud! { a href="https://example.com" { "link" } }.render();
-    let rsx_result = rsx! { <a href="https://example.com">link</a> }.render();
-    assert_eq!(maud_result, rsx_result);
-}
-
-#[test]
-fn maud_rsx_parity_void_elements() {
-    let maud_result = maud! { br; hr; input type="text"; }.render();
-    let rsx_result = rsx! { <br><hr><input type="text"> }.render();
-    assert_eq!(maud_result, rsx_result);
-}
-
-#[test]
-fn maud_rsx_parity_dynamic_content() {
-    let name = "world";
-
-    let maud_result = maud! { p { "hello " (name) } }.render();
-    let rsx_result = rsx! { <p>"hello " (name)</p> }.render();
-    assert_eq!(maud_result, rsx_result);
-}
-
-#[test]
-fn maud_rsx_parity_nested_control_flow() {
-    let items = [1, 2, 3];
-
-    let maud_result = maud! {
-        ul {
-            @for item in items {
-                li { (item) }
+fn maud_and_rsx_share_the_same_rendering_contract() {
+    let name = "Ada";
+    assert_html_pair!(
+        maud! {
+            div #profile .card data-kind="person" {
+                h1 { "Hello, " (name) }
+                input type="text" disabled;
             }
-        }
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <ul>
-            @for item in items {
-                <li>(item)</li>
-            }
-        </ul>
-    }
-    .render();
-
-    assert_eq!(maud_result, rsx_result);
-}
-
-#[test]
-fn maud_borrow_captures_by_reference() {
-    let name = String::from("Alice");
-
-    let result = maud::borrow! { p { (name) } }.render();
-    assert_eq!(result.as_inner(), "<p>Alice</p>");
-
-    assert_eq!(name, "Alice");
-}
-
-#[test]
-fn rsx_borrow_captures_by_reference() {
-    let name = String::from("Bob");
-
-    let result = rsx::borrow! { <p>(name)</p> }.render();
-    assert_eq!(result.as_inner(), "<p>Bob</p>");
-
-    assert_eq!(name, "Bob");
-}
-
-#[test]
-fn borrow_parity() {
-    let value = String::from("test");
-
-    let maud_result = maud::borrow! { span { (value) } }.render();
-    let rsx_result = rsx::borrow! { <span>(value)</span> }.render();
-    assert_eq!(maud_result, rsx_result);
-
-    assert_eq!(value, "test");
-}
-
-#[test]
-fn borrow_with_multiple_references() {
-    let a = String::from("hello");
-    let b = String::from("world");
-
-    let result = maud::borrow! {
-        div {
-            span { (a) }
-            span { (b) }
-        }
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
-        "<div><span>hello</span><span>world</span></div>"
+        },
+        rsx! {
+            <div id="profile" class="card" data-kind="person">
+                <h1>"Hello, " (name)</h1>
+                <input type="text" disabled>
+            </div>
+        },
+        r#"<div id="profile" class="card" data-kind="person"><h1>Hello, Ada</h1><input type="text" disabled></div>"#,
     );
-
-    assert_eq!(a, "hello");
-    assert_eq!(b, "world");
 }
 
 #[test]
-fn maud_simple_basic() {
-    let result = maud::simple! { div { p { "hello" } } };
-    assert_eq!(*result.as_inner(), "<div><p>hello</p></div>");
+fn borrow_variants_and_html_alias_preserve_references() {
+    let name = String::from("Grace");
+    let maud = maud::borrow! { p { (name) } }.render();
+    let rsx = rsx::borrow! { <p>(name)</p> }.render();
+    let html = html::borrow! { <p>(name)</p> }.render();
+
+    assert_eq!(maud.as_inner(), "<p>Grace</p>");
+    assert_eq!(rsx.as_inner(), maud.as_inner());
+    assert_eq!(html.as_inner(), maud.as_inner());
+    assert_eq!(name, "Grace");
 }
 
 #[test]
-fn rsx_simple_basic() {
-    let result = rsx::simple! { <div><p>hello</p></div> };
-    assert_eq!(*result.as_inner(), "<div><p>hello</p></div>");
-}
-
-#[test]
-fn rsx_file_basic() {
-    let result = rsx::file!("tests/templates/hello.html").render();
-
-    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
-}
-
-#[test]
-fn rsx_file_borrow_basic() {
-    let name = "world".to_owned();
-    let result = rsx::file_borrow!("tests/templates/hello.html").render();
-    let _ = &name;
-
-    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
-}
-
-#[test]
-fn html_macro_is_rsx_alias() {
-    let rsx_result = rsx! {
-        <div id="test"><span>"hello"</span></div>
-    }
-    .render();
-
-    let html_result = html! {
-        <div id="test"><span>"hello"</span></div>
-    }
-    .render();
-
-    assert_eq!(rsx_result.as_inner(), html_result.as_inner());
-}
-
-#[test]
-fn html_macro_variants_match_rsx_variants() {
-    let name = String::from("world");
-
-    let rsx_borrow = rsx::borrow! { <h1>"Hello, " (name)</h1> }.render();
-    let html_borrow = html::borrow! { <h1>"Hello, " (name)</h1> }.render();
-
-    let rsx_simple = rsx::simple! { <h1>Hello</h1> };
-    let html_simple = html::simple! { <h1>Hello</h1> };
-
-    assert_eq!(rsx_borrow.as_inner(), html_borrow.as_inner());
-    assert_eq!(rsx_simple.as_inner(), html_simple.as_inner());
-}
-
-#[test]
-fn html_file_macros_are_rsx_aliases() {
-    let rsx_result = rsx::file!("tests/templates/hello.html").render();
-    let html_result = html::file!("tests/templates/hello.html").render();
-    assert_eq!(rsx_result.as_inner(), html_result.as_inner());
-}
-
-#[test]
-fn html_file_basic() {
-    let result = html::file!("tests/templates/hello.html").render();
-
-    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
-}
-
-#[test]
-fn html_file_borrow_basic() {
-    let name = "world".to_owned();
-    let result = html::file_borrow!("tests/templates/hello.html").render();
-    let _ = &name;
-
-    assert_eq!(result.as_inner(), "<div><h1>Hello, world!</h1></div>");
-}
-
-#[test]
-fn simple_parity() {
-    let maud_result = maud::simple! { h1 { "Title" } };
-    let rsx_result = rsx::simple! { <h1>Title</h1> };
-    assert_eq!(maud_result.as_inner(), rsx_result.as_inner());
-}
-
-#[test]
-fn simple_in_const_context() {
-    const MAUD_HTML: hypertext::Raw<&str> = maud::simple! {
-        div .container {
-            h1 { "Static Page" }
-            p { "No dynamic content here." }
+fn simple_variants_are_static_and_cross_syntax_parity() {
+    const MAUD: hypertext::Raw<&str> = maud::simple! {
+        main .page {
+            h1 { "Static" }
+            br;
         }
     };
-
-    const RSX_HTML: hypertext::Raw<&str> = rsx::simple! {
-        <div class="container">
-            <h1>"Static Page"</h1>
-            <p>"No dynamic content here."</p>
-        </div>
+    const RSX: hypertext::Raw<&str> = rsx::simple! {
+        <main class="page"><h1>Static</h1><br></main>
     };
-
-    assert_eq!(MAUD_HTML.as_inner(), RSX_HTML.as_inner());
-    assert_eq!(
-        *MAUD_HTML.as_inner(),
-        r#"<div class="container"><h1>Static Page</h1><p>No dynamic content here.</p></div>"#
-    );
-}
-
-#[test]
-fn simple_in_static_context() {
-    static HTML: hypertext::Raw<&str> = maud::simple! {
-        footer { "Copyright 2025" }
+    const HTML: hypertext::Raw<&str> = html::simple! {
+        <main class="page"><h1>Static</h1><br></main>
     };
-
-    assert_eq!(*HTML.as_inner(), "<footer>Copyright 2025</footer>");
-}
-
-#[test]
-fn simple_void_elements() {
-    let result = maud::simple! { br; hr; br; };
-    assert_eq!(*result.as_inner(), "<br><hr><br>");
-
-    let rsx_result = rsx::simple! { <br><hr><br> };
-    assert_eq!(*rsx_result.as_inner(), "<br><hr><br>");
-}
-
-#[test]
-fn svg_maud_basic() {
-    let result = svg::maud! {
-        svg width="100" height="100" {
-            circle cx="50" cy="50" r="40";
-        }
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
-        r#"<svg width="100" height="100"><circle cx="50" cy="50" r="40"/></svg>"#
-    );
-}
-
-#[test]
-fn svg_rsx_basic() {
-    let result = svg::rsx! {
-        <svg width="100" height="100">
-            <circle cx="50" cy="50" r="40" />
-        </svg>
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
-        r#"<svg width="100" height="100"><circle cx="50" cy="50" r="40"/></svg>"#
-    );
-}
-
-#[test]
-fn svg_maud_rsx_parity() {
-    let maud_result = svg::maud! {
-        svg viewBox="0 0 100 100" {
-            rect x="10" y="10" width="80" height="80" fill="blue";
-        }
-    }
-    .render();
-
-    let rsx_result = svg::rsx! {
-        <svg viewBox="0 0 100 100">
-            <rect x="10" y="10" width="80" height="80" fill="blue" />
-        </svg>
-    }
-    .render();
-
-    assert_eq!(maud_result, rsx_result);
-}
-
-#[test]
-fn svg_borrow() {
-    let color = String::from("red");
-
-    let result = svg::maud::borrow! {
-        svg {
-            circle cx="50" cy="50" r="40" fill=(color);
-        }
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
-        r#"<svg><circle cx="50" cy="50" r="40" fill="red"/></svg>"#
-    );
-
-    assert_eq!(color, "red");
-}
-
-#[test]
-fn svg_simple() {
-    const SVG: hypertext::Raw<&str, hypertext::context::SvgNode> = svg::maud::simple! {
-        svg width="50" height="50" {
-            rect width="50" height="50" fill="green";
-        }
+    const ATTR: hypertext::RawAttribute<&str> = attribute::simple! {
+        "btn btn-primary"
     };
 
     assert_eq!(
-        *SVG.as_inner(),
-        r#"<svg width="50" height="50"><rect width="50" height="50" fill="green"/></svg>"#
+        MAUD.as_str(),
+        r#"<main class="page"><h1>Static</h1><br></main>"#
     );
+    assert_eq!(RSX.as_str(), MAUD.as_str());
+    assert_eq!(HTML.as_str(), MAUD.as_str());
+    assert_eq!(ATTR.as_str(), "btn btn-primary");
 }
 
 #[test]
-fn svg_rsx_simple() {
-    const SVG: hypertext::Raw<&str, hypertext::context::SvgNode> = svg::rsx::simple! {
-        <svg width="50" height="50">
-            <rect width="50" height="50" fill="green" />
-        </svg>
+fn file_variants_parse_external_rsx_and_track_borrowing() {
+    let name = "Ada";
+    let rsx = rsx::file!("tests/templates/variables.html").render();
+    let html = html::file!("tests/templates/variables.html").render();
+    assert_eq!(rsx.as_inner(), html.as_inner());
+    assert_eq!(
+        rsx.as_inner(),
+        r#"<article data-kind="greeting"><h1>Ada</h1><p>Static body</p></article>"#,
+    );
+
+    let name = String::from("Grace");
+    let borrowed = rsx::file_borrow!("tests/templates/variables.html").render();
+    let borrowed_alias = html::file_borrow!("tests/templates/variables.html").render();
+    assert_eq!(borrowed.as_inner(), borrowed_alias.as_inner());
+    assert_eq!(
+        borrowed.as_inner(),
+        "<article data-kind=\"greeting\"><h1>Grace</h1><p>Static body</p></article>"
+    );
+    assert_eq!(name, "Grace");
+}
+
+#[test]
+fn attribute_variants_render_dynamic_and_static_values() {
+    const STATIC: hypertext::RawAttribute<&str> = attribute::simple! { "static" };
+
+    let name = String::from("Ada");
+    let dynamic_name = name.clone();
+    let dynamic = attribute! {
+        "Hello, " (dynamic_name) "!"
+        @if true { " active" }
     };
+    let borrowed = attribute::borrow! { "Hello, " (name) };
 
-    assert_eq!(
-        *SVG.as_inner(),
-        r#"<svg width="50" height="50"><rect width="50" height="50" fill="green"/></svg>"#
+    assert_eq!(dynamic.to_buffer().into_inner(), "Hello, Ada! active");
+    assert_eq!(borrowed.to_buffer().into_inner(), "Hello, Ada");
+    assert_eq!(STATIC.as_str(), "static");
+    assert_eq!(name, "Ada");
+}
+
+#[test]
+fn document_directives_match_between_maud_and_rsx() {
+    assert_html_pair!(
+        maud! {
+            !DOCTYPE
+            html { head {} body { "Hello" } }
+        },
+        rsx! {
+            <!DOCTYPE html>
+            <html><head></head><body>Hello</body></html>
+        },
+        "<!DOCTYPE html><html><head></head><body>Hello</body></html>",
+    );
+
+    assert_context_pair!(
+        hypertext::context::Svg,
+        svg::maud! {
+            !xml
+            svg { circle cx="1" cy="2" r="1"; }
+        },
+        svg::rsx! {
+            <?xml?>
+            <svg><circle cx="1" cy="2" r="1" /></svg>
+        },
+        r#"<?xml version="1.0" encoding="UTF-8"?><svg><circle cx="1" cy="2" r="1"/></svg>"#,
+    );
+
+    assert_context_pair!(
+        hypertext::context::MathMl,
+        mathml::maud! {
+            !xml
+            math { mi { "x" } }
+        },
+        mathml::rsx! {
+            <?xml?>
+            <math><mi>x</mi></math>
+        },
+        r#"<?xml version="1.0" encoding="UTF-8"?><math><mi>x</mi></math>"#,
     );
 }
 
 #[test]
-fn mathml_maud_basic() {
-    let result = mathml::maud! {
-        math {
-            mi { "x" }
-            mo { "+" }
-            mn { "1" }
-        }
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
-        "<math><mi>x</mi><mo>+</mo><mn>1</mn></math>"
-    );
-}
-
-#[test]
-fn mathml_rsx_basic() {
-    let result = mathml::rsx! {
-        <math>
-            <mi>x</mi>
-            <mo>"+"</mo>
-            <mn>1</mn>
-        </math>
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
-        "<math><mi>x</mi><mo>+</mo><mn>1</mn></math>"
-    );
-}
-
-#[test]
-fn mathml_maud_rsx_parity() {
-    let maud_result = mathml::maud! {
-        math {
-            msup {
-                mi { "x" }
-                mn { "2" }
-            }
-        }
-    }
-    .render();
-
-    let rsx_result = mathml::rsx! {
-        <math>
-            <msup>
-                <mi>x</mi>
-                <mn>2</mn>
-            </msup>
-        </math>
-    }
-    .render();
-
-    assert_eq!(maud_result, rsx_result);
-}
-
-#[test]
-fn mathml_borrow() {
-    let var_name = String::from("y");
-
-    let result = mathml::maud::borrow! {
-        math {
-            mi { (var_name) }
-        }
-    }
-    .render();
-
-    assert_eq!(result.as_inner(), "<math><mi>y</mi></math>");
-    assert_eq!(var_name, "y");
-}
-
-#[test]
-fn mathml_simple() {
-    const MATH: hypertext::Raw<&str, hypertext::context::MathMlNode> = mathml::maud::simple! {
-        math {
-            mi { "e" }
-            mo { "=" }
-            mi { "m" }
-            msup {
-                mi { "c" }
-                mn { "2" }
-            }
-        }
-    };
-
-    assert_eq!(
-        *MATH.as_inner(),
-        "<math><mi>e</mi><mo>=</mo><mi>m</mi><msup><mi>c</mi><mn>2</mn></msup></math>"
-    );
-}
-
-#[test]
-fn attribute_basic() {
-    let attr = attribute! { "hello world" };
-
-    let result = maud! { div title=attr {} }.render();
-    assert_eq!(result.as_inner(), r#"<div title="hello world"></div>"#);
-}
-
-#[test]
-fn attribute_with_dynamic_content() {
-    let name = "Alice";
-    let attr = attribute! { "Hello, " (name) "!" };
-
-    let result = maud! { div title=attr {} }.render();
-    assert_eq!(result.as_inner(), r#"<div title="Hello, Alice!"></div>"#);
-}
-
-#[test]
-fn attribute_with_control_flow() {
-    let attr = attribute! { "x" @for i in 0..5 { (i) } };
-
-    let result = maud! { div title=attr { "Hi!" } }.render();
-    assert_eq!(result.as_inner(), r#"<div title="x01234">Hi!</div>"#);
-}
-
-#[test]
-fn attribute_borrow() {
-    let name = String::from("world");
-    let attr = attribute::borrow! { "hello " (name) };
-
-    let result = maud! { div title=attr {} }.render();
-    assert_eq!(result.as_inner(), r#"<div title="hello world"></div>"#);
-
-    assert_eq!(name, "world");
-}
-
-#[test]
-fn attribute_simple() {
-    const ATTR: hypertext::RawAttribute<&str> = attribute::simple! { "static-value" };
-
-    let result = maud! { div title=ATTR {} }.render();
-    assert_eq!(result.as_inner(), r#"<div title="static-value"></div>"#);
-}
-
-#[test]
-fn attribute_simple_in_const() {
-    const CLASS_VALUE: hypertext::RawAttribute<&str> = attribute::simple! { "btn btn-primary" };
-
-    let result = maud! { button class=CLASS_VALUE { "Click" } }.render();
-    assert_eq!(
-        result.as_inner(),
-        r#"<button class="btn btn-primary">Click</button>"#
-    );
-}
-
-#[test]
-fn maud_doctype() {
-    let result = maud! {
-        !DOCTYPE
-        html {
-            head {}
-            body { "Hello" }
-        }
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
-        "<!DOCTYPE html><html><head></head><body>Hello</body></html>"
-    );
-}
-
-#[test]
-fn rsx_doctype() {
-    let result = rsx! {
-        <!DOCTYPE html>
-        <html>
-            <head></head>
-            <body>Hello</body>
-        </html>
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
-        "<!DOCTYPE html><html><head></head><body>Hello</body></html>"
-    );
-}
-
-#[test]
-fn doctype_parity() {
-    let maud_result = maud! {
-        !DOCTYPE
-        html {
-            head { title { "Test" } }
-            body { p { "Content" } }
-        }
-    }
-    .render();
-
-    let rsx_result = rsx! {
-        <!DOCTYPE html>
-        <html>
-            <head><title>Test</title></head>
-            <body><p>Content</p></body>
-        </html>
-    }
-    .render();
-
-    assert_eq!(maud_result, rsx_result);
-}
-
-#[test]
-fn simple_doctype() {
+fn static_variants_preserve_markup_document_directives() {
     const HTML: hypertext::Raw<&str> = maud::simple! {
         !DOCTYPE
-        html {
-            head {}
-            body { "Static" }
-        }
+        html { body { "Static" } }
+    };
+    const SVG: hypertext::Raw<&str, hypertext::context::SvgNode> = svg::rsx::simple! {
+        <?xml?>
+        <svg></svg>
+    };
+    const MATHML: hypertext::Raw<&str, hypertext::context::MathMlNode> = mathml::maud::simple! {
+        !xml
+        math { mi { "x" } }
     };
 
     assert_eq!(
-        *HTML.as_inner(),
-        "<!DOCTYPE html><html><head></head><body>Static</body></html>"
+        HTML.as_str(),
+        "<!DOCTYPE html><html><body>Static</body></html>",
     );
-}
-
-#[test]
-fn svg_maud_xml_declaration() {
-    let result = svg::maud! {
-        !xml
-        svg width="100" height="100" {}
-    }
-    .render();
-
     assert_eq!(
-        result.as_inner(),
-        r#"<?xml version="1.0" encoding="UTF-8"?><svg width="100" height="100"></svg>"#,
+        SVG.as_str(),
+        r#"<?xml version="1.0" encoding="UTF-8"?><svg></svg>"#,
     );
-}
-
-#[test]
-fn svg_rsx_xml_declaration() {
-    let result = svg::rsx! {
-        <?xml?>
-        <svg width="100" height="100"></svg>
-    }
-    .render();
-
     assert_eq!(
-        result.as_inner(),
-        r#"<?xml version="1.0" encoding="UTF-8"?><svg width="100" height="100"></svg>"#,
-    );
-}
-
-#[test]
-fn mathml_maud_xml_declaration() {
-    let result = mathml::maud! {
-        !xml
-        math {
-            mi { "x" }
-        }
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
+        MATHML.as_str(),
         r#"<?xml version="1.0" encoding="UTF-8"?><math><mi>x</mi></math>"#,
     );
 }
 
 #[test]
-fn mathml_rsx_xml_declaration() {
-    let result = mathml::rsx! {
-        <?xml?>
-        <math>
-            <mi>x</mi>
-        </math>
-    }
-    .render();
+fn svg_and_mathml_variants_validate_their_own_contexts() {
+    assert_context_pair!(
+        hypertext::context::Svg,
+        svg::maud! {
+            svg viewBox="0 0 10 10" {
+                rect x="1" y="1" width="8" height="8" fill="red";
+            }
+        },
+        svg::rsx! {
+            <svg viewBox="0 0 10 10">
+                <rect x="1" y="1" width="8" height="8" fill="red" />
+            </svg>
+        },
+        r#"<svg viewBox="0 0 10 10"><rect x="1" y="1" width="8" height="8" fill="red"/></svg>"#,
+    );
 
-    assert_eq!(
-        result.as_inner(),
-        r#"<?xml version="1.0" encoding="UTF-8"?><math><mi>x</mi></math>"#,
+    assert_context_pair!(
+        hypertext::context::MathMl,
+        mathml::maud! {
+            math { mfrac { mn { "1" } mn { "2" } } }
+        },
+        mathml::rsx! {
+            <math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>
+        },
+        "<math><mfrac><mn>1</mn><mn>2</mn></mfrac></math>",
     );
 }
 
 #[test]
-fn xml_declaration_parity() {
-    let maud_result = svg::maud! {
-        !xml
-        svg viewBox="0 0 100 100" {
-            circle cx="50" cy="50" r="40";
-        }
-    }
-    .render();
-
-    let rsx_result = svg::rsx! {
-        <?xml?>
-        <svg viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" />
-        </svg>
-    }
-    .render();
-
-    assert_eq!(maud_result, rsx_result);
-}
-
-#[test]
-fn svg_simple_xml_declaration() {
-    const SVG: hypertext::Raw<&str, hypertext::context::SvgNode> = svg::maud::simple! {
-        !xml
-        svg width="50" height="50" {
-            rect width="50" height="50" fill="red";
-        }
-    };
-
-    assert_eq!(
-        *SVG.as_inner(),
-        r#"<?xml version="1.0" encoding="UTF-8"?><svg width="50" height="50"><rect width="50" height="50" fill="red"/></svg>"#,
-    );
-}
-
-#[test]
-fn maud_moves_by_default() {
-    let name = String::from("moved");
-
-    let _result = maud! { p { (name) } };
-
-    // `name` has been moved into the closure — this should NOT compile:
-    // let _ = name;
-}
-
-#[test]
-fn rsx_moves_by_default() {
-    let name = String::from("moved");
-
-    let _result = rsx! { <p>(name)</p> };
-
-    // `name` has been moved into the closure — this should NOT compile:
-    // let _ = name;
-}
-
-#[test]
-fn maud_empty() {
-    let result = maud! {}.render();
-    assert_eq!(result.as_inner(), "");
-}
-
-#[test]
-fn rsx_empty() {
-    let result = rsx! {}.render();
-    assert_eq!(result.as_inner(), "");
-}
-
-#[test]
-fn simple_empty() {
+fn empty_documents_are_valid_for_lazy_and_simple_variants() {
     const EMPTY: hypertext::Raw<&str> = maud::simple! {};
-    assert_eq!(*EMPTY.as_inner(), "");
+
+    assert_eq!(maud! {}.render().as_inner(), "");
+    assert_eq!(rsx! {}.render().as_inner(), "");
+    assert_eq!(EMPTY.as_str(), "");
 }
 
 #[test]
-fn render_returns_rendered_buffer() {
-    let lazy = maud! { div { "test" } };
-    let rendered = lazy.render();
-    assert_eq!(rendered.as_inner(), "<div>test</div>");
-}
-
-#[test]
-fn render_to_pushes_to_existing_buffer() {
-    use hypertext::Buffer;
-
-    let mut buf = Buffer::new();
-    let lazy1 = maud! { p { "first" } };
-    let lazy2 = maud! { p { "second" } };
-
-    buf.push(lazy1);
-    buf.push(lazy2);
-
-    let rendered = buf.rendered();
-    assert_eq!(rendered.as_inner(), "<p>first</p><p>second</p>");
-}
-
-#[test]
-fn svg_rsx_borrow() {
-    let fill = String::from("purple");
-
-    let result = svg::rsx::borrow! {
-        <svg>
-            <circle cx="25" cy="25" r="20" fill=(fill) />
-        </svg>
-    }
-    .render();
-
-    assert_eq!(
-        result.as_inner(),
-        r#"<svg><circle cx="25" cy="25" r="20" fill="purple"/></svg>"#,
-    );
-
-    assert_eq!(fill, "purple");
-}
-
-#[test]
-fn mathml_rsx_borrow() {
-    let var = String::from("z");
-
-    let result = mathml::rsx::borrow! {
-        <math>
-            <mi>(var)</mi>
-        </math>
-    }
-    .render();
-
-    assert_eq!(result.as_inner(), "<math><mi>z</mi></math>");
-    assert_eq!(var, "z");
-}
-
-#[test]
-fn mathml_rsx_simple() {
-    const MATH: hypertext::Raw<&str, hypertext::context::MathMlNode> = mathml::rsx::simple! {
-        <math>
-            <mi>a</mi>
-            <mo>"+"</mo>
-            <mi>b</mi>
-        </math>
+fn namespace_variants_cover_borrow_and_simple_contexts() {
+    const SVG: hypertext::Raw<&str, hypertext::context::SvgNode> = svg::rsx::simple! {
+        <svg><circle cx="1" cy="1" r="1" /></svg>
     };
+    const MATHML: hypertext::Raw<&str, hypertext::context::MathMlNode> =
+        mathml::maud::simple! { math { mi { "x" } } };
 
+    let color = String::from("red");
+    let svg_borrowed = svg::rsx::borrow! {
+        <svg><circle fill=(color) /></svg>
+    }
+    .render();
     assert_eq!(
-        *MATH.as_inner(),
-        "<math><mi>a</mi><mo>+</mo><mi>b</mi></math>"
+        svg_borrowed.as_inner(),
+        r#"<svg><circle fill="red"/></svg>"#,
     );
+    assert_eq!(color, "red");
+
+    assert_eq!(SVG.as_str(), r#"<svg><circle cx="1" cy="1" r="1"/></svg>"#);
+
+    let expression = String::from("x");
+    let mathml_borrowed = mathml::rsx::borrow! {
+        <math><mi>(expression)</mi></math>
+    }
+    .render();
+    assert_eq!(mathml_borrowed.as_inner(), "<math><mi>x</mi></math>");
+    assert_eq!(expression, "x");
+
+    assert_eq!(MATHML.as_str(), "<math><mi>x</mi></math>");
+}
+
+#[test]
+fn html_alias_and_render_to_preserve_macro_output() {
+    let rsx = rsx! { <p>"value"</p> };
+    let html = html! { <p>"value"</p> };
+    assert_eq!(rsx.render().as_inner(), html.render().as_inner());
+
+    let mut buffer = hypertext::Buffer::new();
+    rsx.render_to(&mut buffer);
+    assert_eq!(buffer.into_inner(), "<p>value</p>");
+
+    let mut buffer = hypertext::Buffer::new();
+    html.render_to(&mut buffer);
+    assert_eq!(buffer.into_inner(), "<p>value</p>");
 }
