@@ -79,8 +79,6 @@ mod axum {
 
 #[cfg(feature = "ntex")]
 mod ntex {
-    #![expect(clippy::future_not_send)]
-
     use ntex::{
         http::Response,
         web::{ErrorRenderer, HttpRequest, Responder},
@@ -99,19 +97,25 @@ mod ntex {
 
     impl<Err: ErrorRenderer, K: super::ResponseMarkup> Responder<Err> for Rendered<&'static str, K> {
         #[inline]
-        async fn respond_to(self, _: &HttpRequest) -> Response {
-            Response::Ok()
-                .content_type(K::CONTENT_TYPE)
-                .body(self.into_inner())
+        #[expect(clippy::future_not_send)]
+        fn respond_to(self, _: &HttpRequest) -> impl core::future::Future<Output = Response> {
+            core::future::ready(
+                Response::Ok()
+                    .content_type(K::CONTENT_TYPE)
+                    .body(self.into_inner()),
+            )
         }
     }
 
     impl<Err: ErrorRenderer, K: super::ResponseMarkup> Responder<Err> for Rendered<String, K> {
         #[inline]
-        async fn respond_to(self, _: &HttpRequest) -> Response {
-            Response::Ok()
-                .content_type(K::CONTENT_TYPE)
-                .body(self.into_inner())
+        #[expect(clippy::future_not_send)]
+        fn respond_to(self, _: &HttpRequest) -> impl core::future::Future<Output = Response> {
+            core::future::ready(
+                Response::Ok()
+                    .content_type(K::CONTENT_TYPE)
+                    .body(self.into_inner()),
+            )
         }
     }
 }

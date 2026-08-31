@@ -207,7 +207,8 @@ impl<T: AsRef<str>, C: Context> Raw<T, C> {
     /// Extracts the inner value.
     #[inline]
     pub const fn into_inner(self) -> T {
-        // SAFETY: `Raw<T, C>` has exactly one non-zero-sized field, which is `inner`.
+        // SAFETY: `Raw<T, C>` has exactly one non-zero-sized field, which is
+        // `inner`.
         unsafe { const_precise_live_drops_hack!(self.inner) }
     }
 
@@ -283,7 +284,8 @@ impl<T, K: NodeKind> Rendered<T, K> {
     /// Extracts the inner value.
     #[inline]
     pub const fn into_inner(self) -> T {
-        // SAFETY: `Rendered<T, K>` has only one non-zero-sized field, which is `0`.
+        // SAFETY: `Rendered<T, K>` has only one non-zero-sized field, which is
+        // `0`.
         unsafe { const_precise_live_drops_hack!(self.0) }
     }
 
