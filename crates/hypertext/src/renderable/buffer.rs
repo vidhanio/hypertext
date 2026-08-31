@@ -74,12 +74,14 @@ impl<C: Context> Buffer<C> {
     #[must_use]
     pub fn dangerously_from_string_mut(string: &mut String) -> &mut Self {
         // SAFETY:
-        // - `Buffer<C>` is a `#[repr(transparent)]` wrapper around `String`, differing
-        //   only in the zero-sized `PhantomData` marker type.
-        // - `PhantomData` does not affect memory layout, so the layout of `Buffer<C>`
-        //   and `String` is guaranteed to be identical by Rust's type system.
-        // - The lifetime of the reference is preserved, and there are no aliasing or
-        //   validity issues, as both types are functionally identical at runtime.
+        // - `Buffer<C>` is a `#[repr(transparent)]` wrapper around `String`,
+        //   differing only in the zero-sized `PhantomData` marker type.
+        // - `PhantomData` does not affect memory layout, so the layout of
+        //   `Buffer<C>` and `String` is guaranteed to be identical by Rust's
+        //   type system.
+        // - The lifetime of the reference is preserved, and there are no
+        //   aliasing or validity issues, as both types are functionally
+        //   identical at runtime.
         unsafe { &mut *ptr::from_mut(string).cast::<Self>() }
     }
 

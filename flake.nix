@@ -37,13 +37,26 @@
               }
             );
 
-            src = craneLib.cleanCargoSource ./.;
+            # Keep Crane's Cargo source filter, but retain integration-test
+            # fixtures such as `tests/templates/hello.html`.
+            src = pkgs.lib.cleanSourceWith {
+              src = ./.;
+              filter =
+                path: type:
+                craneLib.filterCargoSources path type
+                || pkgs.lib.hasPrefix (toString ./crates/hypertext/tests) (toString path);
+            };
             commonArgs = {
               inherit src;
               strictDeps = true;
             };
 
-            cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+            cargoArtifacts = craneLib.buildDepsOnly (
+              commonArgs
+              // {
+                cargoExtraArgs = "--all-features";
+              }
+            );
           in
           {
             _module.args.pkgs = import inputs.nixpkgs {
@@ -52,11 +65,21 @@
             };
 
             checks = {
+              no-std = craneLib.mkCargoDerivation (
+                commonArgs
+                // {
+                  inherit cargoArtifacts;
+                  buildPhaseCargoCommand = "cargo check --workspace --all-targets --no-default-features --locked";
+                  installPhaseCommand = "mkdir -p $out";
+                  doCheck = false;
+                }
+              );
+
               clippy = craneLib.cargoClippy (
                 commonArgs
                 // {
                   inherit cargoArtifacts;
-                  cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+                  cargoClippyExtraArgs = "--workspace --all-targets --all-features -- --deny warnings";
                 }
               );
 
@@ -64,6 +87,7 @@
                 commonArgs
                 // {
                   inherit cargoArtifacts;
+                  cargoDocExtraArgs = "--workspace --all-features --no-deps";
                   env.RUSTDOCFLAGS = "--deny warnings";
                 }
               );
@@ -80,6 +104,7 @@
                 commonArgs
                 // {
                   inherit cargoArtifacts;
+                  cargoExtraArgs = "--workspace --all-features";
                   partitions = 1;
                   partitionType = "count";
                   cargoNextestPartitionsExtraArgs = "--no-tests=pass";
@@ -91,7 +116,9 @@
               inherit (self') checks;
 
               packages = [
+                pkgs.cargo-edit
                 pkgs.nil
+                pkgs.prek
                 config.treefmt.build.wrapper
               ];
             };

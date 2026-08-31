@@ -249,7 +249,8 @@ pub trait RenderableExt<C: Context = Node>: Renderable<C> {
     /// may be useful if it is more expensive to compute and render the value.
     #[inline]
     fn memoize(&self) -> Raw<String, C> {
-        // XSS SAFETY: The value has already been rendered and is assumed as safe.
+        // XSS SAFETY: The value has already been rendered and is assumed as
+        // safe.
         Raw::dangerously_create(self.to_buffer().into_inner())
     }
 }
@@ -305,7 +306,8 @@ impl<F: Fn(&mut Buffer<C>), C: Context> Lazy<F, C> {
     /// Extracts the inner closure.
     #[inline]
     pub const fn into_inner(self) -> F {
-        // SAFETY: `Lazy<F, C>` has exactly one non-zero-sized field, which is `f`.
+        // SAFETY: `Lazy<F, C>` has exactly one non-zero-sized field, which is
+        // `f`.
         unsafe { const_precise_live_drops_hack!(self.f) }
     }
 

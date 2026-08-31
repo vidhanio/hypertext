@@ -107,13 +107,15 @@ impl Renderable<AttributeValue> for char {
 impl<K: NodeKind> Renderable<Node<K>> for str {
     #[inline]
     fn render_to(&self, buffer: &mut Buffer<Node<K>>) {
-        // XSS SAFETY: we use `html_escape` to ensure the text is properly escaped
+        // XSS SAFETY: we use `html_escape` to ensure the text is properly
+        // escaped
         html_escape::encode_text_to_string(self, buffer.dangerously_get_string());
     }
 
     #[inline]
     fn to_buffer(&self) -> Buffer<Node<K>> {
-        // XSS SAFETY: we use `html_escape` to ensure the text is properly escaped
+        // XSS SAFETY: we use `html_escape` to ensure the text is properly
+        // escaped
         Buffer::dangerously_from_string(html_escape::encode_text(self).into_owned())
     }
 }
@@ -121,7 +123,8 @@ impl<K: NodeKind> Renderable<Node<K>> for str {
 impl Renderable<AttributeValue> for str {
     #[inline]
     fn render_to(&self, buffer: &mut AttributeBuffer) {
-        // XSS SAFETY: we use `html_escape` to ensure the text is properly escaped
+        // XSS SAFETY: we use `html_escape` to ensure the text is properly
+        // escaped
         html_escape::encode_double_quoted_attribute_to_string(
             self,
             buffer.dangerously_get_string(),
@@ -130,7 +133,8 @@ impl Renderable<AttributeValue> for str {
 
     #[inline]
     fn to_buffer(&self) -> AttributeBuffer {
-        // XSS SAFETY: we use `html_escape` to ensure the text is properly escaped
+        // XSS SAFETY: we use `html_escape` to ensure the text is properly
+        // escaped
         AttributeBuffer::dangerously_from_string(
             html_escape::encode_double_quoted_attribute(self).into_owned(),
         )
