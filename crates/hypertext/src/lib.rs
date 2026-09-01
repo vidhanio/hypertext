@@ -131,7 +131,6 @@ pub mod validation;
     feature = "poem",
     feature = "rocket",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 mod web_frameworks;

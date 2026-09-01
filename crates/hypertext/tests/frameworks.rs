@@ -8,7 +8,6 @@
         feature = "poem",
         feature = "rocket",
         feature = "salvo",
-        feature = "tide",
         feature = "warp"
     )
 ))]
@@ -19,7 +18,6 @@ use hypertext::{Buffer, Lazy, Rendered, prelude::*};
     feature = "ntex",
     feature = "poem",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 use hypertext::{RenderedMathMl, RenderedSvg};
@@ -29,7 +27,6 @@ use hypertext::{RenderedMathMl, RenderedSvg};
     feature = "ntex",
     feature = "poem",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 const HTML: &str = "text/html; charset=utf-8";
@@ -38,7 +35,6 @@ const HTML: &str = "text/html; charset=utf-8";
     feature = "ntex",
     feature = "poem",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 const SVG: &str = "image/svg+xml";
@@ -47,7 +43,6 @@ const SVG: &str = "image/svg+xml";
     feature = "ntex",
     feature = "poem",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 const MATHML: &str = "application/mathml+xml";
@@ -57,7 +52,6 @@ const MATHML: &str = "application/mathml+xml";
     feature = "ntex",
     feature = "poem",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 fn html() -> Rendered<String> {
@@ -69,7 +63,6 @@ fn html() -> Rendered<String> {
     feature = "ntex",
     feature = "poem",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 fn svg() -> RenderedSvg<String> {
@@ -86,7 +79,6 @@ fn svg() -> RenderedSvg<String> {
     feature = "ntex",
     feature = "poem",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 fn mathml() -> RenderedMathMl<String> {
@@ -103,7 +95,6 @@ fn mathml() -> RenderedMathMl<String> {
     feature = "ntex",
     feature = "poem",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 fn lazy_html() -> Lazy<fn(&mut Buffer)> {
@@ -117,7 +108,6 @@ fn lazy_html() -> Lazy<fn(&mut Buffer)> {
     feature = "ntex",
     feature = "poem",
     feature = "salvo",
-    feature = "tide",
     feature = "warp"
 ))]
 macro_rules! assert_content_type {
@@ -335,62 +325,6 @@ mod salvo {
         let mut response = salvo_core::Response::default();
         Scribe::render(lazy_html(), &mut response);
         assert_content_type!(response, HTML);
-    }
-}
-
-#[cfg(feature = "tide")]
-mod tide {
-    use super::*;
-
-    #[test]
-    fn rendered_and_lazy_responses() {
-        fn assert_response<T: Into<::tide::Response>>() {}
-
-        assert_response::<Rendered<&'static str>>();
-        assert_response::<Rendered<String>>();
-        assert_response::<Rendered<String, hypertext::context::Svg>>();
-        assert_response::<Rendered<String, hypertext::context::MathMl>>();
-        assert_response::<Lazy<fn(&mut Buffer)>>();
-
-        let response: ::tide::Response = html().into();
-        assert!(response.status().is_success());
-        assert_eq!(
-            response
-                .content_type()
-                .map(|mime| mime.to_string())
-                .as_deref(),
-            Some("text/html;charset=utf-8")
-        );
-
-        let response: ::tide::Response = svg().into();
-        assert!(response.status().is_success());
-        assert_eq!(
-            response
-                .content_type()
-                .map(|mime| mime.to_string())
-                .as_deref(),
-            Some("image/svg+xml")
-        );
-
-        let response: ::tide::Response = mathml().into();
-        assert!(response.status().is_success());
-        assert_eq!(
-            response
-                .content_type()
-                .map(|mime| mime.to_string())
-                .as_deref(),
-            Some("application/mathml+xml")
-        );
-
-        let response: ::tide::Response = lazy_html().into();
-        assert!(response.status().is_success());
-        assert_eq!(
-            response
-                .content_type()
-                .map(|mime| mime.to_string())
-                .as_deref(),
-            Some("text/html;charset=utf-8")
-        );
     }
 }
 
