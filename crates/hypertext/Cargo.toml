@@ -26,7 +26,6 @@ poem = { version = "3", default-features = false, optional = true }
 rocket = { version = "0.5", default-features = false, optional = true }
 ryu = { version = "1", optional = true }
 salvo_core = { version = "0.96", default-features = false, optional = true }
-tide = { version = "0.16", default-features = false, optional = true }
 warp = { version = "0.4", default-features = false, optional = true }
 
 [dev-dependencies]
@@ -45,7 +44,6 @@ opengraph = []
 poem = ["alloc", "dep:poem"]
 rocket = ["alloc", "dep:rocket"]
 salvo = ["alloc", "dep:salvo_core"]
-tide = ["alloc", "dep:tide"]
 warp = ["alloc", "dep:warp"]
 
 [lints]

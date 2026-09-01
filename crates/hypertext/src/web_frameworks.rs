@@ -90,6 +90,7 @@ mod ntex {
         for Lazy<F, Node<K>>
     {
         #[inline]
+        #[expect(clippy::future_not_send)]
         async fn respond_to(self, req: &HttpRequest) -> Response {
             Responder::<Err>::respond_to(self.render(), req).await
         }
@@ -221,29 +222,6 @@ mod salvo {
                 res.headers_mut().insert("content-type", content_type);
             }
             res.body(self.into_inner());
-        }
-    }
-}
-
-#[cfg(feature = "tide")]
-mod tide {
-    use tide::Response;
-
-    use crate::{Buffer, Lazy, Rendered, alloc::string::String, context::Node, prelude::*};
-
-    impl<F: Fn(&mut Buffer<Node<K>>), K: super::ResponseMarkup> From<Lazy<F, Node<K>>> for Response {
-        #[inline]
-        fn from(lazy: Lazy<F, Node<K>>) -> Self {
-            lazy.render().into()
-        }
-    }
-
-    impl<T: Into<String>, K: super::ResponseMarkup> From<Rendered<T, K>> for Response {
-        #[inline]
-        fn from(rendered: Rendered<T, K>) -> Self {
-            let mut resp = Self::from(rendered.into_inner().into());
-            resp.set_content_type(K::CONTENT_TYPE);
-            resp
         }
     }
 }
