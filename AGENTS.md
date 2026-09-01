@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-## Development quirks
+## Repository specifics
 
 - This is a Rust 2024 workspace under `crates/*`. `hypertext` is `#![no_std]`; allocation and web-framework adapters are feature-gated.
 - Use the Nix dev shell for reproducible tooling. It provides nightly Rust, rustfmt, clippy, Miri, cargo-edit, and treefmt; the ordinary `PATH` may not contain a Rust toolchain.
