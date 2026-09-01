@@ -97,6 +97,7 @@
 
               deny = craneLib.cargoDeny {
                 inherit src;
+                cargoDenyExtraArgs = "--all-features";
               };
 
               nextest = craneLib.cargoNextest (
