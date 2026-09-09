@@ -90,7 +90,6 @@ mod ntex {
         for Lazy<F, Node<K>>
     {
         #[inline]
-        #[expect(clippy::future_not_send)]
         async fn respond_to(self, req: &HttpRequest) -> Response {
             Responder::<Err>::respond_to(self.render(), req).await
         }
