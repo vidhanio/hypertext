@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0](https://github.com/vidhanio/hypertext/compare/hypertext-v0.12.1...hypertext-v0.13.0) - 2026-09-09
+
+### Added
+
+- support button command attributes
+- opengraph property (closes #196)
+- huge refactor
+
+### Removed
+
+- remove stale clippy expectation
+- remove need for `Xml<...>`
+- remove dead macro machinery
+
+### Fixed
+
+- keep bon out of no-std builds
+- allow slash in class/id shorthand values (closes #190)
+- re-add @youwen5 site
+- docs
+- ci
+- use reexported bon in components
+
+### Other
+
+- drop unmaintained tide adapter
+- upgrade dependencies
+- rebuild coverage and feature checks
+- update nix development tooling
+- unify numeric renderers
+- gate framework response adapters
+- reuse rendering conversions
+- unify custom element definitions
+- add
+- add further context speicalization
+- typo 'overriden' -> 'overridden' in docs ([#217](https://github.com/vidhanio/hypertext/pull/217))
+- svg ([#187](https://github.com/vidhanio/hypertext/pull/187))
+- Update projects list in README.md
+- alias rsx*! macros to html*! macros and add file support ([#185](https://github.com/vidhanio/hypertext/pull/185))
+- Using builder for component instantiation ([#183](https://github.com/vidhanio/hypertext/pull/183))
+- optional attrs (closes #182)
+- Add HTMX attributes for SSE and WS extensions ([#177](https://github.com/vidhanio/hypertext/pull/177))
+- fmt
+- Add my website to "Projects using hypertext" ([#161](https://github.com/vidhanio/hypertext/pull/161))
+- simplify macro branching
+- share macro generation setup
+- flatten node flavour handling
+
 ## [0.12.1](https://github.com/vidhanio/hypertext/compare/hypertext-v0.12.0...hypertext-v0.12.1) - 2025-08-09
 
 ### Other
