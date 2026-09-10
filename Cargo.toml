@@ -4,7 +4,7 @@ members = ["crates/*"]
 default-members = ["crates/*"]
 
 [workspace.package]
-version = "0.12.1"
+version = "0.13.0"
 edition = "2024"
 description = "A blazing fast type checked HTML macro crate."
 readme = "README.md"
@@ -18,8 +18,8 @@ categories = ["template-engine"]
 name = "hypertext"
 
 [workspace.dependencies]
-hypertext = { version = "0.12.1", path = "./crates/hypertext" }
-hypertext-macros = { version = "0.12.1", path = "./crates/hypertext-macros" }
+hypertext = { version = "0.13.0", path = "./crates/hypertext" }
+hypertext-macros = { version = "0.13.0", path = "./crates/hypertext-macros" }
 
 html-escape = { version = "0.2", default-features = false }
 
