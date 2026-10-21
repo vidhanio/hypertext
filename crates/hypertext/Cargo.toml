@@ -21,7 +21,7 @@ bon = { version = "3.10", default-features = false }
 html-escape = { workspace = true, optional = true }
 hypertext-macros.workspace = true
 itoa = { version = "1", optional = true }
-ntex = { version = "3", default-features = false, optional = true }
+ntex = { version = "4", default-features = false, optional = true }
 poem = { version = "3", default-features = false, optional = true }
 rocket = { version = "0.5", default-features = false, optional = true }
 ryu = { version = "1", optional = true }
