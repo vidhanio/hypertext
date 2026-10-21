@@ -453,8 +453,6 @@ pub trait HtmxAttributes: GlobalAttributes {
     const hx_validate: Attribute = Attribute;
 
     /// Adds values dynamically to the parameters to submit with the request
-    /// (deprecated, please use [`hx-vals`](Self::hx_vals))
-    #[deprecated = "use `hx-vals` instead"]
     const hx_vars: Attribute = Attribute;
 
     /// The URL of the SSE server.
@@ -499,7 +497,8 @@ pub trait Htmx4Attributes: GlobalAttributes {
     /// Triggers resource pre-fetching on an event (Requires preload extension)
     const hx_preload: Attribute = Attribute;
 
-    /// Displays content while a request is in flight (Requires pending extension)
+    /// Displays content while a request is in flight (Requires pending
+    /// extension)
     const hx_pending: Attribute = Attribute;
 
     /// Enables the browser to fall back to the native action/method when
