@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0](https://github.com/vidhanio/hypertext/compare/hypertext-v0.12.1...hypertext-v0.13.0) - 2026-10-21
+
+### Added
+
+- support button command attributes (#225)
+- opengraph property (closes #196)
+- huge refactor
+
+### Removed
+
+- remove stale clippy expectation (#225)
+- remove need for `Xml<...>` (#225)
+- remove dead macro machinery (#225)
+
+### Fixed
+
+- keep bon out of no-std builds (#225)
+- allow slash in class/id shorthand values (closes #190)
+- re-add @youwen5 site
+- docs
+- ci
+- use reexported bon in components (#225)
+
+### Other
+
+- Added htmx v4 attributes ([#238](https://github.com/vidhanio/hypertext/pull/238)) (#238)
+- *(deps)* bump salvo_core from 0.96.0 to 1.0.0 ([#231](https://github.com/vidhanio/hypertext/pull/231)) (#231)
+- drop unmaintained tide adapter (#225)
+- upgrade dependencies (#225)
+- rebuild coverage and feature checks (#225)
+- update nix development tooling (#225)
+- unify numeric renderers (#225)
+- gate framework response adapters (#225)
+- reuse rendering conversions (#225)
+- unify custom element definitions (#225)
+- add (#225)
+- add further context speicalization (#225)
+- typo 'overriden' -> 'overridden' in docs ([#217](https://github.com/vidhanio/hypertext/pull/217)) (#217)
+- svg ([#187](https://github.com/vidhanio/hypertext/pull/187)) (#187)
+- Update projects list in README.md
+- alias rsx*! macros to html*! macros and add file support ([#185](https://github.com/vidhanio/hypertext/pull/185)) (#185)
+- Using builder for component instantiation ([#183](https://github.com/vidhanio/hypertext/pull/183)) (#183)
+- optional attrs (closes #182)
+- Add HTMX attributes for SSE and WS extensions ([#177](https://github.com/vidhanio/hypertext/pull/177))
+- fmt
+- Add my website to "Projects using hypertext" ([#161](https://github.com/vidhanio/hypertext/pull/161)) (#161)
+- simplify macro branching (#225)
+- share macro generation setup (#225)
+- flatten node flavour handling (#225)
+
 ## [0.12.1](https://github.com/vidhanio/hypertext/compare/hypertext-v0.12.0...hypertext-v0.12.1) - 2025-08-09
 
 ### Other
