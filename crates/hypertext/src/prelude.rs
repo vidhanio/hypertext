@@ -7,6 +7,8 @@
 //! well as the [`GlobalAttributes`] trait.
 #[cfg(feature = "alpine")]
 pub use crate::validation::attributes::AlpineJsAttributes;
+#[cfg(feature = "htmx4")]
+pub use crate::validation::attributes::Htmx4Attributes;
 #[cfg(feature = "htmx")]
 pub use crate::validation::attributes::HtmxAttributes;
 #[cfg(feature = "hyperscript")]

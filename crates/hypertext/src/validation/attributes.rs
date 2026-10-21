@@ -479,6 +479,42 @@ pub trait HtmxAttributes: GlobalAttributes {
 
 impl<T: GlobalAttributes> HtmxAttributes for T {}
 
+/// Attributes for use with [htmx 4](https://four.htmx.org/).
+pub trait Htmx4Attributes: GlobalAttributes {
+    /// Control how responses are handled based on response codes
+    const hx_status: AttributeNamespace = AttributeNamespace;
+
+    /// Issues a `QUERY` to the specified URL
+    const hx_query: Attribute = Attribute;
+
+    /// Disables processing for elements
+    const hx_ignore: Attribute = Attribute;
+
+    /// Freezes elements during morph swaps
+    const hx_morph_skip: Attribute = Attribute;
+
+    /// Morphs element attributes but not its children
+    const hx_morph_skip_children: Attribute = Attribute;
+
+    /// Triggers resource pre-fetching on an event (Requires preload extension)
+    const hx_preload: Attribute = Attribute;
+
+    /// Displays content while a request is in flight (Requires pending extension)
+    const hx_pending: Attribute = Attribute;
+
+    /// Enables the browser to fall back to the native action/method when
+    /// JavaScript is not available
+    const hx_action: Attribute = Attribute;
+
+    /// Pairs with the hx-action attribute for the HTTP verb to use
+    const hx_method: Attribute = Attribute;
+
+    /// Configures Request behaviour
+    const hx_config: Attribute = Attribute;
+}
+
+impl<T: GlobalAttributes> Htmx4Attributes for T {}
+
 /// Attributes for use with [hyperscript](https://hyperscript.org/).
 pub trait HyperscriptAttributes: GlobalAttributes {
     /// The `_` hyperscript tag
