@@ -1598,3 +1598,9 @@ define_void_elements! {
     /// would not otherwise create a break at that location.
     wbr
 }
+
+#[cfg(feature = "htmx4")]
+define_elements! {
+    /// Allows for updating multiple elements from a single response
+    hx_partial
+}
