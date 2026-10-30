@@ -9,7 +9,7 @@ use core::{
 pub use self::buffer::*;
 use crate::{
     Raw, Rendered,
-    alloc::string::String,
+    alloc::{borrow::Cow, string::String, vec::Vec},
     const_precise_live_drops_hack,
     context::{AttributeValue, Context, MathMlNode, Node, NodeKind, SvgNode},
 };
@@ -240,6 +240,38 @@ pub trait RenderableExt<C: Context = Node>: Renderable<C> {
         Self: Renderable<Node<K>>,
     {
         Renderable::<Node<K>>::to_buffer(self).rendered()
+    }
+
+    /// Renders this value to a [`Rendered<Vec<Cow<'static, str>>, K>`].
+    ///
+    /// Unlike [`render`](RenderableExt::render), static parts of the output
+    /// are borrowed instead of copied into a [`String`], so only dynamic parts
+    /// are allocated. This is useful for streaming the output, such as in an
+    /// HTTP response body, without first concatenating it.
+    ///
+    /// See [`Buffer::chunked`].
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hypertext::prelude::*;
+    ///
+    /// let name = "Alice";
+    /// let chunks = maud! { h1 { "Hello, " (name) "!" } }
+    ///     .render_chunks()
+    ///     .into_inner();
+    ///
+    /// assert_eq!(chunks, ["<h1>Hello, ", "Alice", "!</h1>"]);
+    /// assert_eq!(chunks.concat(), "<h1>Hello, Alice!</h1>");
+    /// ```
+    #[inline]
+    fn render_chunks<K: NodeKind>(&self) -> Rendered<Vec<Cow<'static, str>>, K>
+    where
+        Self: Renderable<Node<K>>,
+    {
+        let mut buffer = Buffer::<Node<K>>::chunked();
+        buffer.push(self);
+        buffer.rendered_chunks()
     }
 
     /// Pre-renders the value and stores it in a [`Raw`] so that it can be

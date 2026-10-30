@@ -133,7 +133,7 @@ impl Config {
                 quote! {
                     ::hypertext::Lazy::<_, #ctx>::dangerously_create(
                         #move_ |#buffer_ident: &mut ::hypertext::Buffer<#ctx>| {
-                            #buffer_ident.dangerously_get_string().reserve(#size_estimate);
+                            #buffer_ident.reserve(#size_estimate);
                             #block
                         }
                     )
@@ -237,7 +237,7 @@ impl Generator {
                             }));
 
                         stmts.extend(quote! {
-                            #buffer_ident.dangerously_get_string().push_str(::core::concat!(#(#static_parts),*));
+                            #buffer_ident.dangerously_push_static_str(::core::concat!(#(#static_parts),*));
                         });
                         stmts.extend(dynamic_stmt);
                     }

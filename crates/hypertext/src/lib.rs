@@ -82,30 +82,22 @@
 //!         let _: Attribute = <div>::id;
 //!         let _: Attribute = <div>::title;
 //!     };
-//!     buffer
-//!         .dangerously_get_string()
-//!         .push_str(r#"<div id="main" title="Main Div">"#);
+//!     buffer.dangerously_push_static_str(r#"<div id="main" title="Main Div">"#);
 //!     {
-//!         buffer
-//!             .dangerously_get_string()
-//!             .push_str(r#"<h1 class="important blue">Hello, world!</h1>"#);
+//!         buffer.dangerously_push_static_str(r#"<h1 class="important blue">Hello, world!</h1>"#);
 //!         for i in 1..=3 {
-//!             buffer.dangerously_get_string().push_str(r#"<p id=""#);
+//!             buffer.dangerously_push_static_str(r#"<p id=""#);
 //!             i.render_to(buffer.with_context::<AttributeValue>());
-//!             buffer.dangerously_get_string().push_str(r#"""#);
+//!             buffer.dangerously_push_static_str(r#"""#);
 //!             if i % 2 == 0 {
-//!                 buffer
-//!                     .dangerously_get_string()
-//!                     .push_str(r#" style="background: gray""#);
+//!                 buffer.dangerously_push_static_str(r#" style="background: gray""#);
 //!             }
-//!             buffer
-//!                 .dangerously_get_string()
-//!                 .push_str(">This is paragraph number ");
+//!             buffer.dangerously_push_static_str(">This is paragraph number ");
 //!             i.render_to(buffer.with_context::<Node>());
-//!             buffer.dangerously_get_string().push_str("</p>");
+//!             buffer.dangerously_push_static_str("</p>");
 //!         }
 //!     }
-//!     buffer.dangerously_get_string().push_str("</div>");
+//!     buffer.dangerously_push_static_str("</div>");
 //! })
 //! # .render());
 //! ```

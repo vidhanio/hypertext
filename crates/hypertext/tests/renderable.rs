@@ -150,14 +150,44 @@ fn buffer_push_and_context_conversion_share_storage() {
     }
 
     assert_eq!(buffer.into_inner(), "&lt;safe text&gt; &amp;42a&quot;b");
+}
 
-    let mut source = String::from("prefix:");
-    {
-        // XSS SAFETY: this test intentionally starts with trusted source text.
-        let mutable = Buffer::<Node>::dangerously_from_string_mut(&mut source);
-        mutable.push("<user>");
-    }
-    assert_eq!(source, "prefix:&lt;user&gt;");
+#[test]
+fn chunked_rendering_borrows_static_parts_and_matches_string_rendering() {
+    let name = "<Alice>";
+    let page = maud! {
+        div title=(name) {
+            "Hello, " (name) "!"
+            @for i in 1..=2 { p { (i) } }
+        }
+    };
+
+    let chunks = page.render_chunks().into_inner();
+    assert_eq!(chunks.concat(), page.render().into_inner());
+    assert!(chunks.iter().all(|chunk| !chunk.is_empty()));
+    assert!(matches!(chunks[0], Cow::Borrowed("<div title=\"")));
+    assert!(matches!(&chunks[1], Cow::Owned(s) if s == "&lt;Alice&gt;"));
+    assert!(matches!(chunks.last(), Some(Cow::Borrowed("</div>"))));
+
+    let mut buffer = Buffer::<Node>::chunked();
+    buffer.push(page);
+    buffer.push("tail");
+    assert_eq!(
+        buffer.clone().into_inner(),
+        format!("{}tail", page.render().as_inner())
+    );
+    assert_eq!(buffer.into_chunks().last().unwrap(), "tail");
+
+    let mut unchunked = Buffer::<Node>::new();
+    unchunked.push(page);
+    assert_eq!(
+        unchunked.into_chunks(),
+        [Cow::<str>::Owned(page.render().into_inner())]
+    );
+    assert_eq!(
+        Buffer::<Node>::chunked().into_chunks(),
+        Vec::<Cow<'_, str>>::new()
+    );
 }
 
 #[test]
