@@ -79,26 +79,28 @@ mod axum {
 
 #[cfg(feature = "ntex")]
 mod ntex {
+    use core::future::Future;
+
     use ntex::{
         http::Response,
-        web::{ErrorRenderer, HttpRequest, Responder},
+        web::{HttpRequest, Responder, State},
     };
 
     use crate::{Buffer, Lazy, Rendered, alloc::string::String, context::Node, prelude::*};
 
-    impl<F: Fn(&mut Buffer<Node<K>>), Err: ErrorRenderer, K: super::ResponseMarkup> Responder<Err>
+    impl<F: Fn(&mut Buffer<Node<K>>), St: State, K: super::ResponseMarkup> Responder<St>
         for Lazy<F, Node<K>>
     {
         #[inline]
-        async fn respond_to(self, req: &HttpRequest) -> Response {
-            Responder::<Err>::respond_to(self.render(), req).await
+        async fn respond_to(self, st: &St, req: &HttpRequest) -> Response {
+            self.render().respond_to(st, req).await
         }
     }
 
-    impl<Err: ErrorRenderer, K: super::ResponseMarkup> Responder<Err> for Rendered<&'static str, K> {
+    impl<St: State, K: super::ResponseMarkup> Responder<St> for Rendered<&'static str, K> {
         #[inline]
         #[expect(clippy::future_not_send)]
-        fn respond_to(self, _: &HttpRequest) -> impl core::future::Future<Output = Response> {
+        fn respond_to(self, _: &St, _: &HttpRequest) -> impl Future<Output = Response> {
             core::future::ready(
                 Response::Ok()
                     .content_type(K::CONTENT_TYPE)
@@ -107,10 +109,10 @@ mod ntex {
         }
     }
 
-    impl<Err: ErrorRenderer, K: super::ResponseMarkup> Responder<Err> for Rendered<String, K> {
+    impl<St: State, K: super::ResponseMarkup> Responder<St> for Rendered<String, K> {
         #[inline]
         #[expect(clippy::future_not_send)]
-        fn respond_to(self, _: &HttpRequest) -> impl core::future::Future<Output = Response> {
+        fn respond_to(self, _: &St, _: &HttpRequest) -> impl Future<Output = Response> {
             core::future::ready(
                 Response::Ok()
                     .content_type(K::CONTENT_TYPE)

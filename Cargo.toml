@@ -21,7 +21,7 @@ name = "hypertext"
 hypertext = { version = "0.12.1", path = "./crates/hypertext" }
 hypertext-macros = { version = "0.12.1", path = "./crates/hypertext-macros" }
 
-html-escape = { version = "0.2", default-features = false }
+html-escape = { version = "0.3", default-features = false }
 
 [workspace.lints]
 [workspace.lints.clippy]

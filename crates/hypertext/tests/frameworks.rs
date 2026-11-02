@@ -209,13 +209,18 @@ mod ntex {
         let request = TestRequest::default().to_http_request();
         let response = poll_ready(<Rendered<String> as Responder>::respond_to(
             html(),
+            &(),
             &request,
         ));
         assert_eq!(response.status().as_u16(), 200);
         assert_content_type!(response, HTML);
 
         let response = poll_ready(
-            <Rendered<String, hypertext::context::Svg> as Responder>::respond_to(svg(), &request),
+            <Rendered<String, hypertext::context::Svg> as Responder>::respond_to(
+                svg(),
+                &(),
+                &request,
+            ),
         );
         assert_eq!(response.status().as_u16(), 200);
         assert_content_type!(response, SVG);
@@ -223,6 +228,7 @@ mod ntex {
         let response = poll_ready(
             <Rendered<String, hypertext::context::MathMl> as Responder>::respond_to(
                 mathml(),
+                &(),
                 &request,
             ),
         );
@@ -231,6 +237,7 @@ mod ntex {
 
         let response = poll_ready(<Lazy<fn(&mut Buffer)> as Responder>::respond_to(
             lazy_html(),
+            &(),
             &request,
         ));
         assert_eq!(response.status().as_u16(), 200);
