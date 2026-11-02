@@ -68,7 +68,7 @@ pub trait ElementKind: sealed::Sealed {}
 ///     "<div>content</div>",
 /// );
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Normal;
 
 impl ElementKind for Normal {}
@@ -112,7 +112,7 @@ impl ElementKind for Normal {}
 ///     r#"<img src="image.png" alt="An image">"#,
 /// );
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Void;
 
 impl ElementKind for Void {}
@@ -181,7 +181,7 @@ impl ElementKind for Void {}
 ///     r#"<g transform="translate(10,10)"><circle cx="50" cy="50" r="40"/></g>"#,
 /// );
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Xml;
 
 impl ElementKind for Xml {}
@@ -227,7 +227,7 @@ mod sealed {
 ///     r#"<my-element my-attr="value">content</my-element>"#
 /// );
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Attribute;
 
 /// An attribute namespace.
@@ -263,7 +263,7 @@ pub struct Attribute;
 ///     r#"<my-element my-ns:stuff="ns value">content</my-element>"#
 /// );
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct AttributeNamespace;
 
 /// An attribute prefixed by a symbol.
@@ -303,7 +303,7 @@ pub struct AttributeNamespace;
 ///     r#"<my-element @other-stuff="value" :data="more value">content</my-element>"#
 /// );
 /// ```
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct AttributeSymbol;
 
 /// Define custom elements.

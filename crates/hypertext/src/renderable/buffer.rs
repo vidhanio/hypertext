@@ -17,7 +17,7 @@ use crate::{
 /// without clearly opting into the risk of doing so.
 #[derive(Clone, PartialEq, Eq)]
 #[repr(transparent)]
-pub struct Buffer<C: Context = Node> {
+pub struct Buffer<C = Node> {
     inner: String,
     context: PhantomData<C>,
 }

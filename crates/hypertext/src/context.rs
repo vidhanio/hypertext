@@ -44,7 +44,7 @@ impl NodeKind for MathMl {}
 /// rendering string-like types, the value/implementation must escape `&` to
 /// `&amp;`, `<` to `&lt;`, and `>` to `&gt;`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
-pub struct Node<K: NodeKind = Html>(PhantomData<K>);
+pub struct Node<K = Html>(PhantomData<K>);
 
 impl<K: NodeKind> Context for Node<K> {}
 

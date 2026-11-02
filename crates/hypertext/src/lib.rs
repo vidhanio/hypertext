@@ -135,7 +135,10 @@ pub mod validation;
 ))]
 mod web_frameworks;
 
-use core::{fmt::Debug, marker::PhantomData};
+use core::{
+    fmt::{self, Debug, Display, Formatter},
+    marker::PhantomData,
+};
 
 pub use bon::{self, Builder};
 
@@ -183,8 +186,8 @@ pub use self::renderable::*;
 ///     "<h1>My Document!</h1><h2>Some HTML from the CMS</h2>"
 /// )
 /// ```
-#[derive(Clone, Copy, Default, Eq, Hash)]
-pub struct Raw<T: AsRef<str>, C: Context = Node> {
+#[derive(Clone, Copy, Default, Hash)]
+pub struct Raw<T, C = Node> {
     inner: T,
     context: PhantomData<C>,
 }
@@ -240,9 +243,11 @@ impl<T: AsRef<str> + PartialEq<U>, C: Context, U: AsRef<str>> PartialEq<Raw<U, C
     }
 }
 
+impl<T: AsRef<str> + Eq, C: Context> Eq for Raw<T, C> {}
+
 impl<T: AsRef<str>, C: Context> Debug for Raw<T, C> {
     #[inline]
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Raw").field(&self.inner.as_ref()).finish()
     }
 }
@@ -271,8 +276,8 @@ pub type RawMathMl<T> = Raw<T, MathMlNode>;
 /// anti-patterns such as rendering to a string then embedding that HTML string
 /// into another page. To do this, you should use [`RenderableExt::memoize`], or
 /// use [`Raw`] directly.
-#[derive(Clone, Copy, Default, Eq, Hash)]
-pub struct Rendered<T, K: NodeKind = Html>(T, PhantomData<K>);
+#[derive(Clone, Copy, Default, Hash)]
+pub struct Rendered<T, K = Html>(T, PhantomData<K>);
 
 impl<T, K: NodeKind> Rendered<T, K> {
     #[inline]
@@ -302,6 +307,8 @@ impl<T: PartialEq<U>, U, K: NodeKind> PartialEq<Rendered<U, K>> for Rendered<T, 
     }
 }
 
+impl<T: Eq, K: NodeKind> Eq for Rendered<T, K> {}
+
 /// A rendered SVG node string.
 ///
 /// This is a type alias for [`Rendered<T, Svg>`].
@@ -314,8 +321,16 @@ pub type RenderedMathMl<T> = Rendered<T, MathMl>;
 
 impl<T: Debug, K: NodeKind> Debug for Rendered<T, K> {
     #[inline]
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Rendered").field(&self.0).finish()
+    }
+}
+
+/// Writes the rendered markup verbatim.
+impl<T: Display, K: NodeKind> Display for Rendered<T, K> {
+    #[inline]
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.0.fmt(f)
     }
 }
 

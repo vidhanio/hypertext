@@ -269,7 +269,7 @@ impl<T: Renderable<C>, C: Context> RenderableExt<C> for T {}
 /// `&gt;`, and `"` to `&quot;`.
 #[derive(Clone, Copy)]
 #[must_use = "`Lazy` does nothing unless `.render()` or `.render_to()` is called"]
-pub struct Lazy<F: Fn(&mut Buffer<C>), C: Context = Node> {
+pub struct Lazy<F, C = Node> {
     f: F,
     context: PhantomData<C>,
 }
@@ -370,7 +370,7 @@ impl<F: Fn(&mut Buffer<C>), C: Context> Debug for Lazy<F, C> {
 /// ```
 #[derive(Debug, Clone, Copy)]
 #[doc(alias = "%(...)")]
-pub struct Displayed<T: Display>(pub T);
+pub struct Displayed<T>(pub T);
 
 impl<C: Context, T: Display> Renderable<C> for Displayed<T>
 where
@@ -412,7 +412,7 @@ where
 /// ```
 #[derive(Debug, Clone, Copy)]
 #[doc(alias = "?(...)")]
-pub struct Debugged<T: Debug>(pub T);
+pub struct Debugged<T>(pub T);
 
 impl<C: Context, T: Debug> Renderable<C> for Debugged<T>
 where
