@@ -215,6 +215,39 @@
 ///     "<div><h1>Hello</h1></div><div><h1>Hello</h1><h2>World</h2></div>",
 /// );
 /// ```
+///
+/// ### With children
+///
+/// A field named `children` is special: any children nested inside the
+/// component node are passed to it as a [`Lazy`](crate::Lazy). Make the field
+/// generic over [`Renderable`](crate::Renderable) to accept them.
+///
+/// ```
+/// use hypertext::{Builder, prelude::*};
+///
+/// #[derive(Builder, Renderable)]
+/// #[maud(
+///     section {
+///         h1 { (self.title) }
+///         (self.children)
+///     }
+/// )]
+/// pub struct Panel<R: Renderable> {
+///     title: String,
+///     children: R,
+/// }
+///
+/// assert_eq!(
+///     rsx! {
+///         <Panel title=("Hello".into())>
+///             <p>"World"</p>
+///         </Panel>
+///     }
+///     .render()
+///     .as_inner(),
+///     "<section><h1>Hello</h1><p>World</p></section>",
+/// );
+/// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
 pub use hypertext_macros::Renderable;
 /// Turns a function returning a [`Renderable`](crate::Renderable) into a
@@ -251,7 +284,12 @@ pub use hypertext_macros::Renderable;
 /// use hypertext::prelude::*;
 ///
 /// #[renderable]
-/// fn nav_bar<'a>(title: &'a str, subtitle: &String, add_smiley: bool) -> impl Renderable {
+/// fn nav_bar<'a, R: Renderable>(
+///     title: &'a str,
+///     subtitle: &String,
+///     add_smiley: bool,
+///     children: &R,
+/// ) -> impl Renderable {
 ///     maud! {
 ///         nav {
 ///             h1 { (title) }
@@ -259,6 +297,7 @@ pub use hypertext_macros::Renderable;
 ///             @if add_smiley {
 ///                 span { ":)" }
 ///             }
+///             (children)
 ///         }
 ///     }
 /// }
@@ -266,12 +305,14 @@ pub use hypertext_macros::Renderable;
 /// assert_eq!(
 ///     maud! {
 ///          div {
-///              NavBar title="My Nav Bar" subtitle=("My Subtitle".to_owned()) add_smiley=true;
+///              NavBar title="My Nav Bar" subtitle=("My Subtitle".to_owned()) add_smiley=true {
+///                  a href="/" { "Home" }
+///              }
 ///          }
 ///     }
 ///     .render()
 ///     .as_inner(),
-///     "<div><nav><h1>My Nav Bar</h1><h2>My Subtitle</h2><span>:)</span></nav></div>"
+///     "<div><nav><h1>My Nav Bar</h1><h2>My Subtitle</h2><span>:)</span><a href=\"/\">Home</a></nav></div>"
 /// );
 /// ```
 #[cfg_attr(all(docsrs, not(doctest)), doc(cfg(feature = "alloc")))]
