@@ -7,11 +7,10 @@ use crate::html::{
     generate::{Config, Generator, NodeFlavour, Semantics},
 };
 
-#[allow(clippy::needless_pass_by_value)]
-pub fn renderable(input: DeriveInput) -> syn::Result<TokenStream> {
-    let node = renderable_node_attr(&input)?;
+pub fn renderable(input: &DeriveInput) -> syn::Result<TokenStream> {
+    let node = renderable_node_attr(input)?;
 
-    match (renderable_node(&input, node), renderable_attribute(&input)) {
+    match (renderable_node(input, node), renderable_attribute(input)) {
         (Ok(None), Ok(None)) => Err(Error::new(
             Span::call_site(),
             "expected at least one of `#[maud(...)]`, `#[rsx(...)]`, or `#[attribute(...)]`",
@@ -205,8 +204,7 @@ fn renderable_attribute(input: &DeriveInput) -> syn::Result<Option<TokenStream>>
     Ok(Some(output))
 }
 
-#[allow(clippy::needless_pass_by_value)]
-pub fn default_builder(input: DeriveInput) -> syn::Result<TokenStream> {
+pub fn default_builder(input: &DeriveInput) -> syn::Result<TokenStream> {
     let Data::Struct(data_struct) = &input.data else {
         return Err(Error::new(
             input.span(),

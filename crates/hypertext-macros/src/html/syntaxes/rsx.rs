@@ -25,7 +25,10 @@ impl Node<Rsx> {
 
         let mut attrs = Vec::new();
 
-        #[expect(clippy::suspicious_operation_groupings)]
+        #[expect(
+            clippy::suspicious_operation_groupings,
+            reason = "false positive: the `peek`/`peek2` grouping is intentional"
+        )]
         while !(input.peek(Token![..])
             || input.peek(Token![>])
             || (input.peek(Token![/]) && input.peek2(Token![>])))

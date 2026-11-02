@@ -83,7 +83,10 @@ impl Parse for RenderableArgs {
     }
 }
 
-#[expect(clippy::too_many_lines)]
+#[expect(
+    clippy::too_many_lines,
+    reason = "a single linear expansion is easier to follow than split helpers"
+)]
 pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenStream> {
     let mut fields = Vec::new();
     let mut field_names = Vec::new();
@@ -204,7 +207,11 @@ pub fn generate(args: RenderableArgs, mut fn_item: ItemFn) -> syn::Result<TokenS
     let buffer_ident = Generator::buffer_ident();
 
     let output = quote! {
-        #[allow(clippy::elidable_lifetime_names, clippy::needless_lifetimes)]
+        #[allow(
+            clippy::elidable_lifetime_names,
+            clippy::needless_lifetimes,
+            reason = "lifetimes are kept as written by the user"
+        )]
         #fn_item
 
         #(#struct_attrs)*

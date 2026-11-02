@@ -51,7 +51,7 @@ fn primitive_renderables_cover_each_formatter() {
     assert_node(-99_isize, "-99");
     assert_node(1_024_usize, "1024");
 
-    #[expect(clippy::approx_constant)]
+    #[expect(clippy::approx_constant, reason = "testing float formatting, not π")]
     let float32 = 3.14_f32;
     assert_node(float32, "3.14");
     assert_node(1.25_f64, "1.25");
@@ -122,7 +122,7 @@ fn displayed_and_debugged_values_are_escaped() {
     }
 
     #[derive(Debug)]
-    #[expect(dead_code)]
+    #[expect(dead_code, reason = "fields are only read through `Debug`")]
     struct Tag(&'static str);
 
     assert_node(

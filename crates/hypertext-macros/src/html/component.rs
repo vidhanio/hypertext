@@ -82,7 +82,7 @@ impl ComponentAttribute {
 
                 quote! {
                     {
-                        #[allow(unused_parens)]
+                        #[allow(unused_parens, reason = "the user expression is wrapped in parentheses for span accuracy")]
                         #tokens
                     }
                 }

@@ -1,5 +1,3 @@
-#![expect(clippy::doc_markdown)]
-
 /// Derives [`Renderable`](crate::Renderable) for a type.
 ///
 /// This is used in conjunction with `#[maud]`/`#[rsx]`, as well as

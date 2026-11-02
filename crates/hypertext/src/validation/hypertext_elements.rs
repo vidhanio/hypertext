@@ -24,7 +24,10 @@
 //!     }
 //! }
 //! ```
-#![expect(clippy::too_long_first_doc_paragraph)]
+#![expect(
+    clippy::too_long_first_doc_paragraph,
+    reason = "element docs are taken verbatim from MDN"
+)]
 
 use crate::{define_elements, define_void_elements};
 

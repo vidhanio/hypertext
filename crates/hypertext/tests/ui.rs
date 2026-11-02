@@ -1,7 +1,5 @@
 //! Compile-fail and pass-case coverage for macro diagnostics.
 #![cfg(feature = "alloc")]
-#![allow(missing_docs)]
-#![allow(unexpected_cfgs)]
 
 #[cfg(not(miri))]
 #[test]

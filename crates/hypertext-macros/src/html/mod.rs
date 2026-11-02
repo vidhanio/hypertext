@@ -1,4 +1,11 @@
-#![expect(clippy::struct_field_names, clippy::large_enum_variant)]
+#![expect(
+    clippy::struct_field_names,
+    reason = "keyword token fields follow `syn`'s `<keyword>_token` naming convention"
+)]
+#![expect(
+    clippy::large_enum_variant,
+    reason = "syntax nodes are short-lived during expansion; boxing adds noise without a measurable win"
+)]
 
 mod basics;
 mod component;
@@ -75,7 +82,7 @@ pub trait Context: Generate<Context = Self> {
 
 impl Context for Infallible {
     fn is_control(&self) -> bool {
-        #[expect(clippy::uninhabited_references)]
+        #[expect(clippy::uninhabited_references, reason = "`Self` is uninhabited here")]
         match *self {}
     }
 
@@ -928,7 +935,7 @@ impl Toggle {
 
         quote! {
             {
-                #[allow(unused_parens)]
+                #[allow(unused_parens, reason = "the user expression is wrapped in parentheses for span accuracy")]
                 #tokens
             }
         }

@@ -62,7 +62,10 @@
 //!
 //! If the framework is widely used, consider contributing the trait to this
 //! crate so that others can use it too!
-#![expect(non_upper_case_globals)]
+#![expect(
+    non_upper_case_globals,
+    reason = "attribute constants are named after the attributes they represent"
+)]
 use crate::validation::{Attribute, AttributeNamespace, AttributeSymbol, Element};
 
 /// Global HTML attributes.
@@ -198,7 +201,7 @@ pub trait GlobalAttributes: Element {
 }
 
 /// [ARIA](https://www.w3.org/TR/wai-aria/) attributes.
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "ARIA attributes are self-describing")]
 pub trait AriaAttributes: GlobalAttributes {
     const role: Attribute = Attribute;
     const aria_activedescendant: Attribute = Attribute;
@@ -259,7 +262,7 @@ pub trait AriaAttributes: GlobalAttributes {
 impl<T: GlobalAttributes> AriaAttributes for T {}
 
 /// Event handler attributes.
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "event handler attributes are self-describing")]
 pub trait EventHandlerAttributes: GlobalAttributes {
     const onabort: Attribute = Attribute;
     const onautocomplete: Attribute = Attribute;
@@ -625,7 +628,7 @@ impl<T: GlobalAttributes> AlpineJsAttributes for T {}
 ///
 /// The [`define_svg_elements!`](crate::define_svg_elements) macro simplifies
 /// this process.
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "not every SVG attribute is documented yet")]
 pub trait SvgGlobalAttributes: Element {
     /// A unique identifier for the element.
     ///
@@ -744,7 +747,7 @@ pub trait SvgGlobalAttributes: Element {
     const writing_mode: Attribute = Attribute;
 }
 
-#[expect(missing_docs)]
+#[expect(missing_docs, reason = "not every MathML attribute is documented yet")]
 pub trait MathMlGlobalAttributes: Element {
     const autofocus: Attribute = Attribute;
 

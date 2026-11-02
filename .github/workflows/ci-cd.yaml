@@ -20,8 +20,10 @@ jobs:
     strategy:
       matrix:
         features:
+          - name: No Default Features
+            command: cargo test --tests --no-default-features
           - name: Default Features
-            command: cargo test --tests --no-default-features --features default
+            command: cargo test --tests
           - name: All Features
             command: cargo test --tests --no-default-features --all-features
       fail-fast: false
@@ -47,6 +49,8 @@ jobs:
     strategy:
       matrix:
         features:
+          - name: No Default Features
+            flag: ""
           - name: Default Features
             flag: --features default
           - name: All Features

@@ -398,7 +398,7 @@ impl Generate for Infallible {
     type Context = Self;
 
     fn generate(&self, _: &mut Generator) {
-        #[expect(clippy::uninhabited_references)]
+        #[expect(clippy::uninhabited_references, reason = "`Self` is uninhabited here")]
         match *self {}
     }
 }
@@ -442,7 +442,7 @@ impl ToTokens for Checks {
             let module = Ident::new(module_str, Span::mixed_site());
 
             let use_stmt = quote! {
-                #[allow(unused_imports)]
+                #[allow(unused_imports, reason = "the module is imported only for its element checks")]
                 use #module::*;
             };
 

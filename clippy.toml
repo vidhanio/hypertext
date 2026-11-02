@@ -1,1 +1,1 @@
-doc-valid-idents = ["MathML", ".."]
+doc-valid-idents = ["MathML", "PascalCase", ".."]

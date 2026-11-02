@@ -62,7 +62,7 @@ fn primitive_expression_matrix_uses_node_rendering() {
     assert_content!(-42_isize => "-42");
     assert_content!(42_usize => "42");
 
-    #[expect(clippy::approx_constant)]
+    #[expect(clippy::approx_constant, reason = "testing float formatting, not π")]
     let float32 = 3.14_f32;
     assert_content!(float32 => "3.14");
     assert_content!(-0.5_f64 => "-0.5");
@@ -110,11 +110,11 @@ fn display_and_debug_syntax_escape_values_in_both_contexts() {
     }
 
     #[derive(Debug)]
-    #[expect(dead_code)]
+    #[expect(dead_code, reason = "fields are only read through `Debug`")]
     struct Point(i32, i32);
 
     #[derive(Debug)]
-    #[expect(dead_code)]
+    #[expect(dead_code, reason = "fields are only read through `Debug`")]
     struct Tag(&'static str);
 
     assert_html_pair!(

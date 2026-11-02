@@ -24,9 +24,14 @@
 //!     }
 //! }
 //! ```
-// Suppress deprecation warnings triggered by the `define_mathml_elements!` macro
-// generating code that internally instantiates deprecated element structs.
-#![expect(deprecated, clippy::too_long_first_doc_paragraph)]
+#![expect(
+    deprecated,
+    reason = "`define_mathml_elements!` instantiates deprecated element structs internally"
+)]
+#![expect(
+    clippy::too_long_first_doc_paragraph,
+    reason = "element docs are taken verbatim from MDN"
+)]
 use crate::define_mathml_elements;
 
 define_mathml_elements! {

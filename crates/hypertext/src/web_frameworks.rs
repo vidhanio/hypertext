@@ -99,7 +99,10 @@ mod ntex {
 
     impl<St: State, K: super::ResponseMarkup> Responder<St> for Rendered<&'static str, K> {
         #[inline]
-        #[expect(clippy::future_not_send)]
+        #[expect(
+            clippy::future_not_send,
+            reason = "ntex responders run on a single-threaded runtime"
+        )]
         fn respond_to(self, _: &St, _: &HttpRequest) -> impl Future<Output = Response> {
             core::future::ready(
                 Response::Ok()
@@ -111,7 +114,10 @@ mod ntex {
 
     impl<St: State, K: super::ResponseMarkup> Responder<St> for Rendered<String, K> {
         #[inline]
-        #[expect(clippy::future_not_send)]
+        #[expect(
+            clippy::future_not_send,
+            reason = "ntex responders run on a single-threaded runtime"
+        )]
         fn respond_to(self, _: &St, _: &HttpRequest) -> impl Future<Output = Response> {
             core::future::ready(
                 Response::Ok()

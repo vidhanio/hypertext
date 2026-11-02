@@ -1,4 +1,7 @@
-#![expect(missing_docs)]
+#![expect(
+    missing_docs,
+    reason = "macros are documented at their re-exports in `hypertext`"
+)]
 
 mod derive;
 mod html;
@@ -181,7 +184,7 @@ create_file_variants! {
 
 #[proc_macro_derive(Renderable, attributes(maud, rsx, attribute, renderable))]
 pub fn derive_renderable(input: TokenStream) -> TokenStream {
-    derive::renderable(parse_macro_input!(input))
+    derive::renderable(&parse_macro_input!(input))
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }
@@ -195,7 +198,7 @@ pub fn renderable(attr: TokenStream, item: TokenStream) -> TokenStream {
 
 #[proc_macro_derive(DefaultBuilder, attributes(builder))]
 pub fn derive_default_builder(input: TokenStream) -> TokenStream {
-    derive::default_builder(parse_macro_input!(input))
+    derive::default_builder(&parse_macro_input!(input))
         .unwrap_or_else(|err| err.to_compile_error())
         .into()
 }

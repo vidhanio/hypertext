@@ -8,7 +8,6 @@ version = "0.12.1"
 edition = "2024"
 description = "A blazing fast type checked HTML macro crate."
 readme = "README.md"
-homepage = "https://github.com/vidhanio/hypertext"
 repository = "https://github.com/vidhanio/hypertext"
 license = "MIT"
 keywords = ["html", "macro", "maud", "rsx"]
@@ -18,7 +17,6 @@ categories = ["template-engine"]
 name = "hypertext"
 
 [workspace.dependencies]
-hypertext = { version = "0.12.1", path = "./crates/hypertext" }
 hypertext-macros = { version = "0.12.1", path = "./crates/hypertext-macros" }
 
 html-escape = { version = "0.3", default-features = false }
@@ -28,6 +26,8 @@ html-escape = { version = "0.3", default-features = false }
 cargo = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
+allow_attributes_without_reason = "warn"
+undocumented_unsafe_blocks = "warn"
 
 [workspace.lints.rust]
 missing_copy_implementations = "warn"

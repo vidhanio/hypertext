@@ -574,7 +574,10 @@ macro_rules! __define_element {
         pub struct $name;
 
         $(
-            #[allow(non_upper_case_globals)]
+            #[allow(
+                non_upper_case_globals,
+                reason = "attribute constants are named after the attributes they represent"
+            )]
             impl $name {
                 $(
                     $(#[$attr_meta])*
