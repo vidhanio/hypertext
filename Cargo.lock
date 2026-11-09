@@ -320,6 +320,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "backoff"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b62ddb9cb1ec0a098ad4bbf9344d0713fa193ae1a80af55febcff2627b6a00c1"
+dependencies = [
+ "getrandom 0.2.17",
+ "instant",
+ "rand 0.8.8",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.76"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -794,7 +805,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1383,6 +1394,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8fae54786f62fb2918dcfae3d568594e50eb9b5c25bf04371af6fe7516452fb"
 
 [[package]]
+name = "instant"
+version = "0.1.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0242819d153cba4b4b05a5a8f2a7e9bbf97b6055b2a002b395c96b5ff3c0222"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
 name = "is-terminal"
 version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1390,7 +1410,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -1651,12 +1671,12 @@ dependencies = [
 
 [[package]]
 name = "ntex"
-version = "4.5.0"
+version = "4.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9afa35ee9f3521d8d657f9f221e6201d29aa587d5bf04146b7db0df0edaa76bd"
+checksum = "4c9f0cfe1e94769e73404a21d76fd22f7eb682b100bc35fa6cc3591de62423c1"
 dependencies = [
  "atoi_simd",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bitflags",
  "derive_more",
  "encoding_rs",
@@ -1740,9 +1760,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-h2"
-version = "4.4.0"
+version = "4.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12902181f70e907113d4a99dd1ddf0458b87be15130cc05afa8134dcb6b2f2c9"
+checksum = "7b2c6ba179a7593bc372e4a072ac3010a4fc188f9d9e606cb8f0054471d09bf9"
 dependencies = [
  "bitflags",
  "fastrand",
@@ -1818,9 +1838,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-macros"
-version = "4.2.0"
+version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a6a3c3083595ac144e4a283b071a3daeae1c7bac1f9996dc77e4ee522fbe8bfd"
+checksum = "91be4a2d466839337db00b04a4cc829559630528c425ecc1ab224ec8cd901985"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1908,9 +1928,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-server"
-version = "4.3.3"
+version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72ace8b51fae9cad18c38d0ef97829f90f6d75d10b388306d8dbf7656693332d"
+checksum = "46c88f70d32a80343fdbb8bd9a03132f50183924caafac7eee8d9e6320fc30e0"
 dependencies = [
  "async-channel",
  "event-listener",
@@ -1931,9 +1951,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-service"
-version = "5.5.0"
+version = "5.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "051f4a07d8c15bfd50a04727c1dd7c6526d1f81d50693340452a155c1bb4884d"
+checksum = "0982ce2b326cdf022a7288f610b8288deee0741c8c8df946747fd64c527d61ef"
 dependencies = [
  "foldhash",
  "log",
@@ -1942,9 +1962,9 @@ dependencies = [
 
 [[package]]
 name = "ntex-tls"
-version = "4.7.1"
+version = "4.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c6cf8b0a041920f388dacaeb04fdb81d64355f69a51b66980bd2a1b293a3d4b"
+checksum = "c9e265926128e8b64c56fb9e8614685f68ddb6eae9065453e08fc81d4f81e38e"
 dependencies = [
  "base64 0.23.1",
  "hex",
@@ -1955,7 +1975,6 @@ dependencies = [
  "ntex-net",
  "ntex-service",
  "ntex-util",
- "symcrypt",
  "thiserror",
  "windows-sys 0.61.2",
  "x509-parser",
@@ -1964,10 +1983,11 @@ dependencies = [
 
 [[package]]
 name = "ntex-util"
-version = "4.5.1"
+version = "4.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7bd9555491ebfb5f8bdc03cc01d4f5057ae449011cc54f8214b16046a583c278"
+checksum = "6b65d6163a05e4aff8bb92306eec587edaf3163b0f18f409898806a0ecb267ac"
 dependencies = [
+ "backoff",
  "bitflags",
  "foldhash",
  "futures-core",
@@ -2556,7 +2576,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2867,26 +2887,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
-name = "symcrypt"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45f6e93e13900bae533f1f347c82d2fcf9d7ad7fffd7e58bc9fbd1b68575ca1c"
-dependencies = [
- "lazy_static",
- "libc",
- "symcrypt-sys",
-]
-
-[[package]]
-name = "symcrypt-sys"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0878df9feb068709a68ccdb5cc3201649201e79e823566863f6ca4db4b9201aa"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "syn"
 version = "2.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2944,7 +2944,7 @@ dependencies = [
  "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3486,7 +3486,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
